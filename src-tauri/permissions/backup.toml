@@ -1,0 +1,14 @@
+[[permission]]
+identifier = "allow-backup-database"
+description = "Allow backing up the SQLite database"
+commands.allow = ["backup_database"]
+
+[[permission]]
+identifier = "allow-restore-database"
+description = "Allow restoring the SQLite database"
+commands.allow = ["restore_database"]
+
+[[permission]]
+identifier = "allow-get-db-file-path"
+description = "Allow reading the database file path"
+commands.allow = ["get_db_file_path"]

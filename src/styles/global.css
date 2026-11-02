@@ -1,0 +1,111 @@
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('../assets/fonts/IBMPlexSans-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('../assets/fonts/IBMPlexSans-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('../assets/fonts/IBMPlexSans-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('../assets/fonts/IBMPlexSans-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Sans Myanmar';
+  src: url('../assets/fonts/NotoSansMyanmar-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Sans Myanmar';
+  src: url('../assets/fonts/NotoSansMyanmar-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Sans Myanmar';
+  src: url('../assets/fonts/NotoSansMyanmar-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Sans Myanmar';
+  src: url('../assets/fonts/NotoSansMyanmar-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+html, body, #root {
+  margin: 0;
+  height: 100%;
+  background: #FFFFFF;
+  color: #1B2A41;
+  font-family: 'IBM Plex Sans', 'Noto Sans Myanmar', sans-serif;
+  font-size: 17px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+a { color: #9A6B12; }
+a:hover { color: #1B2A41; }
+
+input, select, button, textarea {
+  font-family: inherit;
+  color: inherit;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid #1B2A41;
+  outline-offset: -1px;
+}
+
+button { cursor: pointer; }
+
+@media print {
+  @page {
+    size: A5;
+    margin: 8mm;
+  }
+  html, body, #root {
+    height: auto !important;
+    background: #fff !important;
+  }
+  [data-noprint] {
+    display: none !important;
+  }
+  [data-app] {
+    display: block !important;
+    height: auto !important;
+    min-width: 0 !important;
+  }
+  [data-main] {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+  [data-print-root] {
+    box-shadow: none !important;
+    margin: 0 auto !important;
+    max-width: none !important;
+  }
+}

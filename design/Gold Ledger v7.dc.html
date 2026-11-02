@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Sans+Myanmar:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;height:100%;background:#FFFFFF;color:#1B2A41;font-family:'IBM Plex Sans','Noto Sans Myanmar',sans-serif;font-size:17px;line-height:1.7;-webkit-font-smoothing:antialiased;font-variant-numeric:lining-nums tabular-nums}
+a{color:#9A6B12}a:hover{color:#1B2A41}
+input,select,button,textarea{font-family:inherit;color:inherit}
+input:focus,select:focus{outline:2px solid #1B2A41;outline-offset:-1px}
+@media print{html,body{height:auto;background:#fff}[data-noprint]{display:none!important}[data-app]{display:block!important;height:auto!important}[data-main]{overflow:visible!important;padding:0!important}[data-print-root]{box-shadow:none!important;margin:0 auto!important}}
+</style>
+</helmet>
+<div data-app="1" style="display:grid;grid-template-rows:72px minmax(0,1fr);height:100vh;min-width:1280px">
+  <nav data-noprint="1" style="background:#1B2A41;display:flex;align-items:stretch;gap:28px;padding:0 36px">
+    <div style="display:flex;align-items:center;gap:12px"><div style="width:38px;height:38px;border-radius:50%;background:#FFFFFF;color:#1B2A41;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">သ</div><div style="font-size:19px;font-weight:700;color:#FFFFFF;white-space:nowrap">ဦးသန့်စင်</div></div>
+    <div style="display:flex;align-items:stretch;flex:1;min-width:0">
+      <sc-for list="{{ nav }}" as="n" hint-placeholder-count="9"><button onClick="{{ n.onClick }}" title="{{ n.title }}" style="{{ n.style }}">{{ n.label }}</button></sc-for>
+    </div>
+    <div style="display:flex;align-items:center"><button onClick="{{ goEntry }}" style="height:44px;padding:0 22px;border:none;border-radius:6px;background:#D9A93A;color:#1B2A41;font-size:16px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="background:#E6BA55">+ စာရင်းအသစ်</button></div>
+  </nav>
+  <div style="display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0">
+    <header data-noprint="1" style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;padding:28px 48px 18px;margin:0 48px 0;padding-left:0;padding-right:0;border-bottom:2px solid #1B2A41">
+      <div style="font-size:28px;font-weight:700;line-height:1.6">{{ pageTitle }}</div>
+      <div style="display:flex;align-items:baseline;gap:28px;font-size:16px;color:#5A6478">
+        <span>ဝယ် <b style="font-size:20px;color:#1B2A41">{{ cur.buy }}</b></span>
+        <span>ရောင်း <b style="font-size:20px;color:#9A6B12">{{ cur.sell }}</b></span>
+        <span>{{ todayLabel }}</span>
+      </div>
+    </header>
+    <main data-main="1" style="overflow:auto;padding:32px 48px 64px;min-height:0">
+
+      <sc-if value="{{ is.dash }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:24px;max-width:1360px">
+          <div style="display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:24px">
+            <div style="background:#1B2A41;color:#FFFFFF;border-radius:12px;padding:34px 38px;display:flex;flex-direction:column;gap:22px;border:1px solid #34486B">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div style="font-size:16px;color:#B9C3D3">ယနေ့ပေါက်ဈေး · ၁ ကျပ်သား · ၁၆ ပဲရည်</div>
+                <button onClick="{{ goPrices }}" style="height:38px;padding:0 18px;border:1px solid #E0AA3E;border-radius:8px;background:none;color:#F0C35A;font-size:15px;cursor:pointer" style-hover="background:#24365A">ဈေးပြင်မည်</button>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px">
+                <div><div style="font-size:16px;color:#B9C3D3">ဆိုင်ဝယ်ဈေး</div><div style="font-family:'IBM Plex Sans',sans-serif;font-size:46px;font-weight:600;line-height:1.1;color:#FFFFFF">{{ cur.buy }}</div></div>
+                <div style="border-left:1px solid #34486B;padding-left:28px"><div style="font-size:16px;color:#B9C3D3">ဆိုင်ရောင်းဈေး</div><div style="font-family:'IBM Plex Sans',sans-serif;font-size:46px;font-weight:600;line-height:1.1;color:#F0C35A">{{ cur.sell }}</div></div>
+              </div>
+            </div>
+            <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);color:#1B2A41;padding:34px 34px;display:flex;flex-direction:column;justify-content:space-between;gap:16px">
+              <div style="font-size:16px;font-weight:600">လက်ကျန်ရွှေ (အခေါက်)</div>
+              <div style="font-family:'IBM Plex Sans','Noto Sans Myanmar',sans-serif;font-size:26px;font-weight:700;line-height:1.3">{{ stock.cur }}</div>
+              <div style="display:flex;justify-content:space-between;font-size:15px"><span></span><button onClick="{{ goStock }}" style="background:none;border:none;color:#1B2A41;font-weight:700;font-size:15px;cursor:pointer;padding:0">ကြည့်ရန် →</button></div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px">
+            <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:26px 28px"><div style="font-size:16px;color:#5A6478">ယနေ့ ရောင်းရွှေ</div><div style="font-family:'IBM Plex Sans',sans-serif;font-size:26px;font-weight:700;line-height:1.4;margin-top:6px">{{ dash.sellW }}</div><div style="font-size:15px;color:#1F7A4D;margin-top:4px">{{ dash.sellAmt }} ကျပ် · {{ dash.sellCount }} စောင်</div></div>
+            <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:26px 28px"><div style="font-size:16px;color:#5A6478">ယနေ့ ဝယ်ရွှေ</div><div style="font-family:'IBM Plex Sans',sans-serif;font-size:26px;font-weight:700;line-height:1.4;margin-top:6px">{{ dash.buyW }}</div><div style="font-size:15px;color:#B23A2A;margin-top:4px">{{ dash.buyAmt }} ကျပ် · {{ dash.buyCount }} စောင်</div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:24px">
+            <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:28px;display:flex;flex-direction:column;gap:18px">
+              <div style="display:flex;justify-content:space-between;align-items:center"><div style="font-family:'Noto Sans Myanmar',sans-serif;font-size:19px;font-weight:700">ရက် ၁၄ ရက်</div><div style="display:flex;gap:18px;font-size:15px;color:#5A6478"><span style="display:flex;align-items:center;gap:8px"><span style="width:12px;height:12px;border-radius:3px;background:#D9A93A"></span>ရောင်း</span><span style="display:flex;align-items:center;gap:8px"><span style="width:12px;height:12px;border-radius:3px;background:#C9CFDA"></span>ဝယ်</span></div></div>
+              <div style="display:flex;align-items:flex-end;gap:8px;height:220px;border-bottom:1px solid #E6E9EE">
+                <sc-for list="{{ dash.bars }}" as="b" hint-placeholder-count="14"><div title="{{ b.title }}" style="flex:1;display:flex;align-items:flex-end;gap:3px;height:100%"><div style="{{ b.sell }}"></div><div style="{{ b.buy }}"></div></div></sc-for>
+              </div>
+              <div style="display:flex;gap:8px;font-size:12px;color:#6B7486;margin-top:-10px"><sc-for list="{{ dash.bars }}" as="b" hint-placeholder-count="14"><div style="flex:1;text-align:center">{{ b.label }}</div></sc-for></div>
+            </div>
+            <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:28px;display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-family:'Noto Sans Myanmar',sans-serif;font-size:19px;font-weight:700">နောက်ဆုံးစာရင်း</div><button onClick="{{ goLedger }}" style="background:none;border:none;color:#9A6B12;font-size:15px;font-weight:600;cursor:pointer">အားလုံး →</button></div>
+              <sc-for list="{{ dash.recent }}" as="r" hint-placeholder-count="5">
+                <div onClick="{{ r.onView }}" style="display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 0;border-top:1px solid #EEF0F3;cursor:pointer">
+                  <span style="{{ r.pill }}">{{ r.typeLabel }}</span>
+                  <div style="min-width:0"><div style="font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.cust }}</div><div style="font-size:14px;color:#6B7486">{{ r.amount }} ကျပ်</div></div>
+                  <div style="font-size:17px;font-weight:700;white-space:nowrap">{{ r.weight }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ is.entry }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:minmax(0,1.5fr) minmax(360px,1fr);gap:28px;align-items:start;max-width:1280px">
+          <div style="display:flex;flex-direction:column;gap:24px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><sc-for list="{{ typeSeg }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="{{ o.styleBig }}">{{ o.label }}</button></sc-for></div>
+            <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:30px;display:flex;flex-direction:column;gap:26px">
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <span style="font-size:16px;font-weight:600">ဖောက်သည်</span>
+                <div style="display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:12px">
+                  <div style="position:relative">
+                    <input value="{{ cp.q }}" onChange="{{ cp.onQ }}" onFocus="{{ cp.open }}" onBlur="{{ cp.close }}" placeholder="အမည် ရိုက်ရှာပါ / အသစ်ရိုက်ထည့်ပါ" style="height:56px;width:100%;box-sizing:border-box;border:1px solid #D5DAE1;border-radius:6px;padding:0 16px;background:#fff;font-size:16px">
+                    <sc-if value="{{ cp.show }}" hint-placeholder-val="{{ false }}">
+                      <div style="position:absolute;top:62px;left:0;right:0;z-index:20;background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:8px;box-shadow:0 8px 24px rgba(27,42,65,.14);max-height:300px;overflow:auto;padding:6px">
+                        <sc-for list="{{ cp.sug }}" as="c" hint-placeholder-count="0"><button onMouseDown="{{ c.pick }}" style="display:flex;justify-content:space-between;gap:12px;width:100%;padding:12px 14px;border:none;border-radius:6px;background:none;text-align:left;cursor:pointer;font-size:16px;color:#1B2A41" style-hover="background:#F3F5F8"><span>{{ c.name }}</span><span style="color:#6B7486;font-size:15px">{{ c.phone }}</span></button></sc-for>
+                        <sc-if value="{{ cp.canAdd }}" hint-placeholder-val="{{ false }}"><div style="padding:12px 14px;border-top:1px solid #EEF0F3;color:#1F7A4D;font-weight:600;font-size:16px">+ “{{ cp.q }}” ကို ဖောက်သည်အသစ်အဖြစ် ထည့်မည်</div></sc-if>
+                      </div>
+                    </sc-if>
+                  </div>
+                  <sc-if value="{{ cp.isNew }}" hint-placeholder-val="{{ false }}"><input value="{{ form.newPhone }}" onChange="{{ setF.newPhone }}" placeholder="ဖုန်းနံပါတ် (မထည့်လည်းရ)" style="height:56px;width:100%;box-sizing:border-box;border:1.5px solid #1F7A4D;border-radius:6px;padding:0 16px;background:#fff;font-size:16px"></sc-if>
+                  <sc-if value="{{ cp.notNew }}" hint-placeholder-val="{{ true }}"><div style="height:56px;display:flex;align-items:center;padding:0 16px;border-radius:6px;background:#F3F5F8;color:#5A6478;font-size:16px">{{ cp.phone }}</div></sc-if>
+                </div>
+                <div style="{{ cp.statusStyle }}">{{ cp.status }}</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:16px;font-weight:600">အလေးချိန်</span>
+                  
+                </div>
+                <sc-if value="{{ isKpy }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px">
+                    <label style="display:flex;align-items:center;border:1px solid #D5DAE1;border-radius:6px;padding:0 18px;height:64px;gap:10px;background:#fff"><input type="number" min="0" step="any" value="{{ form.k }}" onChange="{{ setF.k }}" placeholder="0" style="flex:1;min-width:0;border:none;outline:none;font-size:24px;font-weight:600;background:none"><span style="font-size:16px;color:#5A6478">ကျပ်</span></label>
+                    <label style="display:flex;align-items:center;border:1px solid #D5DAE1;border-radius:6px;padding:0 18px;height:64px;gap:10px;background:#fff"><input type="number" min="0" step="any" value="{{ form.p }}" onChange="{{ setF.p }}" placeholder="0" style="flex:1;min-width:0;border:none;outline:none;font-size:24px;font-weight:600;background:none"><span style="font-size:16px;color:#5A6478">ပဲ</span></label>
+                    <label style="display:flex;align-items:center;border:1px solid #D5DAE1;border-radius:6px;padding:0 18px;height:64px;gap:10px;background:#fff"><input type="number" min="0" step="any" value="{{ form.y }}" onChange="{{ setF.y }}" placeholder="0" style="flex:1;min-width:0;border:none;outline:none;font-size:24px;font-weight:600;background:none"><span style="font-size:16px;color:#5A6478">ရွေး</span></label>
+                  </div>
+                </sc-if>
+                <div style="font-size:15px;color:#5A6478">= {{ fv.weight }}</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:16px;font-weight:600">ယနေ့ဈေး · ၁ ကျပ်သား</span><span style="{{ tp.noteStyle }}">{{ tp.note }}</span></div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                    <label style="{{ tp.buyBox }}"><span style="display:flex;justify-content:space-between;font-size:15px;color:#5A6478"><span>ဝယ်ဈေး</span><span style="color:#9A6B12;font-weight:600">{{ tp.buyTag }}</span></span><input type="number" min="0" value="{{ tp.buy }}" onChange="{{ tp.onBuy }}" style="border:none;outline:none;background:none;font-size:24px;font-weight:700;width:100%;padding:0;color:#1B2A41"></label>
+                    <label style="{{ tp.sellBox }}"><span style="display:flex;justify-content:space-between;font-size:15px;color:#5A6478"><span>ရောင်းဈေး</span><span style="color:#9A6B12;font-weight:600">{{ tp.sellTag }}</span></span><input type="number" min="0" value="{{ tp.sell }}" onChange="{{ tp.onSell }}" style="border:none;outline:none;background:none;font-size:24px;font-weight:700;width:100%;padding:0;color:#1B2A41"></label>
+                  </div>
+                </div>
+              </div>
+              <label style="display:flex;flex-direction:column;gap:8px"><span style="font-size:16px;font-weight:600">မှတ်ချက်</span><input value="{{ form.note }}" onChange="{{ setF.note }}" style="height:56px;border:1px solid #D5DAE1;border-radius:6px;padding:0 16px;font-size:16px;background:#fff"></label>
+            </div>
+          </div>
+          <div style="background:#1B2A41;color:#FFFFFF;border-radius:12px;padding:32px;display:flex;flex-direction:column;gap:16px;position:sticky;top:0">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Noto Sans Myanmar',sans-serif;font-size:19px;font-weight:700">တွက်ချက်မှု</span><span style="font-size:15px;color:#B9C3D3">{{ nextNo }}</span></div>
+            <div style="display:flex;flex-direction:column;gap:2px;padding-bottom:16px;border-bottom:1px solid #34486B"><span style="font-size:16px;color:#B9C3D3">အလေးချိန်</span><span style="font-size:32px;font-weight:700;line-height:1.35;color:#F0C35A">{{ fv.weight }}</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:16px;gap:12px"><span style="color:#B9C3D3">ဈေး</span><span>{{ fv.price }}</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:18px;gap:12px"><span style="color:#B9C3D3">ကျသင့်ငွေ</span><span style="font-weight:600">{{ fv.amount }}</span></div>
+            <button onClick="{{ save }}" style="height:58px;border:none;border-radius:8px;background:#D9A93A;color:#1B2A41;font-size:17px;font-weight:700;cursor:pointer;margin-top:10px" style-hover="background:#E6BA55">သိမ်းပြီး ဘောင်ချာထုတ်မည်</button>
+            <button onClick="{{ resetForm }}" style="height:46px;border:1px solid #34486B;border-radius:8px;background:none;color:#B9C3D3;font-size:16px;cursor:pointer">ရှင်းမည်</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ is.ledger }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:22px;max-width:1360px">
+          <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+            <div style="display:flex;gap:4px;background:#EEF0F3;padding:4px;border-radius:8px"><sc-for list="{{ fltSeg }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.onClick }}" style="{{ o.styleSm }}">{{ o.label }}</button></sc-for></div>
+            <input value="{{ flt.q }}" onChange="{{ setFl.q }}" placeholder="အမည် / ဘောင်ချာအမှတ် ရှာရန်" style="height:46px;width:300px;border:1px solid #D5DAE1;border-radius:8px;padding:0 20px;font-size:16px;background:#FFFFFF">
+            <input type="date" value="{{ flt.from }}" onChange="{{ setFl.from }}" style="height:46px;border:1px solid #D5DAE1;border-radius:8px;padding:0 16px;background:#FFFFFF;font-size:15px">
+            <span style="color:#6B7486">—</span>
+            <input type="date" value="{{ flt.to }}" onChange="{{ setFl.to }}" style="height:46px;border:1px solid #D5DAE1;border-radius:8px;padding:0 16px;background:#FFFFFF;font-size:15px">
+            <button onClick="{{ clearFl }}" style="height:46px;padding:0 14px;border:none;background:none;color:#9A6B12;cursor:pointer;font-size:16px;font-weight:600">ရှင်းမည်</button>
+            <div style="flex:1"></div>
+            <div style="font-size:16px;color:#5A6478">{{ lt.count }} စောင်</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px">
+            <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:22px 26px;display:flex;justify-content:space-between;align-items:center;gap:16px"><div><div style="font-size:15px;color:#5A6478">ရောင်း စုစုပေါင်း</div><div style="font-size:16px;color:#5A6478">{{ lt.sellAmt }} ကျပ်</div></div><div style="font-size:26px;font-weight:700;color:#1F7A4D">{{ lt.sellW }}</div></div>
+            <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:22px 26px;display:flex;justify-content:space-between;align-items:center;gap:16px"><div><div style="font-size:15px;color:#5A6478">ဝယ် စုစုပေါင်း</div><div style="font-size:16px;color:#5A6478">{{ lt.buyAmt }} ကျပ်</div></div><div style="font-size:26px;font-weight:700;color:#B23A2A">{{ lt.buyW }}</div></div>
+          </div>
+          <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);overflow:hidden">
+            <table style="width:100%;border-collapse:collapse;font-size:16px">
+              <thead><tr style="color:#5A6478;text-align:left;font-size:15px"><th style="padding:16px 20px;font-weight:600">ဘောင်ချာ</th><th style="padding:16px 12px;font-weight:600">အမျိုး</th><th style="padding:16px 12px;font-weight:600">ဖောက်သည်</th><th style="padding:16px 12px;font-weight:600">အလေးချိန်</th><th style="padding:16px 12px;font-weight:600;text-align:right">ငွေ</th><th style="padding:16px 20px"></th></tr></thead>
+              <tbody>
+                <sc-for list="{{ lt.rows }}" as="r" hint-placeholder-count="8">
+                  <tr style-hover="background:#F7F8FA">
+                    <td style="padding:16px 20px;border-top:1px solid #EEF0F3;white-space:nowrap"><div style="font-weight:700">{{ r.no }}</div><div style="font-size:14px;color:#6B7486">{{ r.date }}</div></td>
+                    <td style="padding:16px 12px;border-top:1px solid #EEF0F3"><span style="{{ r.pill }}">{{ r.typeLabel }}</span></td>
+                    <td style="padding:16px 12px;border-top:1px solid #EEF0F3;font-weight:500">{{ r.cust }}</td>
+                    <td style="padding:16px 12px;border-top:1px solid #EEF0F3;white-space:nowrap;font-size:18px;font-weight:700">{{ r.weight }}</td>
+                    <td style="padding:16px 12px;border-top:1px solid #EEF0F3;text-align:right;color:#5A6478;white-space:nowrap">{{ r.amount }}</td>
+                    <td style="padding:16px 20px;border-top:1px solid #EEF0F3;white-space:nowrap;text-align:right"><div style="display:flex;gap:6px;justify-content:flex-end"><button onClick="{{ r.onView }}" style="height:36px;border:1px solid #D5DAE1;background:#fff;color:#1B2A41;border-radius:8px;padding:0 16px;font-size:15px;font-weight:600;cursor:pointer" style-hover="background:#FBF3E0">ဘောင်ချာ</button><button onClick="{{ r.onDelete }}" style="height:36px;border:none;background:none;color:#B23A2A;font-size:15px;cursor:pointer;padding:0 8px">ဖျက်</button></div></td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ is.voucher }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:280px minmax(0,1fr);gap:32px;align-items:start;max-width:1280px">
+          <div data-noprint="1" style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:14px;display:flex;flex-direction:column;gap:4px;max-height:calc(100vh - 170px);overflow:auto">
+            <div style="font-family:'Noto Sans Myanmar',sans-serif;font-size:17px;font-weight:700;padding:8px 12px 12px">ဘောင်ချာများ</div>
+            <sc-for list="{{ vList }}" as="v" hint-placeholder-count="10">
+              <button onClick="{{ v.onClick }}" style="{{ v.style }}"><span style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:700">{{ v.no }}</span><span style="font-size:14px;color:#6B7486">{{ v.typeLabel }}</span></span><span style="display:flex;justify-content:space-between;gap:8px;font-size:15px;color:#5A6478"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ v.cust }}</span><span>{{ v.amount }}</span></span></button>
+            </sc-for>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:18px;align-items:center">
+            <div data-noprint="1" style="display:flex;gap:10px;align-self:stretch;justify-content:flex-end"><button onClick="{{ doPrint }}" style="height:48px;padding:0 26px;border:none;border-radius:8px;background:#1B2A41;color:#F0C35A;cursor:pointer;font-size:16px;font-weight:700">ပရင့်ထုတ်မည်</button></div>
+            <sc-if value="{{ hasVoucher }}" hint-placeholder-val="{{ true }}">
+              <div data-print-root="1" style="width:100%;max-width:600px;box-sizing:border-box;background:#FFFDF8;box-shadow:0 20px 50px rgba(60,40,10,.12);padding:12px">
+                <div style="border:1.5px solid #C99A35;outline:1px solid #C99A35;outline-offset:-6px;padding:40px 44px;display:flex;flex-direction:column;gap:22px">
+                  <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px">
+                    <div style="width:46px;height:46px;border-radius:50%;border:1.5px solid #C99A35;display:flex;align-items:center;justify-content:center;color:#9A6B12;font-family:'Noto Sans Myanmar',sans-serif;font-weight:700;margin-bottom:8px">သ</div>
+                    <div style="font-family:'Noto Sans Myanmar',sans-serif;font-size:30px;font-weight:700;line-height:1.6">ဦးသန့်စင်</div>
+                    <div style="font-size:15px;color:#6E6250">အခေါက်ရွှေ အရောင်းအဝယ်</div>
+                    <div style="margin-top:12px;font-size:16px;font-weight:700;color:#9A6B12;border-top:1px solid #DCCDAE;border-bottom:1px solid #DCCDAE;padding:4px 22px">{{ v.title }}</div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;font-size:15px">
+                    <div style="display:flex;gap:10px"><span style="color:#6E6250;width:60px">အမှတ်</span><span style="font-weight:700">{{ v.no }}</span></div>
+                    <div style="display:flex;gap:10px"><span style="color:#6E6250;width:60px">ရက်စွဲ</span><span>{{ v.date }} {{ v.time }}</span></div>
+                    <div style="display:flex;gap:10px"><span style="color:#6E6250;width:60px">အမည်</span><span>{{ v.cust }}</span></div>
+                    <div style="display:flex;gap:10px"><span style="color:#6E6250;width:60px">ဖုန်း</span><span>{{ v.phone }}</span></div>
+                  </div>
+                  <table style="width:100%;border-collapse:collapse;font-size:15px">
+                    <thead><tr style="border-top:1px solid #1B2A41;border-bottom:1px solid #1B2A41;text-align:left"><th style="padding:9px 4px;font-weight:700">အကြောင်းအရာ</th><th style="padding:9px 4px;font-weight:700">အလေးချိန်</th><th style="padding:9px 4px;font-weight:700;text-align:right">ငွေ</th></tr></thead>
+                    <tbody><tr><td style="padding:14px 4px;vertical-align:top">အခေါက်ရွှေ<div style="font-size:12px;color:#6E6250">၁၆ ပဲရည် · {{ v.note }}</div></td><td style="padding:14px 4px;vertical-align:top">{{ v.weight }}</td><td style="padding:14px 4px;text-align:right;vertical-align:top">{{ v.amount }}</td></tr></tbody>
+                  </table>
+                  <div style="display:flex;flex-direction:column;gap:7px;font-size:15px;border-top:1px dashed #C9B790;padding-top:14px">
+                    <div style="display:flex;justify-content:space-between"><span style="color:#6E6250">ပေါက်ဈေး / ကျပ်သား</span><span>{{ v.price }}</span></div>
+                    <div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:8px"><span style="font-size:17px;font-weight:700">စုစုပေါင်း</span><span style="font-family:'IBM Plex Sans',sans-serif;font-size:32px;font-weight:700">{{ v.amount }}</span></div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:44px;margin-top:30px;font-size:14px;color:#6E6250;text-align:center">
+                    <div style="border-top:1px solid #8A7D66;padding-top:6px">ဝယ်သူ လက်မှတ်</div>
+                    <div style="border-top:1px solid #8A7D66;padding-top:6px">ရောင်းသူ လက်မှတ်</div>
+                  </div>
+                  <div style="text-align:center;font-size:14px;color:#9A6B12">ကျေးဇူးတင်ပါသည်</div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ is.reports }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:24px;max-width:1360px">
+          <div data-noprint="1" style="display:flex;gap:4px;background:#EEF0F3;padding:4px;border-radius:8px;align-self:flex-start"><sc-for list="{{ repModeSeg }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.onClick }}" style="{{ o.styleSm }}">{{ o.label }}</button></sc-for></div>
+          <sc-if value="{{ repIs.day }}" hint-placeholder-val="{{ true }}"><div style="display:flex;flex-direction:column;gap:24px">
+          <div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:16px;color:#5A6478">{{ rep.rangeLabel }}</div>
+            <div style="display:flex;gap:4px;background:#EEF0F3;padding:4px;border-radius:8px"><sc-for list="{{ rangeSeg }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.onClick }}" style="{{ o.styleSm }}">{{ o.label }}</button></sc-for></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px">
+            <div style="background:#1B2A41;color:#FFFFFF;border-radius:12px;padding:24px 26px"><div style="font-size:15px;color:#B9C3D3">ရောင်းရွှေ</div><div style="font-family:'IBM Plex Sans',sans-serif;font-size:26px;font-weight:700;line-height:1.45;color:#F0C35A">{{ rep.sellW }}</div><div style="font-size:14px;color:#B9C3D3">{{ rep.sellAmt }} ကျပ် · {{ rep.sellCount }} စောင်</div></div>
+            <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:24px 26px"><div style="font-size:15px;color:#5A6478">ဝယ်ရွှေ</div><div style="font-family:'IBM Plex Sans',sans-serif;font-size:26px;font-weight:700;line-height:1.45">{{ rep.buyW }}</div><div style="font-size:14px;color:#5A6478">{{ rep.buyAmt }} ကျပ် · {{ rep.buyCount }} စောင်</div></div>
+            <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:24px 26px"><div style="font-size:15px;color:#5A6478">ခန့်မှန်းအမြတ်</div><div style="font-family:'IBM Plex Sans',sans-serif;font-size:28px;font-weight:600;line-height:1.25;color:#1F7A4D">{{ rep.margin }}</div><div style="font-size:14px;color:#5A6478">ပျမ်းမျှဝယ်ဈေး {{ rep.avgCost }}</div></div>
+          </div>
+          <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:28px;display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+                <div><div style="font-size:19px;font-weight:700">ရောင်း / ဝယ်</div><div style="font-size:14px;color:#6B7486">{{ ch.unit }}</div></div>
+                <div style="display:flex;align-items:center;gap:18px">
+                  <span style="display:flex;align-items:center;gap:8px;font-size:15px;color:#5A6478"><span style="width:12px;height:12px;border-radius:2px;background:#D9A93A"></span>ရောင်း (အပေါ်)</span>
+                  <span style="display:flex;align-items:center;gap:8px;font-size:15px;color:#5A6478"><span style="width:12px;height:12px;border-radius:2px;background:#9AA6B8"></span>ဝယ် (အောက်)</span>
+                  <div style="display:flex;gap:4px;background:#EEF0F3;padding:4px;border-radius:8px"><sc-for list="{{ metricSeg }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="{{ o.styleSm }}">{{ o.label }}</button></sc-for></div>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column">
+                <div style="display:flex;align-items:stretch;gap:4px;height:140px"><sc-for list="{{ rch.cols }}" as="c" hint-placeholder-count="12"><div title="{{ c.title }}" style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center"><span style="{{ c.txtStyle }}">{{ c.upTxt }}</span><div style="{{ c.up }}"></div></div></sc-for></div>
+                <div style="height:2px;background:#1B2A41"></div>
+                <div style="display:flex;align-items:stretch;gap:4px;height:140px"><sc-for list="{{ rch.cols }}" as="c" hint-placeholder-count="12"><div title="{{ c.title }}" style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-start;align-items:center"><div style="{{ c.down }}"></div><span style="{{ c.txtStyle }}">{{ c.downTxt }}</span></div></sc-for></div>
+              </div>
+              <div style="display:flex;gap:4px;font-size:13px;color:#6B7486"><sc-for list="{{ rch.cols }}" as="c" hint-placeholder-count="12"><div style="flex:1;min-width:0;text-align:center;white-space:nowrap;overflow:visible">{{ c.label }}</div></sc-for></div>
+            </div>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px">
+              <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:28px;display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><div style="font-size:19px;font-weight:700">လက်ကျန်ရွှေ အပြောင်းအလဲ</div><div style="{{ rch.stock.chgStyle }}">{{ rch.stock.chg }}</div></div>
+                <div style="display:flex;justify-content:space-between;font-size:15px;color:#5A6478"><span>အစ {{ rch.stock.start }}</span><span>အဆုံး <b style="color:#1B2A41">{{ rch.stock.end }}</b></span></div>
+                <svg viewBox="0 0 1000 160" preserveAspectRatio="none" style="width:100%;height:160px;display:block"><polygon points="{{ rch.stock.area }}" fill="#FBF3E0"></polygon><polyline points="{{ rch.stock.line }}" fill="none" stroke="#D9A93A" stroke-width="3" vector-effect="non-scaling-stroke"></polyline></svg>
+                <div style="display:flex;justify-content:space-between;font-size:13px;color:#6B7486"><span>{{ rch.first }}</span><span>{{ rch.last }}</span></div>
+              </div>
+              <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:28px;display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><div style="font-size:19px;font-weight:700">အမြတ် <span style="font-size:14px;font-weight:400;color:#6B7486">(သိန်း)</span></div><div style="font-size:18px;font-weight:700;color:#1F7A4D">{{ rch.profitTotal }}</div></div>
+                <div style="display:flex;align-items:flex-end;gap:4px;height:180px;border-bottom:2px solid #1B2A41"><sc-for list="{{ rch.cols }}" as="c" hint-placeholder-count="12"><div title="{{ c.pTitle }}" style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%"><span style="{{ c.txtStyle }}">{{ c.pTxt }}</span><div style="{{ c.p }}"></div></div></sc-for></div>
+                <div style="display:flex;gap:4px;font-size:13px;color:#6B7486"><sc-for list="{{ rch.cols }}" as="c" hint-placeholder-count="12"><div style="flex:1;min-width:0;text-align:center;white-space:nowrap">{{ c.slabel }}</div></sc-for></div>
+              </div>
+            </div>
+          <div style="display:grid;grid-template-columns:minmax(0,1.8fr) minmax(0,1fr);gap:24px;align-items:start">
+            <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);overflow:hidden">
+              <table style="width:100%;border-collapse:collapse;font-size:16px">
+                <thead><tr style="color:#5A6478;text-align:left;font-size:15px"><th style="padding:16px 20px;font-weight:600">ရက်စွဲ</th><th style="padding:16px 12px;font-weight:600">ရောင်း</th><th style="padding:16px 12px;font-weight:600;text-align:right">ရောင်းငွေ</th><th style="padding:16px 12px;font-weight:600">ဝယ်</th><th style="padding:16px 20px;font-weight:600;text-align:right">ဝယ်ငွေ</th></tr></thead>
+                <tbody><sc-for list="{{ rep.days }}" as="d" hint-placeholder-count="8"><tr>
+                  <td style="padding:14px 20px;border-top:1px solid #EEF0F3;font-weight:600;white-space:nowrap">{{ d.date }}</td>
+                  <td style="padding:14px 12px;border-top:1px solid #EEF0F3;font-weight:700">{{ d.sellW }}</td>
+                  <td style="padding:14px 12px;border-top:1px solid #EEF0F3;text-align:right">{{ d.sellAmt }}</td>
+                  <td style="padding:14px 12px;border-top:1px solid #EEF0F3;font-weight:700">{{ d.buyW }}</td>
+                  <td style="padding:14px 20px;border-top:1px solid #EEF0F3;text-align:right">{{ d.buyAmt }}</td>
+                </tr></sc-for></tbody>
+              </table>
+            </div>
+            <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:26px;display:flex;flex-direction:column;gap:4px">
+              <div style="font-family:'Noto Sans Myanmar',sans-serif;font-size:19px;font-weight:700;margin-bottom:8px">ဖောက်သည် ထိပ်ဆုံး ၅ ဦး</div>
+              <sc-for list="{{ rep.top }}" as="c" hint-placeholder-count="5"><div style="display:flex;justify-content:space-between;gap:10px;padding:12px 0;border-top:1px solid #EEF0F3;font-size:16px"><span><span style="font-weight:600">{{ c.name }}</span><span style="color:#6B7486;font-size:14px"> · {{ c.count }} စောင်</span></span><span style="font-weight:600">{{ c.amount }}</span></div></sc-for>
+            </div>
+          </div>
+          </div></sc-if>
+          <sc-if value="{{ repIs.month }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:24px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:16px">
+  <div style="display:flex;align-items:center;gap:10px"><button onClick="{{ mon.prev }}" style="width:44px;height:44px;border:1px solid #D5DAE1;border-radius:6px;background:#FFFFFF;font-size:18px;cursor:pointer">‹</button><div style="font-size:22px;font-weight:700;min-width:220px;text-align:center">{{ mon.label }}</div><button onClick="{{ mon.next }}" style="width:44px;height:44px;border:1px solid #D5DAE1;border-radius:6px;background:#FFFFFF;font-size:18px;cursor:pointer">›</button></div>
+  <button data-noprint="1" onClick="{{ doPrint }}" style="height:44px;padding:0 22px;border:1.5px solid #1B2A41;border-radius:6px;background:none;color:#1B2A41;font-size:16px;font-weight:600;cursor:pointer">ပရင့်ထုတ်မည်</button>
+</div>
+            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px">
+              <div style="background:#1B2A41;color:#FFFFFF;border-radius:12px;padding:24px 26px"><div style="font-size:15px;color:#B9C3D3">ရောင်းရွှေ</div><div style="font-size:26px;font-weight:700;line-height:1.4;color:#F0C35A">{{ mon.sellPure }}</div><div style="font-size:14px;color:#B9C3D3">{{ mon.sellAmt }} ကျပ် · {{ mon.sellCount }} စောင်</div></div>
+              <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:24px 26px"><div style="font-size:15px;color:#5A6478">ဝယ်ရွှေ</div><div style="font-size:26px;font-weight:700;line-height:1.4">{{ mon.buyPure }}</div><div style="font-size:14px;color:#5A6478">{{ mon.buyAmt }} ကျပ် · {{ mon.buyCount }} စောင်</div></div>
+              <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:24px 26px"><div style="font-size:15px;color:#5A6478">ရွှေ အသားတင် (ဝယ် − ရောင်း)</div><div style="font-size:28px;font-weight:600;line-height:1.3">{{ mon.net }}</div><div style="font-size:14px;color:#5A6478"></div></div>
+              <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:24px 26px"><div style="font-size:15px;color:#5A6478">ခန့်မှန်းအမြတ်</div><div style="font-size:28px;font-weight:600;line-height:1.3">{{ mon.margin }}</div><div style="font-size:14px;color:#5A6478">ပျမ်းမျှဝယ်ဈေး {{ mon.avgCost }}</div></div>
+            </div>
+            <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:28px;display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+                <div><div style="font-size:19px;font-weight:700">ရောင်း / ဝယ်</div><div style="font-size:14px;color:#6B7486">{{ ch.unit }}</div></div>
+                <div style="display:flex;align-items:center;gap:18px">
+                  <span style="display:flex;align-items:center;gap:8px;font-size:15px;color:#5A6478"><span style="width:12px;height:12px;border-radius:2px;background:#D9A93A"></span>ရောင်း (အပေါ်)</span>
+                  <span style="display:flex;align-items:center;gap:8px;font-size:15px;color:#5A6478"><span style="width:12px;height:12px;border-radius:2px;background:#9AA6B8"></span>ဝယ် (အောက်)</span>
+                  <div style="display:flex;gap:4px;background:#EEF0F3;padding:4px;border-radius:8px"><sc-for list="{{ metricSeg }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="{{ o.styleSm }}">{{ o.label }}</button></sc-for></div>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column">
+                <div style="display:flex;align-items:stretch;gap:4px;height:140px"><sc-for list="{{ mch.cols }}" as="c" hint-placeholder-count="12"><div title="{{ c.title }}" style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center"><span style="{{ c.txtStyle }}">{{ c.upTxt }}</span><div style="{{ c.up }}"></div></div></sc-for></div>
+                <div style="height:2px;background:#1B2A41"></div>
+                <div style="display:flex;align-items:stretch;gap:4px;height:140px"><sc-for list="{{ mch.cols }}" as="c" hint-placeholder-count="12"><div title="{{ c.title }}" style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-start;align-items:center"><div style="{{ c.down }}"></div><span style="{{ c.txtStyle }}">{{ c.downTxt }}</span></div></sc-for></div>
+              </div>
+              <div style="display:flex;gap:4px;font-size:13px;color:#6B7486"><sc-for list="{{ mch.cols }}" as="c" hint-placeholder-count="12"><div style="flex:1;min-width:0;text-align:center;white-space:nowrap;overflow:visible">{{ c.label }}</div></sc-for></div>
+            </div>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px">
+              <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:28px;display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><div style="font-size:19px;font-weight:700">လက်ကျန်ရွှေ အပြောင်းအလဲ</div><div style="{{ mch.stock.chgStyle }}">{{ mch.stock.chg }}</div></div>
+                <div style="display:flex;justify-content:space-between;font-size:15px;color:#5A6478"><span>အစ {{ mch.stock.start }}</span><span>အဆုံး <b style="color:#1B2A41">{{ mch.stock.end }}</b></span></div>
+                <svg viewBox="0 0 1000 160" preserveAspectRatio="none" style="width:100%;height:160px;display:block"><polygon points="{{ mch.stock.area }}" fill="#FBF3E0"></polygon><polyline points="{{ mch.stock.line }}" fill="none" stroke="#D9A93A" stroke-width="3" vector-effect="non-scaling-stroke"></polyline></svg>
+                <div style="display:flex;justify-content:space-between;font-size:13px;color:#6B7486"><span>{{ mch.first }}</span><span>{{ mch.last }}</span></div>
+              </div>
+              <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:28px;display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><div style="font-size:19px;font-weight:700">အမြတ် <span style="font-size:14px;font-weight:400;color:#6B7486">(သိန်း)</span></div><div style="font-size:18px;font-weight:700;color:#1F7A4D">{{ mch.profitTotal }}</div></div>
+                <div style="display:flex;align-items:flex-end;gap:4px;height:180px;border-bottom:2px solid #1B2A41"><sc-for list="{{ mch.cols }}" as="c" hint-placeholder-count="12"><div title="{{ c.pTitle }}" style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%"><span style="{{ c.txtStyle }}">{{ c.pTxt }}</span><div style="{{ c.p }}"></div></div></sc-for></div>
+                <div style="display:flex;gap:4px;font-size:13px;color:#6B7486"><sc-for list="{{ mch.cols }}" as="c" hint-placeholder-count="12"><div style="flex:1;min-width:0;text-align:center;white-space:nowrap">{{ c.slabel }}</div></sc-for></div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+              <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);overflow:hidden">
+  <div style="padding:18px 20px 6px;display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:19px;font-weight:700;color:#1F7A4D">ရောင်းရသည့်စာရင်း</div><div style="font-size:15px;color:#5A6478">{{ mon.sellTot.count }} စောင်</div></div>
+  <table style="width:100%;border-collapse:collapse;font-size:16px">
+    <thead><tr style="color:#5A6478;text-align:left;font-size:15px"><th style="padding:12px 20px;font-weight:600">ဘောင်ချာ</th><th style="padding:12px 10px;font-weight:600">ဖောက်သည်</th><th style="padding:12px 10px;font-weight:600">အလေးချိန်</th><th style="padding:12px 20px;font-weight:600;text-align:right">ငွေ</th></tr></thead>
+    <tbody><sc-for list="{{ mon.sells }}" as="r" hint-placeholder-count="6"><tr style-hover="background:#F7F8FA">
+      <td style="padding:12px 20px;border-top:1px solid #EEF0F3;white-space:nowrap"><div style="font-weight:600">{{ r.no }}</div><div style="font-size:14px;color:#6B7486">{{ r.date }}</div></td>
+      <td style="padding:12px 10px;border-top:1px solid #EEF0F3">{{ r.cust }}</td>
+      <td style="padding:12px 10px;border-top:1px solid #EEF0F3;white-space:nowrap;font-size:17px;font-weight:700">{{ r.pure }}</td>
+      <td style="padding:12px 20px;border-top:1px solid #EEF0F3;text-align:right;color:#5A6478;white-space:nowrap">{{ r.amount }}</td>
+    </tr></sc-for></tbody>
+    <tfoot><tr style="background:#FBF3E0;font-weight:700"><td colspan="2" style="padding:14px 20px">စုစုပေါင်း</td><td style="padding:14px 10px;white-space:nowrap">{{ mon.sellTot.pure }}</td><td style="padding:14px 20px;text-align:right;white-space:nowrap">{{ mon.sellTot.amt }}</td></tr></tfoot>
+  </table>
+</div>
+              <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);overflow:hidden">
+  <div style="padding:18px 20px 6px;display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:19px;font-weight:700;color:#B23A2A">ဝယ်ရသည့်စာရင်း</div><div style="font-size:15px;color:#5A6478">{{ mon.buyTot.count }} စောင်</div></div>
+  <table style="width:100%;border-collapse:collapse;font-size:16px">
+    <thead><tr style="color:#5A6478;text-align:left;font-size:15px"><th style="padding:12px 20px;font-weight:600">ဘောင်ချာ</th><th style="padding:12px 10px;font-weight:600">ဖောက်သည်</th><th style="padding:12px 10px;font-weight:600">အလေးချိန်</th><th style="padding:12px 20px;font-weight:600;text-align:right">ငွေ</th></tr></thead>
+    <tbody><sc-for list="{{ mon.buys }}" as="r" hint-placeholder-count="6"><tr style-hover="background:#F7F8FA">
+      <td style="padding:12px 20px;border-top:1px solid #EEF0F3;white-space:nowrap"><div style="font-weight:600">{{ r.no }}</div><div style="font-size:14px;color:#6B7486">{{ r.date }}</div></td>
+      <td style="padding:12px 10px;border-top:1px solid #EEF0F3">{{ r.cust }}</td>
+      <td style="padding:12px 10px;border-top:1px solid #EEF0F3;white-space:nowrap;font-size:17px;font-weight:700">{{ r.pure }}</td>
+      <td style="padding:12px 20px;border-top:1px solid #EEF0F3;text-align:right;color:#5A6478;white-space:nowrap">{{ r.amount }}</td>
+    </tr></sc-for></tbody>
+    <tfoot><tr style="background:#FBF3E0;font-weight:700"><td colspan="2" style="padding:14px 20px">စုစုပေါင်း</td><td style="padding:14px 10px;white-space:nowrap">{{ mon.buyTot.pure }}</td><td style="padding:14px 20px;text-align:right;white-space:nowrap">{{ mon.buyTot.amt }}</td></tr></tfoot>
+  </table>
+</div>
+            </div>
+          </div></sc-if>
+          <sc-if value="{{ repIs.year }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:24px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:16px">
+  <div style="display:flex;align-items:center;gap:10px"><button onClick="{{ yr.prev }}" style="width:44px;height:44px;border:1px solid #D5DAE1;border-radius:6px;background:#FFFFFF;font-size:18px;cursor:pointer">‹</button><div style="font-size:22px;font-weight:700;min-width:220px;text-align:center">{{ yr.label }}</div><button onClick="{{ yr.next }}" style="width:44px;height:44px;border:1px solid #D5DAE1;border-radius:6px;background:#FFFFFF;font-size:18px;cursor:pointer">›</button></div>
+  <button data-noprint="1" onClick="{{ doPrint }}" style="height:44px;padding:0 22px;border:1.5px solid #1B2A41;border-radius:6px;background:none;color:#1B2A41;font-size:16px;font-weight:600;cursor:pointer">ပရင့်ထုတ်မည်</button>
+</div>
+            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px">
+              <div style="background:#1B2A41;color:#FFFFFF;border-radius:12px;padding:24px 26px"><div style="font-size:15px;color:#B9C3D3">နှစ်ချုပ် ရောင်းရွှေ</div><div style="font-size:26px;font-weight:700;line-height:1.4;color:#F0C35A">{{ yr.sellPure }}</div><div style="font-size:14px;color:#B9C3D3">{{ yr.sellAmt }} ကျပ် · {{ yr.sellCount }} စောင်</div></div>
+              <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:24px 26px"><div style="font-size:15px;color:#5A6478">နှစ်ချုပ် ဝယ်ရွှေ</div><div style="font-size:26px;font-weight:700;line-height:1.4">{{ yr.buyPure }}</div><div style="font-size:14px;color:#5A6478">{{ yr.buyAmt }} ကျပ် · {{ yr.buyCount }} စောင်</div></div>
+              <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:24px 26px"><div style="font-size:15px;color:#5A6478">ရွှေ အသားတင် (ဝယ် − ရောင်း)</div><div style="font-size:28px;font-weight:600;line-height:1.3">{{ yr.net }}</div><div style="font-size:14px;color:#5A6478"></div></div>
+              <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:24px 26px"><div style="font-size:15px;color:#5A6478">ခန့်မှန်းအမြတ်</div><div style="font-size:28px;font-weight:600;line-height:1.3">{{ yr.margin }}</div><div style="font-size:14px;color:#5A6478">ပျမ်းမျှဝယ်ဈေး {{ yr.avgCost }}</div></div>
+            </div>
+            <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:28px;display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+                <div><div style="font-size:19px;font-weight:700">ရောင်း / ဝယ်</div><div style="font-size:14px;color:#6B7486">{{ ch.unit }}</div></div>
+                <div style="display:flex;align-items:center;gap:18px">
+                  <span style="display:flex;align-items:center;gap:8px;font-size:15px;color:#5A6478"><span style="width:12px;height:12px;border-radius:2px;background:#D9A93A"></span>ရောင်း (အပေါ်)</span>
+                  <span style="display:flex;align-items:center;gap:8px;font-size:15px;color:#5A6478"><span style="width:12px;height:12px;border-radius:2px;background:#9AA6B8"></span>ဝယ် (အောက်)</span>
+                  <div style="display:flex;gap:4px;background:#EEF0F3;padding:4px;border-radius:8px"><sc-for list="{{ metricSeg }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="{{ o.styleSm }}">{{ o.label }}</button></sc-for></div>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column">
+                <div style="display:flex;align-items:stretch;gap:4px;height:140px"><sc-for list="{{ ych.cols }}" as="c" hint-placeholder-count="12"><div title="{{ c.title }}" style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center"><span style="{{ c.txtStyle }}">{{ c.upTxt }}</span><div style="{{ c.up }}"></div></div></sc-for></div>
+                <div style="height:2px;background:#1B2A41"></div>
+                <div style="display:flex;align-items:stretch;gap:4px;height:140px"><sc-for list="{{ ych.cols }}" as="c" hint-placeholder-count="12"><div title="{{ c.title }}" style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-start;align-items:center"><div style="{{ c.down }}"></div><span style="{{ c.txtStyle }}">{{ c.downTxt }}</span></div></sc-for></div>
+              </div>
+              <div style="display:flex;gap:4px;font-size:13px;color:#6B7486"><sc-for list="{{ ych.cols }}" as="c" hint-placeholder-count="12"><div style="flex:1;min-width:0;text-align:center;white-space:nowrap;overflow:visible">{{ c.label }}</div></sc-for></div>
+            </div>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px">
+              <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:28px;display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><div style="font-size:19px;font-weight:700">လက်ကျန်ရွှေ အပြောင်းအလဲ</div><div style="{{ ych.stock.chgStyle }}">{{ ych.stock.chg }}</div></div>
+                <div style="display:flex;justify-content:space-between;font-size:15px;color:#5A6478"><span>အစ {{ ych.stock.start }}</span><span>အဆုံး <b style="color:#1B2A41">{{ ych.stock.end }}</b></span></div>
+                <svg viewBox="0 0 1000 160" preserveAspectRatio="none" style="width:100%;height:160px;display:block"><polygon points="{{ ych.stock.area }}" fill="#FBF3E0"></polygon><polyline points="{{ ych.stock.line }}" fill="none" stroke="#D9A93A" stroke-width="3" vector-effect="non-scaling-stroke"></polyline></svg>
+                <div style="display:flex;justify-content:space-between;font-size:13px;color:#6B7486"><span>{{ ych.first }}</span><span>{{ ych.last }}</span></div>
+              </div>
+              <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:28px;display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><div style="font-size:19px;font-weight:700">အမြတ် <span style="font-size:14px;font-weight:400;color:#6B7486">(သိန်း)</span></div><div style="font-size:18px;font-weight:700;color:#1F7A4D">{{ ych.profitTotal }}</div></div>
+                <div style="display:flex;align-items:flex-end;gap:4px;height:180px;border-bottom:2px solid #1B2A41"><sc-for list="{{ ych.cols }}" as="c" hint-placeholder-count="12"><div title="{{ c.pTitle }}" style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%"><span style="{{ c.txtStyle }}">{{ c.pTxt }}</span><div style="{{ c.p }}"></div></div></sc-for></div>
+                <div style="display:flex;gap:4px;font-size:13px;color:#6B7486"><sc-for list="{{ ych.cols }}" as="c" hint-placeholder-count="12"><div style="flex:1;min-width:0;text-align:center;white-space:nowrap">{{ c.slabel }}</div></sc-for></div>
+              </div>
+            </div>
+            <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);overflow:hidden">
+              <table style="width:100%;border-collapse:collapse;font-size:16px">
+                <thead><tr style="color:#5A6478;text-align:left;font-size:15px"><th style="padding:14px 20px;font-weight:600">လ</th><th style="padding:14px 10px;font-weight:600">ရောင်း (အခေါက်)</th><th style="padding:14px 10px;font-weight:600;text-align:right">ရောင်းငွေ</th><th style="padding:14px 10px;font-weight:600">ဝယ် (အခေါက်)</th><th style="padding:14px 10px;font-weight:600;text-align:right">ဝယ်ငွေ</th><th style="padding:14px 20px;font-weight:600;text-align:right">အမြတ်</th></tr></thead>
+                <tbody><sc-for list="{{ yr.rows }}" as="m" hint-placeholder-count="12"><tr onClick="{{ m.onOpen }}" style="cursor:pointer" style-hover="background:#F7F8FA">
+                  <td style="padding:13px 20px;border-top:1px solid #EEF0F3;font-weight:600;white-space:nowrap">{{ m.name }}<div style="font-size:14px;color:#6B7486;font-weight:400">{{ m.count }} စောင်</div></td>
+                  <td style="padding:13px 10px;border-top:1px solid #EEF0F3;white-space:nowrap;font-weight:700">{{ m.sellPure }}</td>
+                  <td style="padding:13px 10px;border-top:1px solid #EEF0F3;text-align:right;white-space:nowrap">{{ m.sellAmt }}</td>
+                  <td style="padding:13px 10px;border-top:1px solid #EEF0F3;white-space:nowrap;font-weight:700">{{ m.buyPure }}</td>
+                  <td style="padding:13px 10px;border-top:1px solid #EEF0F3;text-align:right;white-space:nowrap">{{ m.buyAmt }}</td>
+                  <td style="padding:13px 20px;border-top:1px solid #EEF0F3;text-align:right;white-space:nowrap;color:#1F7A4D;font-weight:600">{{ m.margin }}</td>
+                </tr></sc-for></tbody>
+                <tfoot><tr style="background:#FBF3E0;font-weight:700"><td style="padding:14px 20px">စုစုပေါင်း</td><td style="padding:14px 10px;white-space:nowrap">{{ yr.sellPure }}</td><td style="padding:14px 10px;text-align:right">{{ yr.sellAmt }}</td><td style="padding:14px 10px;white-space:nowrap">{{ yr.buyPure }}</td><td style="padding:14px 10px;text-align:right">{{ yr.buyAmt }}</td><td style="padding:14px 20px;text-align:right">{{ yr.margin }}</td></tr></tfoot>
+              </table>
+            </div>
+          </div></sc-if>
+
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ is.calc }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:22px;max-width:1360px">
+          <div style="font-size:16px;color:#5A6478">၁ ကျပ်သား = ၁၆ ပဲ · ၁ ပဲ = ၈ ရွေး</div>
+          <div style="display:grid;grid-template-columns:minmax(0,620px);gap:24px;align-items:start">
+            <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:28px;display:flex;flex-direction:column;gap:18px">
+              <div style="font-family:'Noto Sans Myanmar',sans-serif;font-size:19px;font-weight:700">တန်ဖိုးတွက်</div>
+              <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+                <label style="display:flex;flex-direction:column;gap:6px;min-width:0"><span style="font-size:15px;color:#5A6478">ကျပ်</span><input type="number" min="0" step="any" value="{{ c.k }}" onChange="{{ setC.k }}" style="height:52px;border:1px solid #D5DAE1;border-radius:12px;padding:0 14px;font-size:20px;font-weight:600;width:100%;box-sizing:border-box;background:#fff"></label>
+                <label style="display:flex;flex-direction:column;gap:6px;min-width:0"><span style="font-size:15px;color:#5A6478">ပဲ</span><input type="number" min="0" step="any" value="{{ c.p }}" onChange="{{ setC.p }}" style="height:52px;border:1px solid #D5DAE1;border-radius:12px;padding:0 14px;font-size:20px;font-weight:600;width:100%;box-sizing:border-box;background:#fff"></label>
+                <label style="display:flex;flex-direction:column;gap:6px;min-width:0"><span style="font-size:15px;color:#5A6478">ရွေး</span><input type="number" min="0" step="any" value="{{ c.y }}" onChange="{{ setC.y }}" style="height:52px;border:1px solid #D5DAE1;border-radius:12px;padding:0 14px;font-size:20px;font-weight:600;width:100%;box-sizing:border-box;background:#fff"></label>
+              </div>
+              <div style="display:grid;grid-template-columns:minmax(0,1fr);gap:10px">
+                <label style="display:none"><span>ရည်</span><input type="number" min="1" max="16" step="0.25" value="{{ c.q }}" onChange="{{ setC.q }}" style="height:52px;border:1px solid #D5DAE1;border-radius:12px;padding:0 14px;font-size:20px;font-weight:600;width:100%;box-sizing:border-box;background:#fff"></label>
+                <label style="display:flex;flex-direction:column;gap:6px;min-width:0"><span style="font-size:15px;color:#5A6478">ဈေး / ကျပ်သား</span><input type="number" min="0" value="{{ c.price }}" placeholder="{{ calc.pricePh }}" onChange="{{ setC.price }}" style="height:52px;border:1px solid #D5DAE1;border-radius:12px;padding:0 14px;font-size:20px;font-weight:600;width:100%;box-sizing:border-box;background:#fff"></label>
+              </div>
+              <div style="background:#1B2A41;color:#FFFFFF;border-radius:6px;padding:20px 22px;display:flex;flex-direction:column;gap:8px;font-size:16px">
+                <div style="font-family:'IBM Plex Sans',sans-serif;font-size:32px;font-weight:600;color:#F0C35A;text-align:right;line-height:1.2;padding-top:8px;border-top:1px solid #34486B">{{ calc.v1val }}</div>
+              </div>
+            </div>
+                      </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ is.customers }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start;max-width:1360px">
+          <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);overflow:hidden">
+            <table style="width:100%;border-collapse:collapse;font-size:16px">
+              <thead><tr style="color:#5A6478;text-align:left;font-size:15px"><th style="padding:16px 20px;font-weight:600">ဖောက်သည် ({{ custCount }})</th><th style="padding:16px 12px;font-weight:600">စောင်</th><th style="padding:16px 12px;font-weight:600">ဆိုင်မှရောင်း / ဝယ်</th><th style="padding:16px 20px"></th></tr></thead>
+              <tbody><sc-for list="{{ custRows }}" as="c" hint-placeholder-count="8"><tr style-hover="background:#F7F8FA">
+                <td style="padding:16px 20px;border-top:1px solid #EEF0F3"><div style="font-weight:700">{{ c.name }}</div><div style="font-size:14px;color:#6B7486">{{ c.phone }}</div></td>
+                <td style="padding:16px 12px;border-top:1px solid #EEF0F3">{{ c.count }}</td>
+                <td style="padding:16px 12px;border-top:1px solid #EEF0F3;white-space:nowrap"><div>{{ c.soldW }}</div><div style="font-size:14px;color:#6B7486">{{ c.boughtW }}</div></td>
+                <td style="padding:16px 20px;border-top:1px solid #EEF0F3;text-align:right"><button onClick="{{ c.onOpen }}" style="height:36px;border:1px solid #D5DAE1;background:#fff;color:#1B2A41;border-radius:8px;padding:0 16px;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap" style-hover="background:#FBF3E0">မှတ်တမ်း</button></td>
+              </tr></sc-for></tbody>
+            </table>
+          </div>
+          <div style="background:#1B2A41;color:#FFFFFF;border-radius:12px;padding:30px;display:flex;flex-direction:column;gap:16px">
+            <div style="font-family:'Noto Sans Myanmar',sans-serif;font-size:19px;font-weight:700">ဖောက်သည်အသစ်</div>
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:15px;color:#B9C3D3">အမည်</span><input value="{{ nc.name }}" onChange="{{ setNc.name }}" style="height:52px;border:1px solid #34486B;border-radius:12px;padding:0 16px;font-size:16px;background:#24365A;color:#FFFFFF"></label>
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:15px;color:#B9C3D3">ဖုန်း</span><input value="{{ nc.phone }}" onChange="{{ setNc.phone }}" style="height:52px;border:1px solid #34486B;border-radius:12px;padding:0 16px;font-size:16px;background:#24365A;color:#FFFFFF"></label>
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:15px;color:#B9C3D3">လိပ်စာ</span><input value="{{ nc.address }}" onChange="{{ setNc.address }}" style="height:52px;border:1px solid #34486B;border-radius:12px;padding:0 16px;font-size:16px;background:#24365A;color:#FFFFFF"></label>
+            <button onClick="{{ addCust }}" style="height:52px;border:none;border-radius:8px;background:#D9A93A;color:#1B2A41;font-weight:700;font-size:16px;cursor:pointer;margin-top:4px" style-hover="background:#E6BA55">ထည့်မည်</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ is.stock }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:24px;max-width:1360px">
+          <div style="display:grid;grid-template-columns:minmax(0,1.6fr) repeat(3,minmax(0,1fr));gap:20px">
+            <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);color:#1B2A41;padding:28px 30px"><div style="font-size:16px;font-weight:600">လက်ရှိလက်ကျန် (အခေါက်)</div><div style="font-family:'IBM Plex Sans','Noto Sans Myanmar',sans-serif;font-size:32px;font-weight:700;line-height:1.35;margin-top:6px">{{ stock.cur }}</div><div style="font-size:15px">တန်ဖိုး {{ stock.value }}</div></div>
+            <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:24px 26px"><div style="font-size:15px;color:#5A6478">အစလက်ကျန်</div><div style="font-size:17px;font-weight:700;margin-top:6px">{{ stock.opening }}</div><div style="display:flex;gap:8px;margin-top:10px;align-items:center"><input type="number" min="0" step="any" value="{{ openK }}" onChange="{{ setOpen }}" style="width:100px;height:40px;border:1px solid #D5DAE1;border-radius:10px;padding:0 12px;font-size:16px;background:#fff"><span style="font-size:15px;color:#5A6478">ကျပ်သား</span></div></div>
+            <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:24px 26px"><div style="font-size:15px;color:#5A6478">ဝယ်ယူ (အဝင်)</div><div style="font-size:17px;font-weight:700;margin-top:6px;color:#1F7A4D">+ {{ stock.inW }}</div></div>
+            <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);padding:24px 26px"><div style="font-size:15px;color:#5A6478">ရောင်းချ (အထွက်)</div><div style="font-size:17px;font-weight:700;margin-top:6px;color:#B23A2A">− {{ stock.outW }}</div></div>
+          </div>
+          <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);overflow:hidden">
+            <div style="padding:22px 24px 8px;font-family:'Noto Sans Myanmar',sans-serif;font-size:19px;font-weight:700">အဝင်အထွက်</div>
+            <table style="width:100%;border-collapse:collapse;font-size:16px">
+              <thead><tr style="color:#5A6478;text-align:left;font-size:15px"><th style="padding:14px 24px;font-weight:600">ဘောင်ချာ</th><th style="padding:14px 12px;font-weight:600">အမျိုး</th><th style="padding:14px 12px;font-weight:600">အဝင်</th><th style="padding:14px 12px;font-weight:600">အထွက်</th><th style="padding:14px 24px;font-weight:600">လက်ကျန်</th></tr></thead>
+              <tbody><sc-for list="{{ stock.moves }}" as="m" hint-placeholder-count="10"><tr>
+                <td style="padding:14px 24px;border-top:1px solid #EEF0F3"><div style="font-weight:700">{{ m.no }}</div><div style="font-size:14px;color:#6B7486">{{ m.date }}</div></td>
+                <td style="padding:14px 12px;border-top:1px solid #EEF0F3"><span style="{{ m.pill }}">{{ m.typeLabel }}</span></td>
+                <td style="padding:14px 12px;border-top:1px solid #EEF0F3;color:#1F7A4D">{{ m.inW }}</td>
+                <td style="padding:14px 12px;border-top:1px solid #EEF0F3;color:#B23A2A">{{ m.outW }}</td>
+                <td style="padding:14px 24px;border-top:1px solid #EEF0F3;font-weight:700">{{ m.bal }}</td>
+              </tr></sc-for></tbody>
+            </table>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ is.prices }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start;max-width:1160px">
+          <div style="background:#1B2A41;color:#FFFFFF;border-radius:12px;padding:34px;display:flex;flex-direction:column;gap:20px">
+            <div><div style="font-family:'Noto Sans Myanmar',sans-serif;font-size:19px;font-weight:700">ယနေ့ဈေး သတ်မှတ်</div><div style="font-size:15px;color:#B9C3D3">၁ ကျပ်သား · ၁၆ ပဲရည်</div></div>
+            <label style="display:flex;flex-direction:column;gap:8px"><span style="font-size:15px;color:#B9C3D3">ဝယ်ဈေး (ဆိုင်မှဝယ်)</span><input type="number" min="0" value="{{ pf.buy }}" placeholder="{{ curRaw.buy }}" onChange="{{ setPf.buy }}" style="height:68px;border:1px solid #34486B;border-radius:6px;padding:0 20px;font-family:'IBM Plex Sans',sans-serif;font-size:26px;font-weight:600;background:#24365A;color:#FFFFFF"></label>
+            <label style="display:flex;flex-direction:column;gap:8px"><span style="font-size:15px;color:#B9C3D3">ရောင်းဈေး (ဆိုင်မှရောင်း)</span><input type="number" min="0" value="{{ pf.sell }}" placeholder="{{ curRaw.sell }}" onChange="{{ setPf.sell }}" style="height:68px;border:1px solid #34486B;border-radius:6px;padding:0 20px;font-family:'IBM Plex Sans',sans-serif;font-size:26px;font-weight:600;background:#24365A;color:#F0C35A"></label>
+            <div style="font-size:15px;color:#B9C3D3">ကွာဟချက် {{ spread }}</div>
+            <button onClick="{{ savePrice }}" style="height:56px;border:none;border-radius:8px;background:#D9A93A;color:#1B2A41;font-weight:700;font-size:16px;cursor:pointer" style-hover="background:#E6BA55">ဈေးသတ်မှတ်မည်</button>
+          </div>
+          <div style="background:#FFFFFF;border:1.5px solid #C3CAD5;border-radius:12px;box-shadow:0 2px 6px rgba(27,42,65,.08);overflow:auto;max-height:620px">
+            <table style="width:100%;border-collapse:collapse;font-size:16px">
+              <thead><tr style="color:#5A6478;text-align:left;font-size:15px"><th style="padding:16px 20px;font-weight:600">ရက်စွဲ</th><th style="padding:16px 12px;font-weight:600;text-align:right">ဝယ်</th><th style="padding:16px 12px;font-weight:600;text-align:right">ရောင်း</th><th style="padding:16px 20px;font-weight:600;text-align:right">ပြောင်းလဲ</th></tr></thead>
+              <tbody><sc-for list="{{ priceRows }}" as="p" hint-placeholder-count="10"><tr>
+                <td style="padding:13px 20px;border-top:1px solid #EEF0F3;white-space:nowrap">{{ p.date }}</td>
+                <td style="padding:13px 12px;border-top:1px solid #EEF0F3;text-align:right">{{ p.buy }}</td>
+                <td style="padding:13px 12px;border-top:1px solid #EEF0F3;text-align:right;font-weight:600">{{ p.sell }}</td>
+                <td style="padding:13px 20px;border-top:1px solid #EEF0F3;text-align:right"><span style="{{ p.chgStyle }}">{{ p.chg }}</span></td>
+              </tr></sc-for></tbody>
+            </table>
+          </div>
+        </div>
+      </sc-if>
+
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;digits&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;latin&quot;,&quot;myanmar&quot;],&quot;default&quot;:&quot;latin&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;ပြသမှု&quot;},&quot;roundTo&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;1&quot;,&quot;100&quot;,&quot;1000&quot;],&quot;default&quot;:&quot;100&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;တွက်ချက်မှု&quot;}}">
+const KEY='uthantsin-gold-v1';
+const MMD='၀၁၂၃၄၅၆၇၈၉';
+const iso=d=>{const z=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate());};
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
+const NAMES=[['ဦးအောင်မြင့်','09-421553118'],['ဒေါ်ခင်မာလာ','09-795102334'],['ကိုဇော်ဝင်း','09-250887461'],['မနှင်းဝေ','09-684229170'],['ဦးကျော်စွာ','09-401336925'],['ဒေါ်သီတာ','09-773018552'],['ကိုမင်းထက်','09-962145807'],['ဒေါ်စန္ဒာ','09-428670913']];
+const NAV=[
+ ['dash','ပင်မ','ခြုံငုံကြည့်','M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z'],
+ ['entry','စာရင်းသွင်း','စာရင်းသွင်း','M12 4v16M4 12h16'],
+ ['ledger','မှတ်တမ်း','အရောင်းအဝယ်မှတ်တမ်း','M4 6h16M4 12h16M4 18h10'],
+ ['voucher','ဘောင်ချာ','ဘောင်ချာ','M6 2h12v20l-3-2-3 2-3-2-3 2zM9 7h6M9 11h6M9 15h4'],
+ ['reports','အစီရင်ခံ','အစီရင်ခံစာ','M4 20V10M10 20V4M16 20v-7M21 20H3'],
+ ['calc','တွက်စက်','ရွှေတွက်စက်','M5 2h14v20H5zM8 6h8v4H8zM8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01'],
+ ['customers','ဖောက်သည်','ဖောက်သည်များ','M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21v-1a6 6 0 0 1 12 0v1M16 3.5a4 4 0 0 1 0 7.5M22 21v-1a6 6 0 0 0-4-5.6'],
+ ['stock','လက်ကျန်','လက်ကျန်ရွှေ','M2 20h20M4 20l2-6h5l2 6M11 20l2-6h5l2 6M7.5 14l2-6h5l2 6'],
+ ['prices','ပေါက်ဈေး','ပေါက်ဈေး သတ်မှတ်','M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8zM7.5 7.5h.01']];
+const MONTHS=['ဇန်နဝါရီ','ဖေဖော်ဝါရီ','မတ်','ဧပြီ','မေ','ဇွန်','ဇူလိုင်','ဩဂုတ်','စက်တင်ဘာ','အောက်တိုဘာ','နိုဝင်ဘာ','ဒီဇင်ဘာ'];
+const EMPTY={type:'sell',customerId:'',custQ:'',newPhone:'',mode:'kpy',k:'',p:'',y:'',g:'',quality:'16',price:'',paid:'',note:''};
+function extendHist(data){
+  if(data.hist||!data.txns.length)return data;
+  let sd=11;const r=()=>{sd=(sd*1664525+1013904223)%4294967296;return sd/4294967296;};
+  const dates=data.txns.map(t=>t.date).sort();const first=new Date(dates[0]+'T00:00:00');
+  const ps=[...data.prices].sort((a,b)=>a.date<b.date?-1:1);let buy=ps[0]?ps[0].buy:7000000;
+  const add=[],np=[];
+  for(let i=1;i<=400;i++){
+    const date=iso(addDays(first,-i));buy-=Math.round((r()-0.35)*40)*1000;np.push({date,buy,sell:buy+100000});
+    const n=r()<0.15?0:1+Math.floor(r()*3);
+    for(let j=0;j<n;j++){const type=r()<0.55?'sell':'buy';const yway=8+Math.round(r()*180);
+      const quality=type==='sell'?16:[16,16,15.5,15,14.5][Math.floor(r()*5)];const price=type==='sell'?buy+100000:buy;
+      const amount=Math.round(yway*quality/16/128*price/100)*100;const paid=r()<0.85?amount:Math.round(amount*0.6/1000)*1000;
+      const time=String(9+Math.floor(r()*8)).padStart(2,'0')+':'+String(Math.floor(r()*60)).padStart(2,'0');
+      add.push({id:'h'+i+'_'+j,no:0,date,time,type,customerId:data.customers.length?data.customers[Math.floor(r()*data.customers.length)].id:'',yway,quality,price,amount,paid,note:''});}
+  }
+  const all=[...add,...data.txns].sort((a,b)=>(a.date+a.time)<(b.date+b.time)?-1:1);all.forEach((t,i)=>t.no=i+1);
+  return {...data,txns:all,prices:[...np,...data.prices],nextNo:all.length+1,opening:(data.opening||0)+128*20,hist:true};
+}
+function makeSeed(){
+  let sd=7;const r=()=>{sd=(sd*1664525+1013904223)%4294967296;return sd/4294967296;};
+  const today=new Date();
+  const customers=NAMES.map((n,i)=>({id:'c'+(i+1),name:n[0],phone:n[1],address:''}));
+  const prices=[];let buy=7050000;
+  for(let i=29;i>=0;i--){buy+=Math.round((r()-0.4)*60)*1000;prices.push({date:iso(addDays(today,-i)),buy,sell:buy+100000});}
+  const txns=[];let no=1;
+  for(let i=29;i>=0;i--){
+    const date=iso(addDays(today,-i));const p=prices.find(x=>x.date===date);const n=1+Math.floor(r()*3);
+    for(let j=0;j<n;j++){
+      const type=r()<0.55?'sell':'buy';const yway=8+Math.round(r()*180);
+      const quality=type==='sell'?16:[16,16,15.5,15,14.5][Math.floor(r()*5)];
+      const price=type==='sell'?p.sell:p.buy;const amount=Math.round(yway*quality/16/128*price/100)*100;
+      const paid=r()<0.8?amount:Math.round(amount*0.6/1000)*1000;
+      const time=String(9+Math.floor(r()*8)).padStart(2,'0')+':'+String(Math.floor(r()*60)).padStart(2,'0');
+      txns.push({id:'t'+no,no,date,time,type,customerId:customers[Math.floor(r()*8)].id,yway,quality,price,amount,paid,note:''});no++;
+    }
+  }
+  return {customers,prices,txns,opening:128*15,nextNo:no};
+}
+const smBase={height:38,padding:'0 18px',border:'none',borderRadius:6,fontSize:15,cursor:'pointer',fontWeight:600};
+const chipBase={height:44,padding:'0 20px',borderRadius:6,fontSize:15,cursor:'pointer',fontWeight:600};
+
+class Component extends DCLogic {
+  state = this.init();
+  init(){
+    let data=null;try{data=JSON.parse(localStorage.getItem(KEY));}catch(e){}
+    if(!data||!data.txns)data=makeSeed();data=extendHist(data);
+    if(data.txns.some(t=>t.paid!==t.amount))data={...data,txns:data.txns.map(t=>t.paid===t.amount?t:{...t,paid:t.amount})};
+    if(data.txns.some(t=>t.quality!==16))data={...data,txns:data.txns.map(t=>{if(t.quality===16)return t;const amount=Math.round(t.yway/128*t.price/100)*100;return {...t,quality:16,amount,paid:t.paid>=t.amount?amount:Math.min(t.paid,amount)};})};
+    {const pz=t=>t.yway*t.quality/16;let net=0;data.txns.forEach(t=>{net+=t.type==='buy'?pz(t):-pz(t);});if((data.opening||0)+net<128*10)data={...data,opening:Math.ceil(-net+128*15)};}
+    return {...data,screen:'dash',form:{...EMPTY},voucherId:null,flt:{type:'all',q:'',from:'',to:''},range:'30',
+      calc:{k:'1',p:'',y:'',q:'16',price:'',ck:'1',cp:'',cy:'',from:'15',to:'16',kyat:'1',gram:'',last:'kyat'},
+      nc:{name:'',phone:'',address:''},pf:{buy:'',sell:''}};
+  }
+  componentDidUpdate(){const {customers,prices,txns,opening,nextNo,hist}=this.state;try{localStorage.setItem(KEY,JSON.stringify({customers,prices,txns,opening,nextNo,hist}));}catch(e){}}
+  setters(group,keys){return Object.fromEntries(keys.map(k=>[k,e=>{const v=e.target.value;this.setState(s=>({[group]:{...s[group],[k]:v}}));}]));}
+  renderVals(){
+    const s=this.state,P=this.props;
+    const my=(P.digits??'latin')==='myanmar';
+    const G=parseFloat(P.gramsPerKyat??'16.606');
+    const R=parseInt(P.roundTo??'100');
+    const D=x=>my?String(x).replace(/[0-9]/g,d=>MMD[d]):String(x);
+    const money=n=>D(Math.round(n).toLocaleString('en-US'));
+    const W=y=>{const neg=y<0;y=Math.abs(y);let k=Math.floor(y/128),rm=y-k*128,p=Math.floor(rm/8),yw=Math.round((rm-p*8)*100)/100;
+      if(yw>=8){p++;yw=0;}if(p>=16){k++;p=0;}const parts=[];if(k)parts.push(k+' ကျပ်');if(p)parts.push(p+' ပဲ');if(yw)parts.push(yw+' ရွေး');if(!parts.length)parts.push('0');return D((neg?'− ':'')+parts.join(' '));};
+    const GR=y=>D((y/128*G).toFixed(2))+' g';
+    const Q=q=>{q=+q||0;const w=Math.floor(q),f=Math.round((q-w)*4);return D(f?w+' ပဲ '+f+' ပြား':w+' ပဲရည်');};
+    const pure=t=>t.yway*t.quality/16;
+    const go=k=>()=>this.setState({screen:k});
+    const now=new Date();const today=iso(now);
+    const prices=[...s.prices].sort((a,b)=>a.date<b.date?-1:1);
+    const cur=prices[prices.length-1]||{buy:0,sell:0,date:today};
+    const cm=Object.fromEntries(s.customers.map(c=>[c.id,c]));
+    const cname=id=>cm[id]?.name||'ဖောက်သည်အထွေထွေ';
+    const asc=[...s.txns].sort((a,b)=>a.no-b.no);const desc=[...asc].reverse();
+    const sum=(arr,f)=>arr.reduce((a,t)=>a+f(t),0);
+    const NO=n=>D('#'+String(n).padStart(4,'0'));
+    const pill=t=>({display:'inline-block',padding:'3px 14px',borderRadius:6,fontSize:15,fontWeight:600,whiteSpace:'nowrap',background:t==='sell'?'#E2F0E8':'#F8E4E0',color:t==='sell'?'#1F7A4D':'#B23A2A'});
+    const row=t=>({no:NO(t.no),date:D(t.date),time:D(t.time),typeLabel:t.type==='sell'?'ရောင်း':'ဝယ်',pill:pill(t.type),cust:cname(t.customerId),
+      weight:W(t.yway),gram:GR(t.yway),quality:Q(t.quality),pure:W(pure(t)),price:money(t.price),amount:money(t.amount),paid:money(t.paid),due:t.amount-t.paid>0?money(t.amount-t.paid):'—',
+      onView:()=>this.setState({voucherId:t.id,screen:'voucher'}),
+      onDelete:()=>{if(window.confirm('ဘောင်ချာ ဖျက်မှာ သေချာပါသလား?'))this.setState(st=>({txns:st.txns.filter(x=>x.id!==t.id)}));}});
+    const seg=(opts,val,pick)=>opts.map(([v,l])=>{const on=String(v)===String(val);return {label:l,onClick:()=>pick(v),
+      styleSm:{...smBase,background:on?'#1B2A41':'transparent',color:on?'#F0C35A':'#5A6478'},
+      styleChip:{...chipBase,border:on?'1px solid #D9A93A':'1px solid #D5DAE1',background:on?'#D9A93A':'#fff',color:'#1B2A41'},
+      styleBig:{height:76,borderRadius:6,fontSize:17,fontWeight:700,cursor:'pointer',border:on?'2px solid #D9A93A':'1px solid #E6E9EE',background:on?'#1B2A41':'#FFFFFF',color:on?'#F0C35A':'#5A6478'}};});
+    const bars=(dates)=>{const ds=dates.map(d=>{const tt=s.txns.filter(t=>t.date===d);return {d,sa:sum(tt.filter(t=>t.type==='sell'),pure),ba:sum(tt.filter(t=>t.type==='buy'),pure)};});
+      const mx=Math.max(1,...ds.map(x=>Math.max(x.sa,x.ba)));
+      return ds.map(x=>({label:D(x.d.slice(8)),title:D(x.d)+' · ရောင်း '+W(x.sa)+' · ဝယ် '+W(x.ba),
+        sell:{flex:1,height:(x.sa/mx*100)+'%',minHeight:x.sa?3:0,background:'#D9A93A',borderRadius:'4px 4px 0 0'},
+        buy:{flex:1,height:(x.ba/mx*100)+'%',minHeight:x.ba?3:0,background:'#C9CFDA',borderRadius:'4px 4px 0 0'}}));};
+    const sells=s.txns.filter(t=>t.type==='sell'),buys=s.txns.filter(t=>t.type==='buy');
+    const pmap=Object.fromEntries(prices.map(p=>[p.date,p.buy]));
+    const marginOf=arr=>sum(arr.filter(t=>t.type==='sell'),t=>pure(t)/128*(t.price-(pmap[t.date]??t.price-100000)));
+    const stockY=s.opening+sum(buys,pure)-sum(sells,pure);
+    const firstPrice=prices[0]?.buy||cur.buy;
+    const avgCost=(s.opening*firstPrice+sum(buys,t=>pure(t)*t.price))/Math.max(1,s.opening+sum(buys,pure));
+    const recvAll=sum(sells,t=>t.amount-t.paid);
+    const f=s.form;
+    const fy=true?(+f.k||0)*128+(+f.p||0)*8+(+f.y||0):(+f.g||0)/G*128;
+    const fq=16;
+    const curP=f.type==='sell'?cur.sell:cur.buy;
+    const fprice=curP;
+    const famt=Math.round(fy*fq/16/128*fprice/R)*R;
+    const fpaid=famt;
+    const setForm=(k,v)=>this.setState(st=>({form:{...st.form,[k]:v}}));
+    const fl=s.flt,ql=fl.q.trim().toLowerCase();
+    const lts=desc.filter(t=>(fl.type==='all'||t.type===fl.type)&&(!fl.from||t.date>=fl.from)&&(!fl.to||t.date<=fl.to)&&(!ql||cname(t.customerId).toLowerCase().includes(ql)||String(t.no).includes(ql)));
+    const lS=lts.filter(t=>t.type==='sell'),lB=lts.filter(t=>t.type==='buy');
+    const tt=s.txns.filter(t=>t.date===today),tS=tt.filter(t=>t.type==='sell'),tB=tt.filter(t=>t.type==='buy');
+    const last=n=>Array.from({length:n},(_,i)=>iso(addDays(now,i-n+1)));
+    const rn=s.range==='all'?null:+s.range;const rFrom=rn?iso(addDays(now,-(rn-1))):'';
+    const rt=s.txns.filter(t=>!rFrom||t.date>=rFrom),rS=rt.filter(t=>t.type==='sell'),rB=rt.filter(t=>t.type==='buy');
+    const rDates=[...new Set(rt.map(t=>t.date))].sort().reverse();
+    const barDates=rn?last(rn):[...rDates].reverse();
+    const byC={};rt.forEach(t=>{const k=t.customerId||'_';byC[k]=byC[k]||{name:cname(t.customerId),count:0,amt:0};byC[k].count++;byC[k].amt+=t.amount;});
+    let bal=s.opening;const moves=asc.map(t=>{const pz=pure(t);bal+=t.type==='buy'?pz:-pz;return {date:D(t.date),no:NO(t.no),typeLabel:t.type==='sell'?'ရောင်း':'ဝယ်',pill:pill(t.type),inW:t.type==='buy'?W(pz):'',outW:t.type==='sell'?W(pz):'',bal:W(bal)};}).reverse().slice(0,40);
+    const vt=s.txns.find(t=>t.id===s.voucherId)||desc[0];
+    const vc=vt?cm[vt.customerId]:null;
+    const c=s.calc;
+    const cy1=(+c.k||0)*128+(+c.p||0)*8+(+c.y||0),cq=16,cpr=c.price!==''?+c.price:cur.sell;
+    const cy2=(+c.ck||0)*128+(+c.cp||0)*8+(+c.cy||0),cf=+c.from||16,ct=+c.to||16;
+    const kyatN=c.last==='kyat'?(+c.kyat||0):(+c.gram||0)/G;
+    const kyatVal=c.last==='kyat'?c.kyat:(c.gram===''?'':String(Math.round(kyatN*10000)/10000));
+    const gramVal=c.last==='gram'?c.gram:(c.kyat===''?'':String(Math.round(kyatN*G*1000)/1000));
+    const pfB=s.pf.buy!==''?+s.pf.buy:cur.buy,pfS=s.pf.sell!==''?+s.pf.sell:cur.sell;
+    const navCur=NAV.find(n=>n[0]===s.screen)||NAV[0];
+    return {
+      nav:NAV.map(([k,l,t,icon])=>{const on=s.screen===k;return {label:l,title:t,icon,onClick:go(k),style:{display:'flex',alignItems:'center',padding:'0 14px',border:'none',borderBottom:on?'3px solid #E0AA3E':'3px solid transparent',borderTop:'3px solid transparent',background:'transparent',color:on?'#FFFFFF':'#B9C3D3',fontWeight:on?600:400,fontSize:16,cursor:'pointer',whiteSpace:'nowrap'}};}),
+      pageTitle:navCur[2],
+      is:Object.fromEntries(NAV.map(([k])=>[k,s.screen===k])),
+      goEntry:go('entry'),goCalc:go('calc'),goPrices:go('prices'),goLedger:go('ledger'),goStock:go('stock'),
+      todayLabel:D(today),
+      cur:{buy:money(cur.buy),sell:money(cur.sell)},curRaw:{buy:String(cur.buy),sell:String(cur.sell)},
+      dash:{sellAmt:money(sum(tS,t=>t.amount)),sellCount:D(tS.length),sellW:W(sum(tS,t=>t.yway)),buyAmt:money(sum(tB,t=>t.amount)),buyCount:D(tB.length),buyW:W(sum(tB,t=>t.yway)),
+        receivable:money(recvAll),bars:bars(last(14)),recent:desc.slice(0,5).map(row)},
+      stock:{cur:W(stockY),curG:GR(stockY),value:money(stockY/128*cur.buy),opening:W(s.opening),inW:W(sum(buys,pure)),outW:W(sum(sells,pure)),moves},
+      openK:String(Math.round(s.opening/128*1000)/1000),
+      setOpen:e=>{const v=+e.target.value||0;this.setState({opening:v*128});},
+      nextNo:NO(s.nextNo),form:f,
+      setF:this.setters('form',['newPhone','customerId','k','p','y','g','quality','price','paid','note']),
+      typeSeg:seg([['sell','ရောင်း'],['buy','ဝယ်']],f.type,v=>this.setState(st=>({form:{...st.form,type:v,price:'',quality:v==='sell'?'16':st.form.quality}}))),
+      modeSeg:seg([['kpy','ကျပ် · ပဲ · ရွေး'],['g','ဂရမ်']],f.mode,v=>setForm('mode',v)),
+      qualChips:seg([16,15.5,15,14.5,14].map(q=>[String(q),Q(q)]),String(fq),v=>setForm('quality',v)),
+      isKpy:true,isG:f.mode==='g',
+      custOpts:s.customers,
+      tp:(()=>{const t=s.tp||{buy:'',sell:''};const hasToday=prices.some(p=>p.date===today);
+        const box=on=>({display:'flex',flexDirection:'column',gap:4,padding:'12px 16px',borderRadius:8,cursor:'text',border:on?'2px solid #D9A93A':'1px solid #D5DAE1',background:on?'#FFFBF0':'#FFFFFF'});
+        const up=(k)=>e=>{const v=e.target.value;this.setState(st=>{const ps=[...st.prices].sort((a,b)=>a.date<b.date?-1:1);const last=ps[ps.length-1]||{buy:0,sell:0};
+          const td=ps.find(p=>p.date===today)||{date:today,buy:last.buy,sell:last.sell};const nv=+v;
+          const np=nv>0?[...st.prices.filter(p=>p.date!==today),{...td,[k]:nv}]:st.prices;return {tp:{...(st.tp||{buy:'',sell:''}),[k]:v},prices:np};});};
+        return {buy:t.buy!==''?t.buy:String(cur.buy),sell:t.sell!==''?t.sell:String(cur.sell),onBuy:up('buy'),onSell:up('sell'),
+          buyBox:box(f.type==='buy'),sellBox:box(f.type==='sell'),buyTag:f.type==='buy'?'ဒီစာရင်းအတွက်':'',sellTag:f.type==='sell'?'ဒီစာရင်းအတွက်':'',
+          note:hasToday?'ပြင်ရင် ယနေ့ဈေးအဖြစ် သိမ်းပါမယ်':'ယနေ့ဈေး မသတ်မှတ်ရသေး · '+D(cur.date)+' ဈေးကို ပြထားသည်',
+          noteStyle:{fontSize:14,color:hasToday?'#6B7486':'#B23A2A',fontWeight:hasToday?400:600}};})(),
+      cp:(()=>{const q=(f.custQ||'').trim();const ql=q.toLowerCase();const sel=cm[f.customerId];const isNew=!!q&&!sel;
+        const sug=s.customers.filter(c=>!ql||c.name.toLowerCase().includes(ql)||(c.phone||'').includes(ql)).slice(0,8);
+        return {q:f.custQ||'',show:!!s.custOpen&&(sug.length>0||isNew),isNew,notNew:!isNew,canAdd:isNew,phone:sel?D(sel.phone||'—'):'ဖုန်း —',
+          status:sel?'ဖောက်သည်ဟောင်း':isNew?'ဖောက်သည်အသစ် · သိမ်းတဲ့အခါ ဖောက်သည်စာရင်းထဲ အလိုလို ထည့်ပါမယ်':'အမည်မထည့်ရင် ဖောက်သည်အထွေထွေ',
+          statusStyle:{fontSize:15,color:sel?'#5A6478':isNew?'#1F7A4D':'#6B7486',fontWeight:isNew?600:400},
+          sug:sug.map(c=>({name:c.name,phone:D(c.phone||''),pick:e=>{e.preventDefault();this.setState(st=>({custOpen:false,form:{...st.form,custQ:c.name,customerId:c.id}}));}})),
+          onQ:e=>{const v=e.target.value;const m=s.customers.find(c=>c.name.trim().toLowerCase()===v.trim().toLowerCase());this.setState(st=>({custOpen:true,form:{...st.form,custQ:v,customerId:m?m.id:''}}));},
+          open:()=>this.setState({custOpen:true}),close:()=>setTimeout(()=>this.setState({custOpen:false}),120)};})(),
+      fv:{weight:W(fy),gram:GR(fy),quality:Q(fq),pure:W(fy*fq/16),price:money(fprice),amount:money(famt),paid:money(fpaid),due:money(Math.max(0,famt-fpaid)),pricePh:String(curP),paidPh:String(famt)},
+      save:()=>{if(fy<=0){window.alert('အလေးချိန် ထည့်ပါ');return;}
+        const q=(f.custQ||'').trim();let newC=null;let cid=f.customerId;if(q&&!cm[cid]){newC={id:'c'+Date.now(),name:q,phone:(f.newPhone||'').trim(),address:''};cid=newC.id;}
+        const n=new Date();const t={id:'t'+Date.now(),no:s.nextNo,date:iso(n),time:String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0'),type:f.type,customerId:cid,yway:Math.round(fy*1000)/1000,quality:fq,price:fprice,amount:famt,paid:fpaid,note:f.note};
+        this.setState(st=>({customers:newC?[...st.customers,newC]:st.customers,txns:[...st.txns,t],nextNo:st.nextNo+1,form:{...EMPTY,type:f.type,mode:f.mode},voucherId:t.id,screen:'voucher'}));},
+      resetForm:()=>this.setState({form:{...EMPTY}}),
+      flt:fl,setFl:this.setters('flt',['q','from','to']),
+      fltSeg:seg([['all','အားလုံး'],['sell','ရောင်း'],['buy','ဝယ်']],fl.type,v=>this.setState(st=>({flt:{...st.flt,type:v}}))),
+      clearFl:()=>this.setState({flt:{type:'all',q:'',from:'',to:''}}),
+      lt:{count:D(lts.length),rows:lts.map(row),sellW:W(sum(lS,pure)),buyW:W(sum(lB,pure)),sellAmt:money(sum(lS,t=>t.amount)),buyAmt:money(sum(lB,t=>t.amount))},
+      hasVoucher:!!vt,
+      v:vt?{title:vt.type==='sell'?'အရောင်းဘောင်ချာ':'အဝယ်ဘောင်ချာ',no:NO(vt.no),date:D(vt.date),time:D(vt.time),cust:cname(vt.customerId),phone:vc?D(vc.phone):'—',
+        weight:W(vt.yway),gram:GR(vt.yway),quality:Q(vt.quality),pure:W(pure(vt)),pureG:GR(pure(vt)),price:money(vt.price),amount:money(vt.amount),paid:money(vt.paid),due:money(vt.amount-vt.paid),note:vt.note}:{},
+      vList:desc.slice(0,60).map(t=>{const on=vt&&t.id===vt.id;return {no:NO(t.no),typeLabel:t.type==='sell'?'ရောင်း':'ဝယ်',cust:cname(t.customerId),amount:money(t.amount),
+        onClick:()=>this.setState({voucherId:t.id}),style:{display:'flex',flexDirection:'column',gap:2,textAlign:'left',padding:'12px 14px',border:'none',borderRadius:6,cursor:'pointer',background:on?'#FBF3E0':'transparent',fontSize:15,color:'#1B2A41',boxShadow:on?'inset 3px 0 0 #E0AA3E':'none'}};}),
+      doPrint:()=>window.print(),
+      repModeSeg:seg([['day','နေ့စဉ်'],['month','လချုပ်'],['year','နှစ်ချုပ်']],s.repMode||'day',v=>this.setState({repMode:v})),
+      repIs:{day:(s.repMode||'day')==='day',month:s.repMode==='month',year:s.repMode==='year'},
+      mon:(()=>{const ym=s.repMonth||today.slice(0,7);const [Y,M]=ym.split('-').map(Number);
+        const mt=s.txns.filter(t=>t.date.slice(0,7)===ym).sort((a,b)=>a.no-b.no);const ms=mt.filter(t=>t.type==='sell'),mb=mt.filter(t=>t.type==='buy');
+        const lr=t=>({no:NO(t.no),date:D(t.date),cust:cname(t.customerId),pure:W(pure(t)),quality:Q(t.quality),amount:money(t.amount)});
+        const shift=d=>()=>{const x=new Date(Y,M-1+d,1);this.setState({repMonth:x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')});};
+        const sp=sum(ms,pure),bp=sum(mb,pure),sa=sum(ms,t=>t.amount);
+        return {label:D(Y)+' · '+MONTHS[M-1],prev:shift(-1),next:shift(1),
+          sellAmt:money(sa),sellCount:D(ms.length),sellPure:W(sp),buyAmt:money(sum(mb,t=>t.amount)),buyCount:D(mb.length),buyPure:W(bp),
+          net:W(bp-sp),netG:GR(bp-sp),margin:money(marginOf(ms)),avgCost:money(bp?sum(mb,t=>pure(t)*t.price)/bp:0),
+          sells:ms.map(lr),buys:mb.map(lr),sellTot:{count:D(ms.length),pure:W(sp),amt:money(sa)},buyTot:{count:D(mb.length),pure:W(bp),amt:money(sum(mb,t=>t.amount))}};})(),
+      yr:(()=>{const Y=s.repYear||now.getFullYear();const yt=s.txns.filter(t=>+t.date.slice(0,4)===Y);
+        const ms=Array.from({length:12},(_,i)=>{const k=Y+'-'+String(i+1).padStart(2,'0');const a=yt.filter(t=>t.date.slice(0,7)===k),sa=a.filter(t=>t.type==='sell'),ba=a.filter(t=>t.type==='buy');
+          return {k,i,sa,n:a.length,sA:sum(sa,t=>t.amount),bA:sum(ba,t=>t.amount),sP:sum(sa,pure),bP:sum(ba,pure)};});
+        const mx=Math.max(1,...ms.map(m=>Math.max(m.sP,m.bP)));
+        const yS=yt.filter(t=>t.type==='sell'),yB=yt.filter(t=>t.type==='buy');const sp=sum(yS,pure),bp=sum(yB,pure),sa=sum(yS,t=>t.amount);
+        return {label:D(Y)+' ခုနှစ်',prev:()=>this.setState({repYear:Y-1}),next:()=>this.setState({repYear:Y+1}),
+          sellAmt:money(sa),sellCount:D(yS.length),sellPure:W(sp),buyAmt:money(sum(yB,t=>t.amount)),buyCount:D(yB.length),buyPure:W(bp),
+          net:W(bp-sp),netG:GR(bp-sp),margin:money(marginOf(yS)),avgCost:money(bp?sum(yB,t=>pure(t)*t.price)/bp:0),
+          bars:ms.map(m=>({label:MONTHS[m.i],title:MONTHS[m.i]+' · ရောင်း '+W(m.sP)+' · ဝယ် '+W(m.bP),
+            sell:{flex:1,height:(m.sP/mx*100)+'%',minHeight:m.sP?3:0,background:'#D9A93A',borderRadius:'3px 3px 0 0'},buy:{flex:1,height:(m.bP/mx*100)+'%',minHeight:m.bP?3:0,background:'#C9CFDA',borderRadius:'3px 3px 0 0'}})),
+          rows:ms.map(m=>({name:MONTHS[m.i],count:D(m.n),sellPure:m.sP?W(m.sP):'—',sellAmt:m.sA?money(m.sA):'—',buyPure:m.bP?W(m.bP):'—',buyAmt:m.bA?money(m.bA):'—',margin:m.sA?money(marginOf(m.sa)):'—',
+            onOpen:()=>this.setState({repMode:'month',repMonth:m.k})}))};})(),
+
+      metricSeg:seg([['w','အလေးချိန်'],['m','ငွေ']],s.repMetric||'w',v=>this.setState({repMetric:v})),
+      ch:{unit:(s.repMetric||'w')==='w'?'ကျပ်သား':'သိန်း'},
+      ...(()=>{const isW=(s.repMetric||'w')==='w';
+        const balAt=(()=>{let b=s.opening;const pts=asc.map(t=>{b+=t.type==='buy'?pure(t):-pure(t);return [t.date,b];});return d=>{let r=s.opening;for(let i=0;i<pts.length&&pts[i][0]<=d;i++)r=pts[i][1];return r;};})();
+        const mk=(buckets,labelEvery,firstLbl,lastLbl)=>{
+          const rows=buckets.map(bk=>{const a=s.txns.filter(t=>t.date>=bk.from&&t.date<=bk.to),sa=a.filter(t=>t.type==='sell'),ba=a.filter(t=>t.type==='buy');
+            return {...bk,sP:sum(sa,pure),bP:sum(ba,pure),sA:sum(sa,t=>t.amount),bA:sum(ba,t=>t.amount),pr:marginOf(sa),bal:balAt(bk.to)};});
+          const sv=r=>isW?r.sP/128:r.sA/1e5,bv=r=>isW?r.bP/128:r.bA/1e5;
+          const mx=Math.max(0.0001,...rows.map(r=>Math.max(sv(r),bv(r))));const pmx=Math.max(0.0001,...rows.map(r=>Math.abs(r.pr)));
+          const few=rows.length<=16;const txt={fontSize:12,lineHeight:1.5,color:'#5A6478',whiteSpace:'nowrap',display:few?'block':'none'};
+          const f1=v=>v?D(v>=100?Math.round(v):v.toFixed(1)):'';
+          const bar=(v,m,col,up)=>({width:'72%',maxWidth:40,height:(v/m*100*(few?0.85:1))+'%',minHeight:v?2:0,background:col,borderRadius:up?'4px 4px 0 0':'0 0 4px 4px'});
+          const cols=rows.map((r,i)=>({label:(i%labelEvery===0||i===rows.length-1)?r.label:'',slabel:(i%labelEvery===0||i===rows.length-1)?(r.sl||r.label):'',title:r.title+' · ရောင်း '+W(r.sP)+' ('+money(r.sA)+') · ဝယ် '+W(r.bP)+' ('+money(r.bA)+')',
+            up:bar(sv(r),mx,'#D9A93A',true),down:bar(bv(r),mx,'#9AA6B8',false),upTxt:f1(sv(r)),downTxt:f1(bv(r)),txtStyle:txt,
+            p:{width:'72%',maxWidth:40,height:(Math.abs(r.pr)/pmx*85)+'%',minHeight:r.pr?2:0,background:r.pr>=0?'#1F7A4D':'#B23A2A',borderRadius:'4px 4px 0 0'},pTxt:f1(r.pr/1e5),pTitle:r.title+' · အမြတ် '+money(r.pr)}));
+          const bals=[balAt(buckets[0]?iso(addDays(new Date(buckets[0].from+'T00:00:00'),-1)):today),...rows.map(r=>r.bal)];
+          const lo=Math.min(...bals),hi=Math.max(...bals),rg=Math.max(1,hi-lo);
+          const pts=bals.map((b,i)=>[(i/Math.max(1,bals.length-1)*1000).toFixed(1),(150-(b-lo)/rg*130).toFixed(1)]);
+          const line=pts.map(p=>p.join(',')).join(' ');const chg=bals[bals.length-1]-bals[0];
+          return {cols,first:firstLbl,last:lastLbl,profitTotal:D((sum(rows,r=>r.pr)/1e5).toFixed(1))+' သိန်း',
+            stock:{line,area:'0,160 '+line+' 1000,160',start:W(bals[0]),end:W(bals[bals.length-1]),chg:(chg>=0?'+ ':'')+W(chg),chgStyle:{fontSize:18,fontWeight:700,color:chg>=0?'#1F7A4D':'#B23A2A'}}};};
+        const dayB=ds=>ds.map(d=>({from:d,to:d,label:D(+d.slice(8)),title:D(d)}));
+        // day view buckets
+        let rb;const rds=rn?last(rn):(()=>{const f=asc.length?asc[0].date:today;const out=[];for(let d=new Date(f+'T00:00:00');iso(d)<=today;d=addDays(d,1))out.push(iso(d));return out;})();
+        if(rds.length<=45)rb=dayB(rds);
+        else if(rds.length<=120){rb=[];for(let i=0;i<rds.length;i+=7){const g=rds.slice(i,i+7);rb.push({from:g[0],to:g[g.length-1],label:D(g[0].slice(5).replace('-','/')),title:D(g[0])+' – '+D(g[g.length-1])});}}
+        else{const ms=[...new Set(rds.map(d=>d.slice(0,7)))];rb=ms.map(m=>({from:m+'-01',to:m+'-31',label:MONTHS[+m.slice(5)-1],sl:D(+m.slice(5)),title:D(m.slice(0,4))+' '+MONTHS[+m.slice(5)-1]}));}
+        const ym=s.repMonth||today.slice(0,7);const [Y,M]=ym.split('-').map(Number);const dim=new Date(Y,M,0).getDate();
+        const mb=Array.from({length:dim},(_,i)=>ym+'-'+String(i+1).padStart(2,'0'));
+        const YY=s.repYear||now.getFullYear();
+        const yb=Array.from({length:12},(_,i)=>{const k=YY+'-'+String(i+1).padStart(2,'0');return {from:k+'-01',to:k+'-31',label:MONTHS[i],sl:D(i+1),title:D(YY)+' '+MONTHS[i]};});
+        return {rch:mk(rb.length>12?rb.map(b=>({...b,label:b.sl||b.label})):rb,rb.length>20?5:1,rb[0]?rb[0].title:'',rb.length?rb[rb.length-1].title:''),
+          mch:mk(dayB(mb),5,D(mb[0]),D(mb[mb.length-1])),
+          ych:mk(yb,1,MONTHS[0],MONTHS[11])};})(),
+      rangeSeg:seg([['7','၇ ရက်'],['30','၃၀ ရက်'],['90','၉၀ ရက်'],['all','အားလုံး']],s.range,v=>this.setState({range:v})),
+      rep:{rangeLabel:rn?D(rFrom)+' မှ '+D(today)+' ထိ':'မှတ်တမ်းအားလုံး',sellAmt:money(sum(rS,t=>t.amount)),sellCount:D(rS.length),sellW:W(sum(rS,pure)),buyAmt:money(sum(rB,t=>t.amount)),buyCount:D(rB.length),buyW:W(sum(rB,pure)),
+        margin:money(marginOf(rS)),avgCost:money(avgCost),recv:money(sum(rS,t=>t.amount-t.paid)),pay:money(sum(rB,t=>t.amount-t.paid)),
+        bars:bars(barDates),
+        days:rDates.map(d=>{const a=rt.filter(t=>t.date===d),sa=a.filter(t=>t.type==='sell'),ba=a.filter(t=>t.type==='buy');return {date:D(d),sellW:sa.length?W(sum(sa,pure)):'—',sellAmt:sa.length?money(sum(sa,t=>t.amount)):'—',buyW:ba.length?W(sum(ba,pure)):'—',buyAmt:ba.length?money(sum(ba,t=>t.amount)):'—'};}),
+        top:Object.values(byC).sort((a,b)=>b.amt-a.amt).slice(0,5).map(x=>({name:x.name,count:D(x.count),amount:money(x.amt)}))},
+      c,setC:this.setters('calc',['k','p','y','q','price','ck','cp','cy','from','to']),
+      setKyat:e=>{const v=e.target.value;this.setState(st=>({calc:{...st.calc,kyat:v,last:'kyat'}}));},
+      setGram:e=>{const v=e.target.value;this.setState(st=>({calc:{...st.calc,gram:v,last:'gram'}}));},
+      calc:{gpk:D(G),pricePh:String(cur.sell),v1g:GR(cy1),v1pure:W(cy1*cq/16),v1val:money(cy1*cq/16/128*cpr),
+        fromQ:Q(cf),toQ:Q(ct),v2in:W(cy2),v2pure:W(cy2*cf/16),v2out:W(cy2*cf/ct),v2outG:GR(cy2*cf/ct),
+        kyatVal,gramVal,v3kpy:W(kyatN*128),gPe:D((G/16).toFixed(3)),gYway:D((G/128).toFixed(3))},
+      custCount:D(s.customers.length),
+      custRows:s.customers.map(cu=>{const a=s.txns.filter(t=>t.customerId===cu.id),sa=a.filter(t=>t.type==='sell'),ba=a.filter(t=>t.type==='buy');
+        const b=sum(sa,t=>t.amount-t.paid)-sum(ba,t=>t.amount-t.paid);
+        return {name:cu.name,phone:D(cu.phone||'—'),count:D(a.length),soldW:W(sum(sa,pure)),boughtW:W(sum(ba,pure)),balance:b===0?'—':money(b),balStyle:{color:b>0?'#1F7A4D':b<0?'#B23A2A':'#6B7486'},
+          onOpen:()=>this.setState({flt:{type:'all',q:cu.name,from:'',to:''},screen:'ledger'})};}),
+      nc:s.nc,setNc:this.setters('nc',['name','phone','address']),
+      addCust:()=>{const n=s.nc;if(!n.name.trim())return;this.setState(st=>({customers:[...st.customers,{id:'c'+Date.now(),name:n.name.trim(),phone:n.phone.trim(),address:n.address.trim()}],nc:{name:'',phone:'',address:''}}));},
+      pf:s.pf,setPf:this.setters('pf',['buy','sell']),spread:money(pfS-pfB),
+      savePrice:()=>{if(!pfB||!pfS)return;this.setState(st=>({prices:[...st.prices.filter(p=>p.date!==today),{date:today,buy:pfB,sell:pfS}],pf:{buy:'',sell:''}}));},
+      priceRows:prices.map((p,i)=>{const prev=prices[i-1];const ch=prev?p.buy-prev.buy:0;return {date:D(p.date),buy:money(p.buy),sell:money(p.sell),chg:ch===0?'—':(ch>0?'+':'−')+money(Math.abs(ch)),chgStyle:{color:ch>0?'#1F7A4D':ch<0?'#B23A2A':'#6B7486',fontWeight:600}};}).reverse()
+    };
+  }
+}
+</script>
+</body>
+</html>

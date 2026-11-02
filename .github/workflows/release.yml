@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build and release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: .
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || 'v1.0.0' }}
+          releaseName: Gold Ledger ${{ github.ref_type == 'tag' && github.ref_name || 'v1.0.0' }}
+          releaseBody: |
+            ## ဦးသန့်စင် · အခေါက်ရွှေ စာရင်း (Gold Ledger) v1.0.0
+
+            ### မြန်မာ — တပ်ဆင်နည်း
+            1. အောက်က `Gold Ledger_*_x64-setup.exe` ကို ဒေါင်းလုဒ်လုပ်ပါ
+            2. Installer ဖွင့်ပြီး လိုက်နာ တပ်ဆင်ပါ
+            3. WebView2 မရှိရင် installer ထဲက bootstrapper က ထည့်ပေးပါမည်
+
+            ### English — Install
+            1. Download `Gold Ledger_*_x64-setup.exe` (or `.msi`)
+            2. Run the installer
+            3. WebView2 bootstrapper is embedded for PCs without WebView2
+          releaseDraft: false
+          prerelease: false
+          args: --bundles nsis,msi
+
+      - name: Upload installers as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gold-ledger-windows
+          path: |
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/msi/*.msi
+          if-no-files-found: warn
