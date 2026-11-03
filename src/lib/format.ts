@@ -10,21 +10,22 @@ export function pillStyle(type: 'sell' | 'buy'): CSSProperties {
     fontSize: 15,
     fontWeight: 600,
     whiteSpace: 'nowrap',
-    background: type === 'sell' ? colors.sellPillBg : colors.buyPillBg,
+    background: colors.white,
+    border: `1.5px solid ${type === 'sell' ? colors.sell : colors.buy}`,
     color: type === 'sell' ? colors.sell : colors.buy,
   };
 }
 
 export function typeLabel(type: 'sell' | 'buy'): string {
-  return type === 'sell' ? 'ရောင်း' : 'ဝယ်';
+  return type === 'sell' ? 'အရောင်း' : 'အဝယ်';
 }
 
 export function customerName(
   id: number | null,
   map: Map<number, { name: string }>,
 ): string {
-  if (id == null) return 'ဖောက်သည်အထွေထွေ';
-  return map.get(id)?.name ?? 'ဖောက်သည်အထွေထွေ';
+  if (id == null) return 'ဝယ်သူအထွေထွေ';
+  return map.get(id)?.name ?? 'ဝယ်သူအထွေထွေ';
 }
 
 export type { DigitsMode };

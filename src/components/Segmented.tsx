@@ -16,7 +16,13 @@ export function Segmented<T extends string>({
 }) {
   if (size === 'big') {
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${options.length}, minmax(0,1fr))`, gap: 16 }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${options.length}, minmax(0,1fr))`,
+          gap: 14,
+        }}
+      >
         {options.map((o) => {
           const on = o.value === value;
           return (
@@ -25,14 +31,15 @@ export function Segmented<T extends string>({
               type="button"
               onClick={() => onChange(o.value)}
               style={{
-                height: 76,
+                height: 72,
                 borderRadius: radii.input,
                 fontSize: 17,
                 fontWeight: 700,
+                lineHeight: 1.5,
                 cursor: 'pointer',
-                border: on ? `2px solid ${colors.gold}` : `1px solid ${colors.borderSoft}`,
+                border: on ? `2px solid ${colors.ink}` : `1.5px solid ${colors.cardBorder}`,
                 background: on ? colors.ink : colors.white,
-                color: on ? colors.goldOnNavy : colors.muted,
+                color: on ? colors.white : colors.muted,
               }}
             >
               {o.label}
@@ -45,10 +52,12 @@ export function Segmented<T extends string>({
 
   return (
     <div
+      role="tablist"
       style={{
-        display: 'flex',
-        gap: 4,
-        background: colors.segmentTrack,
+        display: 'inline-flex',
+        gap: 3,
+        background: colors.white,
+        border: `1.5px solid ${colors.cardBorder}`,
         padding: 4,
         borderRadius: 8,
         alignSelf: 'flex-start',
@@ -59,29 +68,38 @@ export function Segmented<T extends string>({
         const style: CSSProperties =
           size === 'chip'
             ? {
-                height: 44,
-                padding: '0 20px',
+                height: 42,
+                padding: '0 18px',
                 borderRadius: radii.input,
                 fontSize: 15,
                 fontWeight: 600,
+                lineHeight: 1.5,
                 cursor: 'pointer',
-                border: on ? `1px solid ${colors.gold}` : `1px solid ${colors.inputBorder}`,
-                background: on ? colors.gold : colors.white,
-                color: colors.ink,
+                border: on ? `1.5px solid ${colors.ink}` : `1.5px solid transparent`,
+                background: on ? colors.ink : 'transparent',
+                color: on ? colors.white : colors.ink,
               }
             : {
-                height: 38,
-                padding: '0 18px',
+                height: 36,
+                padding: '0 16px',
                 border: 'none',
-                borderRadius: radii.input,
+                borderRadius: radii.segment,
                 fontSize: 15,
                 cursor: 'pointer',
                 fontWeight: 600,
+                lineHeight: 1.5,
                 background: on ? colors.ink : 'transparent',
-                color: on ? colors.goldOnNavy : colors.muted,
+                color: on ? colors.white : colors.muted,
               };
         return (
-          <button key={o.value} type="button" onClick={() => onChange(o.value)} style={style}>
+          <button
+            key={o.value}
+            type="button"
+            role="tab"
+            aria-selected={on}
+            onClick={() => onChange(o.value)}
+            style={style}
+          >
             {o.label}
           </button>
         );

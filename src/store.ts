@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Customer, Price, Settings, Txn } from './db/types';
+import type { Customer, Price, Settings, StockAdjustment, Txn } from './db/types';
 import * as db from './db/queries';
 import { isoDate } from './lib/units';
 
@@ -9,7 +9,6 @@ export type Screen =
   | 'ledger'
   | 'voucher'
   | 'reports'
-  | 'calc'
   | 'customers'
   | 'stock'
   | 'prices'
@@ -32,6 +31,7 @@ interface AppState {
   customers: Customer[];
   prices: Price[];
   txns: Txn[];
+  stockAdjustments: StockAdjustment[];
   settings: Settings;
   voucherId: number | null;
   flt: LedgerFilter;
@@ -41,9 +41,18 @@ interface AppState {
   repMonth: string;
   repYear: number;
   error: string | null;
+  entryDialogOpen: boolean;
+  customerDialogOpen: boolean;
+  priceDialogOpen: boolean;
+  openingStockDialogOpen: boolean;
+  stockAdjustDialogOpen: boolean;
+  stockAdjustKind: 'in' | 'out';
+  /** After save → open voucher and print once */
+  printAfterOpen: boolean;
 
   setScreen: (s: Screen) => void;
   setVoucherId: (id: number | null) => void;
+  setPrintAfterOpen: (v: boolean) => void;
   setFlt: (partial: Partial<LedgerFilter>) => void;
   clearFlt: () => void;
   setRange: (r: RangeKey) => void;
@@ -51,6 +60,16 @@ interface AppState {
   setRepMetric: (m: RepMetric) => void;
   setRepMonth: (ym: string) => void;
   setRepYear: (y: number) => void;
+  openEntryDialog: () => void;
+  closeEntryDialog: () => void;
+  openCustomerDialog: () => void;
+  closeCustomerDialog: () => void;
+  openPriceDialog: () => void;
+  closePriceDialog: () => void;
+  openOpeningStockDialog: () => void;
+  closeOpeningStockDialog: () => void;
+  openStockAdjustDialog: (kind: 'in' | 'out') => void;
+  closeStockAdjustDialog: () => void;
   bootstrap: () => Promise<void>;
   refresh: () => Promise<void>;
   refreshSettings: () => Promise<void>;
@@ -64,7 +83,15 @@ export const useStore = create<AppState>((set, get) => ({
   customers: [],
   prices: [],
   txns: [],
-  settings: { opening_stock_yway: 0, digits: 'latin', round_to: 100 },
+  stockAdjustments: [],
+  settings: {
+    opening_stock_yway: 0,
+    digits: 'latin',
+    round_to: 100,
+    shop_name: 'ဦးသန့်စင်',
+    shop_mark: 'သ',
+    shop_tagline: 'အခေါက်ရွှေ အရောင်းအဝယ်',
+  },
   voucherId: null,
   flt: { type: 'all', q: '', from: '', to: '' },
   range: '30',
@@ -73,9 +100,23 @@ export const useStore = create<AppState>((set, get) => ({
   repMonth: today.slice(0, 7),
   repYear: new Date().getFullYear(),
   error: null,
+  entryDialogOpen: false,
+  customerDialogOpen: false,
+  priceDialogOpen: false,
+  openingStockDialogOpen: false,
+  stockAdjustDialogOpen: false,
+  stockAdjustKind: 'in',
+  printAfterOpen: false,
 
-  setScreen: (screen) => set({ screen }),
+  setScreen: (screen) => {
+    if (screen === 'entry') {
+      set({ entryDialogOpen: true });
+      return;
+    }
+    set({ screen });
+  },
   setVoucherId: (voucherId) => set({ voucherId }),
+  setPrintAfterOpen: (printAfterOpen) => set({ printAfterOpen }),
   setFlt: (partial) => set({ flt: { ...get().flt, ...partial } }),
   clearFlt: () => set({ flt: { type: 'all', q: '', from: '', to: '' } }),
   setRange: (range) => set({ range }),
@@ -83,6 +124,16 @@ export const useStore = create<AppState>((set, get) => ({
   setRepMetric: (repMetric) => set({ repMetric }),
   setRepMonth: (repMonth) => set({ repMonth }),
   setRepYear: (repYear) => set({ repYear }),
+  openEntryDialog: () => set({ entryDialogOpen: true }),
+  closeEntryDialog: () => set({ entryDialogOpen: false }),
+  openCustomerDialog: () => set({ customerDialogOpen: true }),
+  closeCustomerDialog: () => set({ customerDialogOpen: false }),
+  openPriceDialog: () => set({ priceDialogOpen: true }),
+  closePriceDialog: () => set({ priceDialogOpen: false }),
+  openOpeningStockDialog: () => set({ openingStockDialogOpen: true }),
+  closeOpeningStockDialog: () => set({ openingStockDialogOpen: false }),
+  openStockAdjustDialog: (kind) => set({ stockAdjustDialogOpen: true, stockAdjustKind: kind }),
+  closeStockAdjustDialog: () => set({ stockAdjustDialogOpen: false }),
 
   bootstrap: async () => {
     try {
@@ -97,13 +148,14 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   refresh: async () => {
-    const [customers, prices, txns, settings] = await Promise.all([
+    const [customers, prices, txns, stockAdjustments, settings] = await Promise.all([
       db.listCustomers(),
       db.listPrices(),
       db.listTxns(),
+      db.listStockAdjustments(),
       db.getSettings(),
     ]);
-    set({ customers, prices, txns, settings });
+    set({ customers, prices, txns, stockAdjustments, settings });
   },
 
   refreshSettings: async () => {
@@ -113,13 +165,11 @@ export const useStore = create<AppState>((set, get) => ({
 }));
 
 export const NAV: { key: Screen; label: string; title: string }[] = [
-  { key: 'dash', label: 'ပင်မ', title: 'ခြုံငုံကြည့်' },
-  { key: 'entry', label: 'စာရင်းသွင်း', title: 'စာရင်းသွင်း' },
+  { key: 'dash', label: 'ပင်မ', title: 'ပင်မ' },
   { key: 'ledger', label: 'မှတ်တမ်း', title: 'အရောင်းအဝယ်မှတ်တမ်း' },
-  { key: 'voucher', label: 'ဘောင်ချာ', title: 'ဘောင်ချာ' },
-  { key: 'reports', label: 'အစီရင်ခံ', title: 'အစီရင်ခံစာ' },
-  { key: 'calc', label: 'တွက်စက်', title: 'ရွှေတွက်စက်' },
-  { key: 'customers', label: 'ဖောက်သည်', title: 'ဖောက်သည်များ' },
-  { key: 'stock', label: 'လက်ကျန်', title: 'လက်ကျန်ရွှေ' },
-  { key: 'prices', label: 'ပေါက်ဈေး', title: 'ပေါက်ဈေး သတ်မှတ်' },
+  { key: 'voucher', label: 'ဘောင်ချာစာရင်း', title: 'ဘောင်ချာစာရင်း' },
+  { key: 'reports', label: 'စာရင်းစစ်ခြင်း', title: 'စာရင်းစစ်ခြင်း' },
+  { key: 'customers', label: 'ဝယ်သူ', title: 'ဝယ်သူများ' },
+  { key: 'stock', label: 'လက်ကျန်စီမံ', title: 'လက်ကျန် စီမံခြင်း' },
+  { key: 'prices', label: 'စျေးနှုန်း', title: 'စျေးနှုန်းပြင်ဆင်ရန်' },
 ];

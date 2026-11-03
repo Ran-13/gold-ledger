@@ -8,28 +8,28 @@ export const colors = {
   goldNav: '#E0AA3E',
   goldOnNavy: '#F0C35A',
   goldDark: '#9A6B12',
-  goldLight: '#FBF3E0',
-  goldWash: '#FFFBF0',
+  goldLight: '#FFFFFF',
+  goldWash: '#FFFFFF',
   white: '#FFFFFF',
   muted: '#5A6478',
   muted2: '#6B7486',
   cardBorder: '#C3CAD5',
-  rowDivider: '#EEF0F3',
+  rowDivider: '#E8ECF0',
   inputBorder: '#D5DAE1',
-  segmentTrack: '#EEF0F3',
+  segmentTrack: '#FFFFFF',
   buyBar: '#9AA6B8',
   buyBarSoft: '#C9CFDA',
   sell: '#1F7A4D',
-  sellPillBg: '#E2F0E8',
+  sellPillBg: '#FFFFFF',
   buy: '#B23A2A',
-  buyPillBg: '#F8E4E0',
+  buyPillBg: '#FFFFFF',
   voucherGold: '#C99A35',
   voucherMuted: '#6E6250',
   voucherLine: '#DCCDAE',
   voucherDash: '#C9B790',
   voucherSig: '#8A7D66',
-  softRow: '#F7F8FA',
-  softBg: '#F3F5F8',
+  softRow: '#FFFFFF',
+  softBg: '#FFFFFF',
   borderSoft: '#E6E9EE',
 } as const;
 
@@ -45,6 +45,9 @@ export const radii = {
   card: 12,
   segment: 6,
 } as const;
+
+/** Sidebar brand row + top price strip — keep aligned */
+export const TOP_BAR_HEIGHT = 76;
 
 export const cardShadow = '0 2px 6px rgba(27,42,65,.08)';
 

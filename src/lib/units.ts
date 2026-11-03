@@ -64,19 +64,106 @@ export function profit(yway: number, salePrice: number, buyPrice: number): numbe
   return (yway / YWAY_PER_KYAT) * (salePrice - buyPrice);
 }
 
-/** Stock = opening + Σ buy − Σ sell */
+/** Stock = opening + Σ buy + Σ adj_in − Σ sell − Σ adj_out */
 export function stock(
   openingYway: number,
   buyYway: number,
   sellYway: number,
+  adjInYway = 0,
+  adjOutYway = 0,
 ): number {
-  return openingYway + buyYway - sellYway;
+  return openingYway + buyYway + adjInYway - sellYway - adjOutYway;
+}
+
+const STOCK_EPS = 1e-9;
+
+/** Current stock from opening + all movements. */
+export function stockFromParts(
+  openingYway: number,
+  txns: Array<{ type: string; yway: number }>,
+  adjs: Array<{ kind: string; yway: number }>,
+): number {
+  let buy = 0;
+  let sell = 0;
+  let adjIn = 0;
+  let adjOut = 0;
+  for (const t of txns) {
+    if (t.type === 'buy') buy += t.yway;
+    else if (t.type === 'sell') sell += t.yway;
+  }
+  for (const a of adjs) {
+    if (a.kind === 'in') adjIn += a.yway;
+    else if (a.kind === 'out') adjOut += a.yway;
+  }
+  return stock(openingYway, buy, sell, adjIn, adjOut);
+}
+
+/** Throw if `need` exceeds available stock (cannot go negative / overdraw). */
+export function assertStockEnough(
+  available: number,
+  need: number,
+  digits: DigitsMode = 'myanmar',
+): void {
+  if (need > available + STOCK_EPS) {
+    throw new Error(
+      `လက်ကျန်ထက် ပို၍ မရပါ\nလက်ရှိလက်ကျန် · ${W(Math.max(0, available), digits)}`,
+    );
+  }
+}
+
+export function assertStockNonNegative(
+  nextStock: number,
+  digits: DigitsMode = 'myanmar',
+  detail = 'လက်ကျန် အနှုတ် ဖြစ်လို့ မရပါ',
+): void {
+  if (nextStock < -STOCK_EPS) {
+    throw new Error(`${detail}\nရလဒ်လက်ကျန် · ${W(nextStock, digits)}`);
+  }
 }
 
 export function D(x: string | number, digits: DigitsMode = 'latin'): string {
   const s = String(x);
   if (digits !== 'myanmar') return s;
   return s.replace(/[0-9]/g, (d) => MMD[Number(d)]!);
+}
+
+/** Convert Myanmar digits ၀–၉ → 0–9 (leaves Latin digits unchanged). */
+export function toLatinDigits(s: string): string {
+  return String(s).replace(/[၀-၉]/g, (d) => String(MMD.indexOf(d)));
+}
+
+/**
+ * Parse a number from Latin or Myanmar digits.
+ * Accepts commas as thousand separators. Empty / invalid → 0.
+ */
+export function N(x: string | number | null | undefined): number {
+  if (typeof x === 'number') return Number.isFinite(x) ? x : 0;
+  if (x == null || x === '') return 0;
+  const cleaned = toLatinDigits(String(x)).replace(/,/g, '').trim();
+  if (!cleaned || cleaned === '-' || cleaned === '.') return 0;
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** Keep only digits (Latin/Myanmar), one decimal point, optional leading minus. */
+export function keepNumInput(s: string): string {
+  let out = '';
+  let seenDot = false;
+  for (const ch of String(s)) {
+    if (/[0-9၀-၉]/.test(ch)) {
+      out += ch;
+      continue;
+    }
+    if ((ch === '.' || ch === '။') && !seenDot) {
+      out += '.';
+      seenDot = true;
+      continue;
+    }
+    if (ch === '-' && out.length === 0) {
+      out += '-';
+    }
+  }
+  return out;
 }
 
 export function money(n: number, digits: DigitsMode = 'latin'): string {
@@ -94,7 +181,13 @@ export function isoDate(d: Date = new Date()): string {
 
 export function isoTime(d: Date = new Date()): string {
   const z = (n: number) => String(n).padStart(2, '0');
-  return `${z(d.getHours())}:${z(d.getMinutes())}`;
+  return `${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}`;
+}
+
+/** Sort key for price logs / txns: date then time */
+export function dateTimeKey(date: string, time: string): string {
+  const t = time.length === 5 ? `${time}:00` : time;
+  return `${date}T${t}`;
 }
 
 export function addDays(d: Date, n: number): Date {

@@ -1,11 +1,10 @@
-import { useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import { open, save } from '@tauri-apps/plugin-dialog';
+import { useEffect, useState } from 'react';
 import { Card } from '../components/Card';
 import { Segmented } from '../components/Segmented';
+import { isTauri } from '../db/env';
 import { closeDb, getDbPath, reopenDb, setSetting } from '../db/queries';
-import { YWAY_PER_KYAT } from '../lib/units';
-import { colors, radii } from '../styles/tokens';
+import { W } from '../lib/units';
+import { colors } from '../styles/tokens';
 import { useStore } from '../store';
 import type { RoundTo } from '../lib/units';
 
@@ -13,16 +12,33 @@ export function Settings() {
   const settings = useStore((s) => s.settings);
   const refresh = useStore((s) => s.refresh);
   const refreshSettings = useStore((s) => s.refreshSettings);
+  const setScreen = useStore((s) => s.setScreen);
+  const openOpeningStockDialog = useStore((s) => s.openOpeningStockDialog);
+  const digits = settings.digits;
 
-  const [openK, setOpenK] = useState(
-    String(Math.round((settings.opening_stock_yway / YWAY_PER_KYAT) * 1000) / 1000),
-  );
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  const [shopName, setShopName] = useState(settings.shop_name);
+  const [shopMark, setShopMark] = useState(settings.shop_mark);
+  const [shopTagline, setShopTagline] = useState(settings.shop_tagline);
 
-  const saveDigits = async (digits: 'latin' | 'myanmar') => {
-    await setSetting('digits', digits);
+  useEffect(() => {
+    setShopName(settings.shop_name);
+    setShopMark(settings.shop_mark);
+    setShopTagline(settings.shop_tagline);
+  }, [settings.shop_name, settings.shop_mark, settings.shop_tagline]);
+
+  const saveDigits = async (digitsMode: 'latin' | 'myanmar') => {
+    await setSetting('digits', digitsMode);
     await refreshSettings();
+  };
+
+  const saveShop = async () => {
+    await setSetting('shop_name', shopName.trim() || 'ဦးသန့်စင်');
+    await setSetting('shop_mark', shopMark.trim() || 'သ');
+    await setSetting('shop_tagline', shopTagline.trim() || 'အခေါက်ရွှေ အရောင်းအဝယ်');
+    await refreshSettings();
+    setMsg('ဆိုင်အမှတ်တံဆိပ် သိမ်းပြီးပါပြီ');
   };
 
   const saveRound = async (round: RoundTo) => {
@@ -30,16 +46,16 @@ export function Settings() {
     await refreshSettings();
   };
 
-  const saveOpening = async () => {
-    const v = +openK || 0;
-    await setSetting('opening_stock_yway', String(v * YWAY_PER_KYAT));
-    await refreshSettings();
-  };
-
   const backup = async () => {
+    if (!isTauri()) {
+      setMsg('Backup သည် Desktop app (.exe) ထဲမှာသာ ရပါသည်');
+      return;
+    }
     setBusy(true);
     setMsg('');
     try {
+      const { save } = await import('@tauri-apps/plugin-dialog');
+      const { invoke } = await import('@tauri-apps/api/core');
       const dest = await save({
         title: 'ဒေတာအရံသိမ်းမည်',
         defaultPath: `gold-ledger-backup-${new Date().toISOString().slice(0, 10)}.db`,
@@ -56,10 +72,16 @@ export function Settings() {
   };
 
   const restore = async () => {
+    if (!isTauri()) {
+      setMsg('Restore သည် Desktop app (.exe) ထဲမှာသာ ရပါသည်');
+      return;
+    }
     if (!window.confirm('လက်ရှိဒေတာကို အစားထိုးမှာ သေချာပါသလား?')) return;
     setBusy(true);
     setMsg('');
     try {
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const { invoke } = await import('@tauri-apps/api/core');
       const src = await open({
         title: 'ဒေတာပြန်ထည့်မည်',
         multiple: false,
@@ -84,8 +106,77 @@ export function Settings() {
     }
   };
 
+  const field = {
+    height: 46,
+    border: `1.5px solid ${colors.inputBorder}`,
+    borderRadius: 8,
+    padding: '0 14px',
+    fontSize: 15,
+    background: colors.white,
+    width: '100%',
+    boxSizing: 'border-box' as const,
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 720 }}>
+      <Card padding="28px">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ fontFamily: "'Noto Sans Myanmar', sans-serif", fontSize: 19, fontWeight: 700 }}>
+            ဆိုင် အမှတ်တံဆိပ်
+          </div>
+          <div style={{ fontSize: 14, color: colors.muted, lineHeight: 1.5 }}>
+            ဘောင်ချာနှင့် ဘေးဘားတွင် ပြမည့် ဆိုင်အမည် / တံဆိပ်
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 12 }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: colors.muted }}>တံဆိပ်</span>
+              <input
+                value={shopMark}
+                onChange={(e) => setShopMark(e.target.value.slice(0, 2))}
+                placeholder="သ"
+                style={{ ...field, textAlign: 'center', fontWeight: 700, fontSize: 20 }}
+              />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: colors.muted }}>ဆိုင်အမည်</span>
+              <input
+                value={shopName}
+                onChange={(e) => setShopName(e.target.value)}
+                placeholder="ဦးသန့်စင်"
+                style={field}
+              />
+            </label>
+          </div>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: colors.muted }}>စာတန်း</span>
+            <input
+              value={shopTagline}
+              onChange={(e) => setShopTagline(e.target.value)}
+              placeholder="အခေါက်ရွှေ အရောင်းအဝယ်"
+              style={field}
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => void saveShop()}
+            style={{
+              alignSelf: 'flex-start',
+              height: 44,
+              padding: '0 18px',
+              border: 'none',
+              borderRadius: 8,
+              background: colors.ink,
+              color: colors.white,
+              fontWeight: 700,
+              fontSize: 14,
+              cursor: 'pointer',
+            }}
+          >
+            သိမ်းဆည်းမည်
+          </button>
+        </div>
+      </Card>
+
       <Card padding="28px">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div style={{ fontFamily: "'Noto Sans Myanmar', sans-serif", fontSize: 19, fontWeight: 700 }}>
@@ -126,43 +217,50 @@ export function Settings() {
       </Card>
 
       <Card padding="28px">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ fontFamily: "'Noto Sans Myanmar', sans-serif", fontSize: 19, fontWeight: 700 }}>
-            အစလက်ကျန်
+            လက်ကျန် စီမံခြင်း
           </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <input
-              type="number"
-              min={0}
-              step="any"
-              value={openK}
-              onChange={(e) => setOpenK(e.target.value)}
-              style={{
-                width: 140,
-                height: 48,
-                border: `1px solid ${colors.inputBorder}`,
-                borderRadius: radii.input,
-                padding: '0 14px',
-                fontSize: 18,
-                fontWeight: 600,
-              }}
-            />
-            <span style={{ fontSize: 15, color: colors.muted }}>ကျပ်သား (အခေါက်)</span>
+          <div style={{ fontSize: 15, color: colors.muted, lineHeight: 1.55 }}>
+            အစလက်ကျန် ယခု —{' '}
+            <b className="num" style={{ color: colors.ink }}>
+              {W(settings.opening_stock_yway, digits)}
+            </b>
+          </div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button
               type="button"
-              onClick={() => void saveOpening()}
+              onClick={openOpeningStockDialog}
               style={{
-                height: 48,
-                padding: '0 20px',
+                height: 44,
+                padding: '0 18px',
                 border: 'none',
                 borderRadius: 8,
-                background: colors.gold,
-                color: colors.ink,
+                background: colors.ink,
+                color: colors.white,
                 fontWeight: 700,
-                fontSize: 15,
+                fontSize: 14,
+                cursor: 'pointer',
               }}
             >
-              သိမ်းမည်
+              အစလက်ကျန် ပြင်မည်
+            </button>
+            <button
+              type="button"
+              onClick={() => setScreen('stock')}
+              style={{
+                height: 44,
+                padding: '0 18px',
+                border: `1.5px solid ${colors.ink}`,
+                borderRadius: 8,
+                background: colors.white,
+                color: colors.ink,
+                fontWeight: 600,
+                fontSize: 14,
+                cursor: 'pointer',
+              }}
+            >
+              လက်ကျန်စာမျက်နှာသို့ →
             </button>
           </div>
         </div>
@@ -185,7 +283,7 @@ export function Settings() {
                 border: 'none',
                 borderRadius: 8,
                 background: colors.ink,
-                color: colors.goldOnNavy,
+                color: colors.white,
                 fontWeight: 700,
                 fontSize: 16,
               }}

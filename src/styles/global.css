@@ -55,15 +55,28 @@
   font-display: swap;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 html, body, #root {
   margin: 0;
   height: 100%;
   background: #FFFFFF;
   color: #1B2A41;
-  font-family: 'IBM Plex Sans', 'Noto Sans Myanmar', sans-serif;
+  /* Myanmar first so diacritics render correctly; Plex for Latin/numbers */
+  font-family: 'Noto Sans Myanmar', 'IBM Plex Sans', sans-serif;
   font-size: 17px;
-  line-height: 1.7;
+  line-height: 1.75;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.num {
+  font-family: 'IBM Plex Sans', 'Noto Sans Myanmar', sans-serif;
   font-variant-numeric: lining-nums tabular-nums;
 }
 
@@ -80,32 +93,89 @@ input:focus, select:focus, textarea:focus {
   outline-offset: -1px;
 }
 
-button { cursor: pointer; }
+button {
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+table {
+  border-collapse: collapse;
+}
 
 @media print {
   @page {
-    size: A5;
-    margin: 8mm;
+    size: A5 portrait;
+    margin: 10mm;
   }
-  html, body, #root {
+
+  html,
+  body,
+  #root {
+    width: 100% !important;
     height: auto !important;
-    background: #fff !important;
-  }
-  [data-noprint] {
-    display: none !important;
-  }
-  [data-app] {
-    display: block !important;
-    height: auto !important;
-    min-width: 0 !important;
-  }
-  [data-main] {
+    min-height: 0 !important;
     overflow: visible !important;
+    background: #fff !important;
+    margin: 0 !important;
     padding: 0 !important;
   }
+
+  /* Hide everything, then reveal only the voucher slip */
+  body * {
+    visibility: hidden !important;
+  }
+
+  [data-print-root],
+  [data-print-root] * {
+    visibility: visible !important;
+  }
+
+  [data-noprint] {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  [data-app],
+  [data-main],
+  [data-print-page] {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    min-width: 0 !important;
+    overflow: visible !important;
+    position: static !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    grid-template-columns: none !important;
+    grid-template-rows: none !important;
+  }
+
   [data-print-root] {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
     box-shadow: none !important;
-    margin: 0 auto !important;
+    border: none !important;
+    background: #fff !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  [data-print-root] > div {
+    margin: 0 !important;
     max-width: none !important;
+    width: 100% !important;
   }
 }

@@ -25,8 +25,8 @@ export async function makeSeed(database: Database): Promise<void> {
     const customerIds: number[] = [];
     for (const [name, phone] of NAMES) {
       const res = await database.execute(
-        'INSERT INTO customers (name, phone, address) VALUES ($1, $2, $3)',
-        [name, phone, ''],
+        'INSERT INTO customers (name, phone, nrc, address) VALUES ($1, $2, $3, $4)',
+        [name, phone, null, ''],
       );
       customerIds.push(res.lastInsertId as number);
     }
@@ -46,6 +46,10 @@ export async function makeSeed(database: Database): Promise<void> {
       await database.execute(
         'INSERT INTO prices (date, buy, sell) VALUES ($1, $2, $3)',
         [p.date, p.buy, p.sell],
+      );
+      await database.execute(
+        'INSERT INTO price_logs (date, time, buy, sell) VALUES ($1, $2, $3, $4)',
+        [p.date, '09:00:00', p.buy, p.sell],
       );
     }
 

@@ -1,43 +1,127 @@
-import { colors } from '../styles/tokens';
+import { NavIcon, IconSettings } from './Icons';
 import { NAV, Screen, useStore } from '../store';
+import { TOP_BAR_HEIGHT } from '../styles/tokens';
+
+const WHITE = '#FFFFFF';
+const BLACK = '#111111';
+const MUTED = '#6B6B6B';
+const LINE = '#E5E5E5';
+const SELECT_BG = '#F4F4F4';
+
+function navItemStyle(on: boolean) {
+  return {
+    position: 'relative' as const,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    width: 'calc(100% - 16px)',
+    height: 46,
+    margin: '0 8px',
+    padding: on ? '0 12px 0 14px' : '0 12px 0 16px',
+    boxSizing: 'border-box' as const,
+    border: 'none',
+    borderRadius: 6,
+    background: on ? SELECT_BG : 'transparent',
+    color: on ? BLACK : MUTED,
+    fontWeight: on ? 700 : 450,
+    fontSize: 16,
+    letterSpacing: 0.15,
+    lineHeight: 1.45,
+    cursor: 'pointer',
+    textAlign: 'left' as const,
+    transition: 'background-color .15s ease, color .15s ease',
+  };
+}
 
 export function Nav() {
   const screen = useStore((s) => s.screen);
   const setScreen = useStore((s) => s.setScreen);
+  const shopName = useStore((s) => s.settings.shop_name);
+  const shopMark = useStore((s) => s.settings.shop_mark);
+  const shopTagline = useStore((s) => s.settings.shop_tagline);
 
   return (
-    <nav
+    <aside
       data-noprint="1"
       style={{
-        background: colors.ink,
+        width: 236,
+        flexShrink: 0,
+        height: '100%',
+        background: WHITE,
         display: 'flex',
-        alignItems: 'stretch',
-        gap: 28,
-        padding: '0 36px',
+        flexDirection: 'column',
+        borderRight: `1px solid ${LINE}`,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          height: TOP_BAR_HEIGHT,
+          boxSizing: 'border-box',
+          padding: '0 18px',
+          borderBottom: `1px solid ${LINE}`,
+          flexShrink: 0,
+        }}
+      >
         <div
           style={{
-            width: 38,
-            height: 38,
+            width: 36,
+            height: 36,
             borderRadius: '50%',
-            background: colors.goldNav,
-            color: colors.ink,
+            background: BLACK,
+            color: WHITE,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontWeight: 700,
-            fontSize: 17,
+            fontSize: 15,
+            lineHeight: 1,
+            flexShrink: 0,
           }}
         >
-          သ
+          {shopMark.slice(0, 2)}
         </div>
-        <div style={{ fontSize: 19, fontWeight: 700, color: colors.white, whiteSpace: 'nowrap' }}>
-          ဦးသန့်စင်
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 16,
+              fontWeight: 700,
+              color: BLACK,
+              lineHeight: 1.45,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {shopName}
+          </div>
+          <div
+            style={{
+              fontSize: 12,
+              color: MUTED,
+              lineHeight: 1.4,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {shopTagline}
+          </div>
         </div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'stretch', flex: 1, minWidth: 0 }}>
+
+      <nav
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '16px 0',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8,
+        }}
+      >
         {NAV.map((n) => {
           const on = screen === n.key;
           return (
@@ -46,71 +130,54 @@ export function Nav() {
               type="button"
               title={n.title}
               onClick={() => setScreen(n.key)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0 14px',
-                border: 'none',
-                borderBottom: on ? `3px solid ${colors.goldNav}` : '3px solid transparent',
-                borderTop: '3px solid transparent',
-                background: 'transparent',
-                color: on ? colors.white : colors.mutedOnNavy,
-                fontWeight: on ? 600 : 400,
-                fontSize: 16,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
+              style={navItemStyle(on)}
             >
+              {on && (
+                <span
+                  aria-hidden
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 11,
+                    bottom: 11,
+                    width: 2.5,
+                    borderRadius: 2,
+                    background: BLACK,
+                  }}
+                />
+              )}
+              <NavIcon screen={n.key} size={18} stroke={on ? 1.9 : 1.6} />
               {n.label}
             </button>
           );
         })}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      </nav>
+
+      <div style={{ padding: '12px 0 16px', borderTop: `1px solid ${LINE}` }}>
         <button
           type="button"
           title="ဆက်တင်"
           onClick={() => setScreen('settings' as Screen)}
-          style={{
-            width: 44,
-            height: 44,
-            border: `1px solid ${colors.navyBorder}`,
-            borderRadius: 8,
-            background: 'transparent',
-            color: colors.mutedOnNavy,
-            fontSize: 20,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+          style={navItemStyle(screen === 'settings')}
         >
-          ⚙
-        </button>
-        <button
-          type="button"
-          onClick={() => setScreen('entry')}
-          style={{
-            height: 44,
-            padding: '0 22px',
-            border: 'none',
-            borderRadius: 6,
-            background: colors.gold,
-            color: colors.ink,
-            fontSize: 16,
-            fontWeight: 700,
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = colors.goldHover;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = colors.gold;
-          }}
-        >
-          + စာရင်းအသစ်
+          {screen === 'settings' && (
+            <span
+              aria-hidden
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: 11,
+                bottom: 11,
+                width: 2.5,
+                borderRadius: 2,
+                background: BLACK,
+              }}
+            />
+          )}
+          <IconSettings size={18} stroke={screen === 'settings' ? 1.9 : 1.6} />
+          ဆက်တင်
         </button>
       </div>
-    </nav>
+    </aside>
   );
 }

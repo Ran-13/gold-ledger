@@ -1,13 +1,16 @@
 import { colors } from './styles/tokens';
 import { Nav } from './components/Nav';
-import { PageHeader } from './components/PageHeader';
+import { PriceStrip } from './components/PriceStrip';
+import { EntryDialog } from './components/EntryDialog';
+import { CustomerDialog } from './components/CustomerDialog';
+import { PriceDialog } from './components/PriceDialog';
+import { OpeningDialog } from './components/OpeningDialog';
+import { StockAdjustDialog } from './components/StockAdjustDialog';
 import { useStore } from './store';
 import { Dashboard } from './pages/Dashboard';
-import { Entry } from './pages/Entry';
 import { Ledger } from './pages/Ledger';
 import { Voucher } from './pages/Voucher';
 import { Reports } from './pages/Reports';
-import { Calculator } from './pages/Calculator';
 import { Customers } from './pages/Customers';
 import { Stock } from './pages/Stock';
 import { Prices } from './pages/Prices';
@@ -39,20 +42,29 @@ export default function App() {
     <div
       data-app="1"
       style={{
-        display: 'grid',
-        gridTemplateRows: '72px minmax(0, 1fr)',
+        display: 'flex',
         height: '100vh',
-        minWidth: 1280,
+        minWidth: 1100,
+        background: colors.white,
       }}
     >
       <Nav />
-      <div style={{ display: 'grid', gridTemplateRows: 'auto minmax(0, 1fr)', minHeight: 0 }}>
-        <PageHeader />
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          display: 'grid',
+          gridTemplateRows: 'auto minmax(0, 1fr)',
+          minHeight: 0,
+          background: colors.white,
+        }}
+      >
+        <PriceStrip />
         <main
           data-main="1"
           style={{
             overflow: 'auto',
-            padding: '32px 48px 64px',
+            padding: '20px 24px 48px',
             minHeight: 0,
             background: colors.white,
           }}
@@ -60,10 +72,11 @@ export default function App() {
           {error && (
             <div
               style={{
-                marginBottom: 20,
+                marginBottom: 16,
                 padding: '12px 16px',
                 borderRadius: 8,
-                background: colors.buyPillBg,
+                background: colors.white,
+                border: `1.5px solid ${colors.buy}`,
                 color: colors.buy,
                 fontSize: 15,
               }}
@@ -72,17 +85,20 @@ export default function App() {
             </div>
           )}
           {screen === 'dash' && <Dashboard />}
-          {screen === 'entry' && <Entry />}
           {screen === 'ledger' && <Ledger />}
           {screen === 'voucher' && <Voucher />}
           {screen === 'reports' && <Reports />}
-          {screen === 'calc' && <Calculator />}
           {screen === 'customers' && <Customers />}
           {screen === 'stock' && <Stock />}
           {screen === 'prices' && <Prices />}
           {screen === 'settings' && <Settings />}
         </main>
       </div>
+      <EntryDialog />
+      <CustomerDialog />
+      <PriceDialog />
+      <OpeningDialog />
+      <StockAdjustDialog />
     </div>
   );
 }

@@ -6,7 +6,10 @@ import {
   stock,
   toYway,
   D,
+  N,
   fromYway,
+  keepNumInput,
+  toLatinDigits,
 } from '../src/lib/units';
 import { bucketDates, enumerateDates, marginOf } from '../src/lib/reports';
 
@@ -36,7 +39,27 @@ describe('W', () => {
     expect(W(128, 'myanmar')).toBe('၁ ကျပ်');
     expect(D('123', 'myanmar')).toBe('၁၂၃');
   });
+});
 
+describe('N / toLatinDigits', () => {
+  it('parses Myanmar and Latin digits', () => {
+    expect(toLatinDigits('၁၂၃')).toBe('123');
+    expect(N('၁၂၃')).toBe(123);
+    expect(N('1.5')).toBe(1.5);
+    expect(N('၁.၅')).toBe(1.5);
+    expect(N('7,000,000')).toBe(7000000);
+    expect(N('၇၀၀၀၀၀၀')).toBe(7000000);
+    expect(N('')).toBe(0);
+  });
+
+  it('keeps mixed digit input', () => {
+    expect(keepNumInput('၁2၃')).toBe('၁2၃');
+    expect(keepNumInput('12a၃')).toBe('12၃');
+    expect(N(keepNumInput('၁2၃'))).toBe(123);
+  });
+});
+
+describe('fromYway', () => {
   it('round-trips via fromYway', () => {
     const y = toYway(2, 3, 4);
     const parts = fromYway(y);

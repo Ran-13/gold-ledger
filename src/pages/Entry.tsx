@@ -6,10 +6,13 @@ import type { Customer, TxnType } from '../db/types';
 import { saveTxn, upsertPrice } from '../db/queries';
 import {
   D,
+  N,
   W,
   amount,
   isoDate,
+  keepNumInput,
   money,
+  stockFromParts,
   toYway,
   voucherNo,
 } from '../lib/units';
@@ -21,6 +24,8 @@ const EMPTY: {
   customerId: number | null;
   query: string;
   newPhone: string;
+  newNrc: string;
+  newAddress: string;
   k: string;
   p: string;
   y: string;
@@ -30,6 +35,8 @@ const EMPTY: {
   customerId: null as number | null,
   query: '',
   newPhone: '',
+  newNrc: '',
+  newAddress: '',
   k: '',
   p: '',
   y: '',
@@ -40,10 +47,12 @@ export function Entry() {
   const customers = useStore((s) => s.customers);
   const prices = useStore((s) => s.prices);
   const txns = useStore((s) => s.txns);
+  const adjustments = useStore((s) => s.stockAdjustments);
   const settings = useStore((s) => s.settings);
   const refresh = useStore((s) => s.refresh);
   const setScreen = useStore((s) => s.setScreen);
   const setVoucherId = useStore((s) => s.setVoucherId);
+  const setPrintAfterOpen = useStore((s) => s.setPrintAfterOpen);
   const digits = settings.digits;
   const today = isoDate();
 
@@ -52,20 +61,31 @@ export function Entry() {
   const [sellStr, setSellStr] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const sortedPrices = [...prices].sort((a, b) => (a.date < b.date ? -1 : 1));
-  const latest = sortedPrices[sortedPrices.length - 1] ?? { buy: 0, sell: 0, date: today };
-  const todayRow = prices.find((p) => p.date === today);
-  const hasToday = !!todayRow;
-  const curBuy = todayRow?.buy ?? latest.buy;
-  const curSell = todayRow?.sell ?? latest.sell;
+  const sortedPrices = [...prices].sort((a, b) => {
+    const ka = `${a.date}T${a.time?.length === 5 ? a.time + ':00' : a.time || '00:00:00'}`;
+    const kb = `${b.date}T${b.time?.length === 5 ? b.time + ':00' : b.time || '00:00:00'}`;
+    return ka < kb ? -1 : 1;
+  });
+  const latest = sortedPrices[sortedPrices.length - 1] ?? {
+    id: 0,
+    buy: 0,
+    sell: 0,
+    date: today,
+    time: '00:00:00',
+  };
+  const hasToday = prices.some((p) => p.date === today);
+  const curBuy = latest.buy;
+  const curSell = latest.sell;
 
   useEffect(() => {
     setBuyStr(String(curBuy));
     setSellStr(String(curSell));
   }, [curBuy, curSell]);
 
-  const yway = toYway(+form.k || 0, +form.p || 0, +form.y || 0);
-  const price = form.type === 'sell' ? +sellStr || curSell : +buyStr || curBuy;
+  const yway = toYway(N(form.k), N(form.p), N(form.y));
+  const stockY = stockFromParts(settings.opening_stock_yway, txns, adjustments);
+  const overdraw = form.type === 'sell' && yway > 0 && yway > stockY;
+  const price = form.type === 'sell' ? N(sellStr) || curSell : N(buyStr) || curBuy;
   const amt = amount(yway, price, settings.round_to);
   const nextNo = Math.max(0, ...txns.map((t) => t.voucher_no)) + 1;
 
@@ -94,17 +114,11 @@ export function Entry() {
   );
 
   const onBuyChange = (v: string) => {
-    setBuyStr(v);
-    const n = +v;
-    const s = +sellStr || curSell;
-    if (n > 0 && s > 0) void persistPrice(n, s);
+    setBuyStr(keepNumInput(v));
   };
 
   const onSellChange = (v: string) => {
-    setSellStr(v);
-    const n = +v;
-    const b = +buyStr || curBuy;
-    if (b > 0 && n > 0) void persistPrice(b, n);
+    setSellStr(keepNumInput(v));
   };
 
   const onSelect = (c: Customer) => {
@@ -113,23 +127,51 @@ export function Entry() {
 
   const resetForm = () => setForm({ ...EMPTY, type: form.type });
 
-  const save = async () => {
+  const save = async (andPrint = true) => {
     if (yway <= 0) {
       window.alert('အလေးချိန် ထည့်ပါ');
       return;
     }
+    if (overdraw) {
+      window.alert(`လက်ကျန်ထက် ပို၍ မရပါ\nလက်ရှိလက်ကျန် · ${W(Math.max(0, stockY), digits)}`);
+      return;
+    }
+    if (isNew) {
+      if (!form.newPhone.trim()) {
+        window.alert('ဖုန်းနံပါတ် ထည့်ပါ');
+        return;
+      }
+      if (!form.newAddress.trim()) {
+        window.alert('နေရပ်လိပ်စာ ထည့်ပါ');
+        return;
+      }
+      if (!form.newNrc.trim()) {
+        window.alert('မှတ်ပုံတင် ထည့်ပါ');
+        return;
+      }
+    }
     setSaving(true);
     try {
+      const buy = form.type === 'buy' ? price : curBuy;
+      const sell = form.type === 'sell' ? price : curSell;
+      if (buy > 0 && sell > 0 && (buy !== curBuy || sell !== curSell)) {
+        await persistPrice(buy, sell);
+      }
       const id = await saveTxn({
         type: form.type,
         customerId: isNew ? null : form.customerId,
         newCustomer:
           isNew && ql
-            ? { name: form.query.trim(), phone: form.newPhone.trim() }
+            ? {
+                name: form.query.trim(),
+                phone: form.newPhone.trim(),
+                nrc: form.newNrc.trim(),
+                address: form.newAddress.trim(),
+              }
             : undefined,
-        k: +form.k || 0,
-        p: +form.p || 0,
-        y: +form.y || 0,
+        k: N(form.k),
+        p: N(form.p),
+        y: N(form.y),
         price,
         note: form.note,
         roundTo: settings.round_to,
@@ -137,6 +179,7 @@ export function Entry() {
       await refresh();
       setForm({ ...EMPTY, type: form.type });
       setVoucherId(id);
+      setPrintAfterOpen(andPrint);
       setScreen('voucher');
     } catch (e) {
       window.alert(e instanceof Error ? e.message : String(e));
@@ -176,6 +219,8 @@ export function Entry() {
               query={form.query}
               customerId={form.customerId}
               newPhone={form.newPhone}
+              newNrc={form.newNrc}
+              newAddress={form.newAddress}
               digits={digits}
               onQuery={(q) => {
                 const m = customers.find(
@@ -189,6 +234,8 @@ export function Entry() {
               }}
               onSelect={onSelect}
               onNewPhone={(p) => setForm((f) => ({ ...f, newPhone: p }))}
+              onNewNrc={(n) => setForm((f) => ({ ...f, newNrc: n }))}
+              onNewAddress={(a) => setForm((f) => ({ ...f, newAddress: a }))}
             />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <span style={{ fontSize: 16, fontWeight: 600 }}>အလေးချိန်</span>
@@ -206,11 +253,11 @@ export function Entry() {
                   }}
                 >
                   <input
-                    type="number"
-                    min={0}
-                    step="any"
+                    type="text"
+                    inputMode="decimal"
+                    className="num"
                     value={form.k}
-                    onChange={(e) => setForm((f) => ({ ...f, k: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, k: keepNumInput(e.target.value) }))}
                     placeholder="0"
                     style={{
                       flex: 1,
@@ -237,11 +284,11 @@ export function Entry() {
                   }}
                 >
                   <input
-                    type="number"
-                    min={0}
-                    step="any"
+                    type="text"
+                    inputMode="decimal"
+                    className="num"
                     value={form.p}
-                    onChange={(e) => setForm((f) => ({ ...f, p: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, p: keepNumInput(e.target.value) }))}
                     placeholder="0"
                     style={{
                       flex: 1,
@@ -268,11 +315,11 @@ export function Entry() {
                   }}
                 >
                   <input
-                    type="number"
-                    min={0}
-                    step="any"
+                    type="text"
+                    inputMode="decimal"
+                    className="num"
                     value={form.y}
-                    onChange={(e) => setForm((f) => ({ ...f, y: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, y: keepNumInput(e.target.value) }))}
                     placeholder="0"
                     style={{
                       flex: 1,
@@ -287,7 +334,26 @@ export function Entry() {
                   <span style={{ fontSize: 16, color: colors.muted }}>ရွေး</span>
                 </label>
               </div>
-              <div style={{ fontSize: 15, color: colors.muted }}>= {W(yway, digits)}</div>
+              <div
+                style={{
+                  fontSize: 15,
+                  color: overdraw ? colors.buy : colors.muted,
+                }}
+              >
+                = {W(yway, digits)}
+              </div>
+              {form.type === 'sell' && (
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: overdraw ? colors.buy : colors.muted2,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  လက်ရှိလက်ကျန် · <span className="num">{W(Math.max(0, stockY), digits)}</span>
+                  {overdraw ? ' — လက်ကျန်ထက် ပို၍ မရပါ' : ''}
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -318,8 +384,9 @@ export function Entry() {
                     </span>
                   </span>
                   <input
-                    type="number"
-                    min={0}
+                    type="text"
+                    inputMode="decimal"
+                    className="num"
                     value={buyStr}
                     onChange={(e) => onBuyChange(e.target.value)}
                     style={{
@@ -349,8 +416,9 @@ export function Entry() {
                     </span>
                   </span>
                   <input
-                    type="number"
-                    min={0}
+                    type="text"
+                    inputMode="decimal"
+                    className="num"
                     value={sellStr}
                     onChange={(e) => onSellChange(e.target.value)}
                     style={{
@@ -417,20 +485,21 @@ export function Entry() {
           </div>
           <button
             type="button"
-            disabled={saving}
+            disabled={saving || overdraw}
             onClick={() => void save()}
             style={{
               height: 58,
               border: 'none',
               borderRadius: 8,
-              background: colors.gold,
-              color: colors.ink,
+              background: saving || overdraw ? colors.inputBorder : colors.ink,
+              color: colors.white,
               fontSize: 17,
               fontWeight: 700,
               marginTop: 10,
+              cursor: saving || overdraw ? 'default' : 'pointer',
             }}
           >
-            သိမ်းပြီး ဘောင်ချာထုတ်မည်
+            သိမ်းပြီး ပရင့်ထုတ်မည်
           </button>
           <button
             type="button"

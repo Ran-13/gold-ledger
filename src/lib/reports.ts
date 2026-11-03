@@ -123,15 +123,22 @@ export function marginOf(txns: TxnLike[], buyByDate: PriceMap): number {
     }, 0);
 }
 
+export type AdjLike = { date: string; kind: 'in' | 'out'; yway: number };
+
 export function stockAt(
   opening: number,
   txnsAsc: TxnLike[],
   throughDate: string,
+  adjsAsc: AdjLike[] = [],
 ): number {
   let bal = opening;
   for (const t of txnsAsc) {
     if (t.date > throughDate) break;
     bal += t.type === 'buy' ? t.yway : -t.yway;
+  }
+  for (const a of adjsAsc) {
+    if (a.date > throughDate) break;
+    bal += a.kind === 'in' ? a.yway : -a.yway;
   }
   return bal;
 }
@@ -144,11 +151,12 @@ export function makeChartData(
   txnsAsc: TxnLike[],
   metric: Metric,
   digits: DigitsMode = 'latin',
+  adjsAsc: AdjLike[] = [],
 ) {
   const sum = (arr: TxnLike[], f: (t: TxnLike) => number) =>
     arr.reduce((a, t) => a + f(t), 0);
 
-  const balAt = (d: string) => stockAt(opening, txnsAsc, d);
+  const balAt = (d: string) => stockAt(opening, txnsAsc, d, adjsAsc);
 
   const rows: BucketRow[] = buckets.map((bk) => {
     const a = txns.filter((t) => t.date >= bk.from && t.date <= bk.to);

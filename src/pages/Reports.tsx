@@ -1,99 +1,29 @@
-import { useMemo } from 'react';
+import { useMemo, type CSSProperties } from 'react';
 import { Card } from '../components/Card';
-import { DivergingBars, ProfitBars, StockLine } from '../components/Charts';
 import { Segmented } from '../components/Segmented';
 import { customerName } from '../lib/format';
-import {
-  bucketDates,
-  enumerateDates,
-  lastNDates,
-  makeChartData,
-  marginOf,
-  monthDayBuckets,
-  yearMonthBuckets,
-} from '../lib/reports';
+import { lastNDates, marginOf, enumerateDates } from '../lib/reports';
 import { D, W, addDays, isoDate, money, voucherNo } from '../lib/units';
 import { MONTHS_MY, colors } from '../styles/tokens';
 import { useStore } from '../store';
 
-function ChartSection({
-  title,
-  unit,
-  cols,
-  stock,
-  profitTotal,
-  first,
-  last,
-  useShortLabel,
-}: {
-  title?: string;
-  unit: string;
-  cols: ReturnType<typeof makeChartData>['cols'];
-  stock: ReturnType<typeof makeChartData>['stock'];
-  profitTotal: string;
-  first: string;
-  last: string;
-  useShortLabel?: boolean;
-}) {
-  return (
-    <>
-      <Card padding="28px">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-            <div>
-              <div style={{ fontSize: 19, fontWeight: 700 }}>{title ?? 'ရောင်း / ဝယ်'}</div>
-              <div style={{ fontSize: 14, color: colors.muted2 }}>{unit}</div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, color: colors.muted }}>
-                <span style={{ width: 12, height: 12, borderRadius: 2, background: colors.gold }} />
-                ရောင်း (အပေါ်)
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, color: colors.muted }}>
-                <span style={{ width: 12, height: 12, borderRadius: 2, background: colors.buyBar }} />
-                ဝယ် (အောက်)
-              </span>
-              <MetricToggle />
-            </div>
-          </div>
-          <DivergingBars cols={cols} useShortLabel={useShortLabel} />
-        </div>
-      </Card>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 24 }}>
-        <Card padding="28px">
-          <StockLine
-            line={stock.line}
-            area={stock.area}
-            start={stock.start}
-            end={stock.end}
-            chg={stock.chg}
-            chgPositive={stock.chgPositive}
-            first={first}
-            last={last}
-          />
-        </Card>
-        <Card padding="28px">
-          <ProfitBars cols={cols} profitTotal={profitTotal} useShortLabel={useShortLabel} />
-        </Card>
-      </div>
-    </>
-  );
-}
+const radiiBtn = 6;
 
-function MetricToggle() {
-  const repMetric = useStore((s) => s.repMetric);
-  const setRepMetric = useStore((s) => s.setRepMetric);
-  return (
-    <Segmented
-      options={[
-        { value: 'w', label: 'အလေးချိန်' },
-        { value: 'm', label: 'ငွေ' },
-      ]}
-      value={repMetric}
-      onChange={setRepMetric}
-    />
-  );
-}
+const th: CSSProperties = {
+  padding: '12px 16px',
+  fontWeight: 600,
+  fontSize: 13,
+  color: colors.muted,
+  background: '#F7F8FA',
+  textAlign: 'left',
+  whiteSpace: 'nowrap',
+};
+
+const td: CSSProperties = {
+  padding: '13px 16px',
+  borderTop: `1px solid ${colors.rowDivider}`,
+  fontSize: 15,
+};
 
 function MonthNav({
   label,
@@ -119,6 +49,7 @@ function MonthNav({
             borderRadius: radiiBtn,
             background: colors.white,
             fontSize: 18,
+            cursor: 'pointer',
           }}
         >
           ‹
@@ -134,6 +65,7 @@ function MonthNav({
             borderRadius: radiiBtn,
             background: colors.white,
             fontSize: 18,
+            cursor: 'pointer',
           }}
         >
           ›
@@ -153,6 +85,7 @@ function MonthNav({
             color: colors.ink,
             fontSize: 16,
             fontWeight: 600,
+            cursor: 'pointer',
           }}
         >
           ပရင့်ထုတ်မည်
@@ -162,7 +95,30 @@ function MonthNav({
   );
 }
 
-const radiiBtn = 6;
+function SummaryCard({
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  tone?: 'sell' | 'buy' | 'ink';
+}) {
+  const color = tone === 'sell' ? colors.sell : tone === 'buy' ? colors.buy : colors.ink;
+  return (
+    <Card padding="20px 22px">
+      <div style={{ fontSize: 14, color: colors.muted, fontWeight: 600 }}>{label}</div>
+      <div className="num" style={{ fontSize: 24, fontWeight: 700, lineHeight: 1.35, marginTop: 6, color }}>
+        {value}
+      </div>
+      {sub && (
+        <div style={{ fontSize: 13, color: colors.muted, marginTop: 4, lineHeight: 1.45 }}>{sub}</div>
+      )}
+    </Card>
+  );
+}
 
 export function Reports() {
   const txns = useStore((s) => s.txns);
@@ -177,24 +133,21 @@ export function Reports() {
   const setRepYear = useStore((s) => s.setRepYear);
   const range = useStore((s) => s.range);
   const setRange = useStore((s) => s.setRange);
-  const repMetric = useStore((s) => s.repMetric);
   const digits = settings.digits;
   const today = isoDate();
 
   const custMap = useMemo(() => new Map(customers.map((c) => [c.id, c])), [customers]);
-  const buyByDate = useMemo(
-    () => Object.fromEntries(prices.map((p) => [p.date, p.buy])),
-    [prices],
-  );
-  const txnsAsc = useMemo(
-    () =>
-      [...txns].sort((a, b) => {
-        if (a.date !== b.date) return a.date < b.date ? -1 : 1;
-        if (a.time !== b.time) return a.time < b.time ? -1 : 1;
-        return a.voucher_no - b.voucher_no;
-      }),
-    [txns],
-  );
+  const buyByDate = useMemo(() => {
+    const map: Record<string, number> = {};
+    const sorted = [...prices].sort((a, b) => {
+      const ka = `${a.date}T${a.time.length === 5 ? a.time + ':00' : a.time}`;
+      const kb = `${b.date}T${b.time.length === 5 ? b.time + ':00' : b.time}`;
+      return ka < kb ? -1 : 1;
+    });
+    for (const p of sorted) map[p.date] = p.buy;
+    return map;
+  }, [prices]);
+
   const sortedPrices = [...prices].sort((a, b) => (a.date < b.date ? -1 : 1));
   const firstPrice = sortedPrices[0]?.buy ?? 0;
 
@@ -202,12 +155,9 @@ export function Reports() {
     const buys = txns.filter((t) => t.type === 'buy');
     const buyY = buys.reduce((a, t) => a + t.yway, 0);
     const num =
-      settings.opening_stock_yway * firstPrice +
-      buys.reduce((a, t) => a + t.yway * t.price, 0);
+      settings.opening_stock_yway * firstPrice + buys.reduce((a, t) => a + t.yway * t.price, 0);
     return num / Math.max(1, settings.opening_stock_yway + buyY);
   }, [txns, settings.opening_stock_yway, firstPrice]);
-
-  const unit = repMetric === 'w' ? 'ကျပ်သား' : 'သိန်း';
 
   const dayData = useMemo(() => {
     const rn = range === 'all' ? null : +range;
@@ -225,16 +175,6 @@ export function Reports() {
       const from = dates[0] ?? today;
       rds = enumerateDates(from, today);
     }
-    const buckets = bucketDates(rds);
-    const chart = makeChartData(
-      buckets,
-      rt,
-      buyByDate,
-      settings.opening_stock_yway,
-      txnsAsc,
-      repMetric,
-      digits,
-    );
     const rDates = [...new Set(rt.map((t) => t.date))].sort().reverse();
     const byC: Record<string, { name: string; count: number; amt: number }> = {};
     rt.forEach((t) => {
@@ -244,7 +184,7 @@ export function Reports() {
       byC[k].amt += t.amount;
     });
     return {
-      rangeLabel: rn ? `${D(rFrom, digits)} မှ ${D(today, digits)} ထိ` : 'မှတ်တမ်းအားလုံး',
+      rangeLabel: rn ? `${D(rFrom, digits)} → ${D(today, digits)}` : 'မှတ်တမ်းအားလုံး',
       sellW: W(sum(rS, (t) => t.yway), digits),
       sellAmt: money(sum(rS, (t) => t.amount), digits),
       sellCount: D(rS.length, digits),
@@ -253,42 +193,32 @@ export function Reports() {
       buyCount: D(rB.length, digits),
       margin: money(marginOf(rS, buyByDate), digits),
       avgCost: money(avgCostAll, digits),
-      chart,
-      first: buckets[0]?.title ?? '',
-      last: buckets[buckets.length - 1]?.title ?? '',
+      dayCount: D(rds.length, digits),
       days: rDates.map((d) => {
         const a = rt.filter((t) => t.date === d);
         const sa = a.filter((t) => t.type === 'sell');
         const ba = a.filter((t) => t.type === 'buy');
         return {
-          date: D(d, digits),
+          date: d,
           sellW: sa.length ? W(sum(sa, (t) => t.yway), digits) : '—',
           sellAmt: sa.length ? money(sum(sa, (t) => t.amount), digits) : '—',
+          sellN: sa.length,
           buyW: ba.length ? W(sum(ba, (t) => t.yway), digits) : '—',
           buyAmt: ba.length ? money(sum(ba, (t) => t.amount), digits) : '—',
+          buyN: ba.length,
+          margin: sa.length ? money(marginOf(sa, buyByDate), digits) : '—',
         };
       }),
       top: Object.values(byC)
         .sort((a, b) => b.amt - a.amt)
-        .slice(0, 5)
+        .slice(0, 8)
         .map((x) => ({
           name: x.name,
           count: D(x.count, digits),
           amount: money(x.amt, digits),
         })),
     };
-  }, [
-    range,
-    txns,
-    buyByDate,
-    settings.opening_stock_yway,
-    txnsAsc,
-    repMetric,
-    digits,
-    today,
-    custMap,
-    avgCostAll,
-  ]);
+  }, [range, txns, buyByDate, digits, today, custMap, avgCostAll]);
 
   const monthData = useMemo(() => {
     const ym = repMonth;
@@ -301,21 +231,12 @@ export function Reports() {
     const sp = sum(ms, (t) => t.yway);
     const bp = sum(mb, (t) => t.yway);
     const sa = sum(ms, (t) => t.amount);
-    const buckets = monthDayBuckets(ym);
-    const chart = makeChartData(
-      buckets,
-      mt,
-      buyByDate,
-      settings.opening_stock_yway,
-      txnsAsc,
-      repMetric,
-      digits,
-    );
     const lr = (t: (typeof mt)[0]) => ({
       no: voucherNo(t.voucher_no, digits),
       date: D(t.date, digits),
       cust: customerName(t.customer_id, custMap),
       pure: W(t.yway, digits),
+      price: money(t.price, digits),
       amount: money(t.amount, digits),
     });
     return {
@@ -333,9 +254,6 @@ export function Reports() {
       net: W(bp - sp, digits),
       margin: money(marginOf(ms, buyByDate), digits),
       avgCost: money(bp ? sum(mb, (t) => t.yway * t.price) / bp : 0, digits),
-      chart,
-      first: D(buckets[0]?.from ?? '', digits),
-      last: D(buckets[buckets.length - 1]?.from ?? '', digits),
       sells: ms.map(lr),
       buys: mb.map(lr),
       sellTot: { count: D(ms.length, digits), pure: W(sp, digits), amt: money(sa, digits) },
@@ -345,17 +263,7 @@ export function Reports() {
         amt: money(sum(mb, (t) => t.amount), digits),
       },
     };
-  }, [
-    repMonth,
-    txns,
-    buyByDate,
-    settings.opening_stock_yway,
-    txnsAsc,
-    repMetric,
-    digits,
-    custMap,
-    setRepMonth,
-  ]);
+  }, [repMonth, txns, buyByDate, digits, custMap, setRepMonth]);
 
   const yearData = useMemo(() => {
     const Y = repYear;
@@ -367,16 +275,6 @@ export function Reports() {
     const sp = sum(yS, (t) => t.yway);
     const bp = sum(yB, (t) => t.yway);
     const sa = sum(yS, (t) => t.amount);
-    const buckets = yearMonthBuckets(Y, digits);
-    const chart = makeChartData(
-      buckets,
-      yt,
-      buyByDate,
-      settings.opening_stock_yway,
-      txnsAsc,
-      repMetric,
-      digits,
-    );
     const ms = Array.from({ length: 12 }, (_, i) => {
       const k = `${Y}-${String(i + 1).padStart(2, '0')}`;
       const a = yt.filter((t) => t.date.slice(0, 7) === k);
@@ -406,9 +304,6 @@ export function Reports() {
       net: W(bp - sp, digits),
       margin: money(marginOf(yS, buyByDate), digits),
       avgCost: money(bp ? sum(yB, (t) => t.yway * t.price) / bp : 0, digits),
-      chart,
-      first: MONTHS_MY[0]!,
-      last: MONTHS_MY[11]!,
       rows: ms.map((m) => ({
         name: MONTHS_MY[m.i]!,
         count: D(m.n, digits),
@@ -423,21 +318,10 @@ export function Reports() {
         },
       })),
     };
-  }, [
-    repYear,
-    txns,
-    buyByDate,
-    settings.opening_stock_yway,
-    txnsAsc,
-    repMetric,
-    digits,
-    setRepYear,
-    setRepMode,
-    setRepMonth,
-  ]);
+  }, [repYear, txns, buyByDate, digits, setRepYear, setRepMode, setRepMonth]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1360 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 22, maxWidth: 1360 }}>
       <div data-noprint="1">
         <Segmented
           options={[
@@ -451,9 +335,12 @@ export function Reports() {
       </div>
 
       {repMode === 'day' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontSize: 16, color: colors.muted }}>{dayData.rangeLabel}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 700 }}>နေ့စဉ် အနှစ်ချုပ်</div>
+              <div style={{ fontSize: 14, color: colors.muted, marginTop: 2 }}>{dayData.rangeLabel}</div>
+            </div>
             <Segmented
               options={[
                 { value: '7', label: '၇ ရက်' },
@@ -465,171 +352,174 @@ export function Reports() {
               onChange={setRange}
             />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 20 }}>
-            <Card navy padding="24px 26px">
-              <div style={{ fontSize: 15, color: colors.mutedOnNavy }}>ရောင်းရွှေ</div>
-              <div
-                style={{
-                  fontFamily: "'IBM Plex Sans', sans-serif",
-                  fontSize: 26,
-                  fontWeight: 700,
-                  lineHeight: 1.45,
-                  color: colors.goldOnNavy,
-                }}
-              >
-                {dayData.sellW}
-              </div>
-              <div style={{ fontSize: 14, color: colors.mutedOnNavy }}>
-                {dayData.sellAmt} ကျပ် · {dayData.sellCount} စောင်
-              </div>
-            </Card>
-            <Card padding="24px 26px">
-              <div style={{ fontSize: 15, color: colors.muted }}>ဝယ်ရွှေ</div>
-              <div style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 26, fontWeight: 700, lineHeight: 1.45 }}>
-                {dayData.buyW}
-              </div>
-              <div style={{ fontSize: 14, color: colors.muted }}>
-                {dayData.buyAmt} ကျပ် · {dayData.buyCount} စောင်
-              </div>
-            </Card>
-            <Card padding="24px 26px">
-              <div style={{ fontSize: 15, color: colors.muted }}>ခန့်မှန်းအမြတ်</div>
-              <div
-                style={{
-                  fontFamily: "'IBM Plex Sans', sans-serif",
-                  fontSize: 28,
-                  fontWeight: 600,
-                  lineHeight: 1.25,
-                  color: colors.sell,
-                }}
-              >
-                {dayData.margin}
-              </div>
-              <div style={{ fontSize: 14, color: colors.muted }}>ပျမ်းမျှဝယ်ဈေး {dayData.avgCost}</div>
-            </Card>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14 }}>
+            <SummaryCard
+              label="ရောင်းရွှေ"
+              value={dayData.sellW}
+              sub={`${dayData.sellCount} စောင်`}
+              tone="sell"
+            />
+            <SummaryCard
+              label="ရောင်းငွေ"
+              value={`${dayData.sellAmt}`}
+              sub="ကျပ်"
+              tone="sell"
+            />
+            <SummaryCard
+              label="ဝယ်ရွှေ"
+              value={dayData.buyW}
+              sub={`${dayData.buyCount} စောင်`}
+              tone="buy"
+            />
+            <SummaryCard
+              label="ဝယ်ငွေ"
+              value={`${dayData.buyAmt}`}
+              sub="ကျပ်"
+              tone="buy"
+            />
           </div>
-          <ChartSection
-            unit={unit}
-            cols={dayData.chart.cols}
-            stock={dayData.chart.stock}
-            profitTotal={dayData.chart.profitTotal}
-            first={dayData.first}
-            last={dayData.last}
-          />
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.8fr) minmax(0, 1fr)', gap: 24, alignItems: 'start' }}>
-            <Card padding={0} style={{ overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 16 }}>
-                <thead>
-                  <tr style={{ color: colors.muted, textAlign: 'left', fontSize: 15 }}>
-                    <th style={{ padding: '16px 20px', fontWeight: 600 }}>ရက်စွဲ</th>
-                    <th style={{ padding: '16px 12px', fontWeight: 600 }}>ရောင်း</th>
-                    <th style={{ padding: '16px 12px', fontWeight: 600, textAlign: 'right' }}>ရောင်းငွေ</th>
-                    <th style={{ padding: '16px 12px', fontWeight: 600 }}>ဝယ်</th>
-                    <th style={{ padding: '16px 20px', fontWeight: 600, textAlign: 'right' }}>ဝယ်ငွေ</th>
+
+          <Card padding={0} style={{ overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px 8px' }}>
+              <div style={{ fontSize: 17, fontWeight: 700 }}>နေ့အလိုက် စာရင်း</div>
+              <div style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>
+                ရက်စွဲအလိုက် ရောင်း / ဝယ် / အမြတ်
+              </div>
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={th}>ရက်စွဲ</th>
+                  <th style={th}>ရောင်း</th>
+                  <th style={{ ...th, textAlign: 'right' }}>ရောင်းငွေ</th>
+                  <th style={th}>ဝယ်</th>
+                  <th style={{ ...th, textAlign: 'right' }}>ဝယ်ငွေ</th>
+                  <th style={{ ...th, textAlign: 'right' }}>အမြတ်</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dayData.days.length === 0 && (
+                  <tr>
+                    <td colSpan={6} style={{ ...td, textAlign: 'center', color: colors.muted2, padding: 36 }}>
+                      ဤကာလတွင် စာရင်း မရှိပါ
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {dayData.days.map((d) => (
-                    <tr key={d.date}>
-                      <td style={{ padding: '14px 20px', borderTop: `1px solid ${colors.rowDivider}`, fontWeight: 600, whiteSpace: 'nowrap' }}>
-                        {d.date}
-                      </td>
-                      <td style={{ padding: '14px 12px', borderTop: `1px solid ${colors.rowDivider}`, fontWeight: 700 }}>
-                        {d.sellW}
-                      </td>
-                      <td style={{ padding: '14px 12px', borderTop: `1px solid ${colors.rowDivider}`, textAlign: 'right' }}>
-                        {d.sellAmt}
-                      </td>
-                      <td style={{ padding: '14px 12px', borderTop: `1px solid ${colors.rowDivider}`, fontWeight: 700 }}>
-                        {d.buyW}
-                      </td>
-                      <td style={{ padding: '14px 20px', borderTop: `1px solid ${colors.rowDivider}`, textAlign: 'right' }}>
-                        {d.buyAmt}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Card>
-            <Card padding="26px">
-              <div
-                style={{
-                  fontFamily: "'Noto Sans Myanmar', sans-serif",
-                  fontSize: 19,
-                  fontWeight: 700,
-                  marginBottom: 8,
-                }}
-              >
-                ဖောက်သည် ထိပ်ဆုံး ၅ ဦး
-              </div>
-              {dayData.top.map((c) => (
-                <div
-                  key={c.name}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: 10,
-                    padding: '12px 0',
-                    borderTop: `1px solid ${colors.rowDivider}`,
-                    fontSize: 16,
-                  }}
-                >
-                  <span>
-                    <span style={{ fontWeight: 600 }}>{c.name}</span>
-                    <span style={{ color: colors.muted2, fontSize: 14 }}> · {c.count} စောင်</span>
-                  </span>
-                  <span style={{ fontWeight: 600 }}>{c.amount}</span>
-                </div>
-              ))}
-            </Card>
-          </div>
+                )}
+                {dayData.days.map((d) => (
+                  <tr key={d.date}>
+                    <td style={{ ...td, fontWeight: 600, whiteSpace: 'nowrap' }}>{D(d.date, digits)}</td>
+                    <td
+                      className="num"
+                      style={{
+                        ...td,
+                        fontWeight: d.sellN ? 700 : 400,
+                        color: d.sellN ? colors.sell : colors.muted2,
+                      }}
+                    >
+                      {d.sellW}
+                    </td>
+                    <td className="num" style={{ ...td, textAlign: 'right', color: colors.muted }}>
+                      {d.sellAmt}
+                    </td>
+                    <td
+                      className="num"
+                      style={{
+                        ...td,
+                        fontWeight: d.buyN ? 700 : 400,
+                        color: d.buyN ? colors.buy : colors.muted2,
+                      }}
+                    >
+                      {d.buyW}
+                    </td>
+                    <td className="num" style={{ ...td, textAlign: 'right', color: colors.muted }}>
+                      {d.buyAmt}
+                    </td>
+                    <td
+                      className="num"
+                      style={{ ...td, textAlign: 'right', fontWeight: 600, color: colors.sell }}
+                    >
+                      {d.margin}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+
+          <Card padding={0} style={{ overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px 8px' }}>
+              <div style={{ fontSize: 17, fontWeight: 700 }}>ဖောက်သည် ထိပ်ဆုံး</div>
+              <div style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>ငွေပမာဏအလိုက်</div>
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={th}>#</th>
+                  <th style={th}>ဖောက်သည်</th>
+                  <th style={th}>စောင်ရေ</th>
+                  <th style={{ ...th, textAlign: 'right' }}>စုစုပေါင်းငွေ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dayData.top.length === 0 && (
+                  <tr>
+                    <td colSpan={4} style={{ ...td, textAlign: 'center', color: colors.muted2, padding: 28 }}>
+                      ဖောက်သည် မရှိသေးပါ
+                    </td>
+                  </tr>
+                )}
+                {dayData.top.map((c, i) => (
+                  <tr key={c.name}>
+                    <td style={{ ...td, color: colors.muted2, width: 48 }}>{D(i + 1, digits)}</td>
+                    <td style={{ ...td, fontWeight: 600 }}>{c.name}</td>
+                    <td style={td}>{c.count} စောင်</td>
+                    <td className="num" style={{ ...td, textAlign: 'right', fontWeight: 700 }}>
+                      {c.amount}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
         </div>
       )}
 
       {repMode === 'month' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <MonthNav
             label={monthData.label}
             onPrev={() => monthData.shift(-1)}
             onNext={() => monthData.shift(1)}
             showPrint
           />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 20 }}>
-            <Card navy padding="24px 26px">
-              <div style={{ fontSize: 15, color: colors.mutedOnNavy }}>ရောင်းရွှေ</div>
-              <div style={{ fontSize: 26, fontWeight: 700, lineHeight: 1.4, color: colors.goldOnNavy }}>
-                {monthData.sellPure}
-              </div>
-              <div style={{ fontSize: 14, color: colors.mutedOnNavy }}>
-                {monthData.sellAmt} ကျပ် · {monthData.sellCount} စောင်
-              </div>
-            </Card>
-            <Card padding="24px 26px">
-              <div style={{ fontSize: 15, color: colors.muted }}>ဝယ်ရွှေ</div>
-              <div style={{ fontSize: 26, fontWeight: 700, lineHeight: 1.4 }}>{monthData.buyPure}</div>
-              <div style={{ fontSize: 14, color: colors.muted }}>
-                {monthData.buyAmt} ကျပ် · {monthData.buyCount} စောင်
-              </div>
-            </Card>
-            <Card padding="24px 26px">
-              <div style={{ fontSize: 15, color: colors.muted }}>ရွှေ အသားတင် (ဝယ် − ရောင်း)</div>
-              <div style={{ fontSize: 28, fontWeight: 600, lineHeight: 1.3 }}>{monthData.net}</div>
-            </Card>
-            <Card padding="24px 26px">
-              <div style={{ fontSize: 15, color: colors.muted }}>ခန့်မှန်းအမြတ်</div>
-              <div style={{ fontSize: 28, fontWeight: 600, lineHeight: 1.3 }}>{monthData.margin}</div>
-              <div style={{ fontSize: 14, color: colors.muted }}>ပျမ်းမျှဝယ်ဈေး {monthData.avgCost}</div>
-            </Card>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14 }}>
+            <SummaryCard
+              label="ရောင်းရွှေ"
+              value={monthData.sellPure}
+              sub={`${monthData.sellCount} စောင်`}
+              tone="sell"
+            />
+            <SummaryCard
+              label="ရောင်းငွေ"
+              value={`${monthData.sellAmt}`}
+              sub="ကျပ်"
+              tone="sell"
+            />
+            <SummaryCard
+              label="ဝယ်ရွှေ"
+              value={monthData.buyPure}
+              sub={`${monthData.buyCount} စောင်`}
+              tone="buy"
+            />
+            <SummaryCard
+              label="ဝယ်ငွေ"
+              value={`${monthData.buyAmt}`}
+              sub="ကျပ်"
+              tone="buy"
+            />
           </div>
-          <ChartSection
-            unit={unit}
-            cols={monthData.chart.cols}
-            stock={monthData.chart.stock}
-            profitTotal={monthData.chart.profitTotal}
-            first={monthData.first}
-            last={monthData.last}
-          />
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 24, alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18 }}>
             <TxnList
               title="ရောင်းရသည့်စာရင်း"
               titleColor={colors.sell}
@@ -649,54 +539,50 @@ export function Reports() {
       )}
 
       {repMode === 'year' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <MonthNav label={yearData.label} onPrev={yearData.prev} onNext={yearData.next} showPrint />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 20 }}>
-            <Card navy padding="24px 26px">
-              <div style={{ fontSize: 15, color: colors.mutedOnNavy }}>နှစ်ချုပ် ရောင်းရွှေ</div>
-              <div style={{ fontSize: 26, fontWeight: 700, lineHeight: 1.4, color: colors.goldOnNavy }}>
-                {yearData.sellPure}
-              </div>
-              <div style={{ fontSize: 14, color: colors.mutedOnNavy }}>
-                {yearData.sellAmt} ကျပ် · {yearData.sellCount} စောင်
-              </div>
-            </Card>
-            <Card padding="24px 26px">
-              <div style={{ fontSize: 15, color: colors.muted }}>နှစ်ချုပ် ဝယ်ရွှေ</div>
-              <div style={{ fontSize: 26, fontWeight: 700, lineHeight: 1.4 }}>{yearData.buyPure}</div>
-              <div style={{ fontSize: 14, color: colors.muted }}>
-                {yearData.buyAmt} ကျပ် · {yearData.buyCount} စောင်
-              </div>
-            </Card>
-            <Card padding="24px 26px">
-              <div style={{ fontSize: 15, color: colors.muted }}>ရွှေ အသားတင် (ဝယ် − ရောင်း)</div>
-              <div style={{ fontSize: 28, fontWeight: 600, lineHeight: 1.3 }}>{yearData.net}</div>
-            </Card>
-            <Card padding="24px 26px">
-              <div style={{ fontSize: 15, color: colors.muted }}>ခန့်မှန်းအမြတ်</div>
-              <div style={{ fontSize: 28, fontWeight: 600, lineHeight: 1.3 }}>{yearData.margin}</div>
-              <div style={{ fontSize: 14, color: colors.muted }}>ပျမ်းမျှဝယ်ဈေး {yearData.avgCost}</div>
-            </Card>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14 }}>
+            <SummaryCard
+              label="ရောင်းရွှေ"
+              value={yearData.sellPure}
+              sub={`${yearData.sellCount} စောင်`}
+              tone="sell"
+            />
+            <SummaryCard
+              label="ရောင်းငွေ"
+              value={`${yearData.sellAmt}`}
+              sub="ကျပ်"
+              tone="sell"
+            />
+            <SummaryCard
+              label="ဝယ်ရွှေ"
+              value={yearData.buyPure}
+              sub={`${yearData.buyCount} စောင်`}
+              tone="buy"
+            />
+            <SummaryCard
+              label="ဝယ်ငွေ"
+              value={`${yearData.buyAmt}`}
+              sub="ကျပ်"
+              tone="buy"
+            />
           </div>
-          <ChartSection
-            unit={unit}
-            cols={yearData.chart.cols}
-            stock={yearData.chart.stock}
-            profitTotal={yearData.chart.profitTotal}
-            first={yearData.first}
-            last={yearData.last}
-            useShortLabel
-          />
           <Card padding={0} style={{ overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 16 }}>
+            <div style={{ padding: '16px 20px 8px' }}>
+              <div style={{ fontSize: 17, fontWeight: 700 }}>လအလိုက် စာရင်း</div>
+              <div style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>
+                လတစ်ခုကို နှိပ်ပြီး လချုပ် ကြည့်နိုင်သည်
+              </div>
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ color: colors.muted, textAlign: 'left', fontSize: 15 }}>
-                  <th style={{ padding: '14px 20px', fontWeight: 600 }}>လ</th>
-                  <th style={{ padding: '14px 10px', fontWeight: 600 }}>ရောင်း (အခေါက်)</th>
-                  <th style={{ padding: '14px 10px', fontWeight: 600, textAlign: 'right' }}>ရောင်းငွေ</th>
-                  <th style={{ padding: '14px 10px', fontWeight: 600 }}>ဝယ် (အခေါက်)</th>
-                  <th style={{ padding: '14px 10px', fontWeight: 600, textAlign: 'right' }}>ဝယ်ငွေ</th>
-                  <th style={{ padding: '14px 20px', fontWeight: 600, textAlign: 'right' }}>အမြတ်</th>
+                <tr>
+                  <th style={th}>လ</th>
+                  <th style={th}>ရောင်း</th>
+                  <th style={{ ...th, textAlign: 'right' }}>ရောင်းငွေ</th>
+                  <th style={th}>ဝယ်</th>
+                  <th style={{ ...th, textAlign: 'right' }}>ဝယ်ငွေ</th>
+                  <th style={{ ...th, textAlign: 'right' }}>အမြတ်</th>
                 </tr>
               </thead>
               <tbody>
@@ -705,32 +591,32 @@ export function Reports() {
                     key={m.name}
                     onClick={m.onOpen}
                     style={{ cursor: 'pointer' }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#FAFBFC';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '';
+                    }}
                   >
-                    <td style={{ padding: '13px 20px', borderTop: `1px solid ${colors.rowDivider}`, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    <td style={{ ...td, fontWeight: 600, whiteSpace: 'nowrap' }}>
                       {m.name}
-                      <div style={{ fontSize: 14, color: colors.muted2, fontWeight: 400 }}>{m.count} စောင်</div>
+                      <div style={{ fontSize: 13, color: colors.muted2, fontWeight: 400 }}>{m.count} စောင်</div>
                     </td>
-                    <td style={{ padding: '13px 10px', borderTop: `1px solid ${colors.rowDivider}`, whiteSpace: 'nowrap', fontWeight: 700 }}>
+                    <td className="num" style={{ ...td, fontWeight: 700, color: colors.sell }}>
                       {m.sellPure}
                     </td>
-                    <td style={{ padding: '13px 10px', borderTop: `1px solid ${colors.rowDivider}`, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <td className="num" style={{ ...td, textAlign: 'right', color: colors.muted }}>
                       {m.sellAmt}
                     </td>
-                    <td style={{ padding: '13px 10px', borderTop: `1px solid ${colors.rowDivider}`, whiteSpace: 'nowrap', fontWeight: 700 }}>
+                    <td className="num" style={{ ...td, fontWeight: 700, color: colors.buy }}>
                       {m.buyPure}
                     </td>
-                    <td style={{ padding: '13px 10px', borderTop: `1px solid ${colors.rowDivider}`, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <td className="num" style={{ ...td, textAlign: 'right', color: colors.muted }}>
                       {m.buyAmt}
                     </td>
                     <td
-                      style={{
-                        padding: '13px 20px',
-                        borderTop: `1px solid ${colors.rowDivider}`,
-                        textAlign: 'right',
-                        whiteSpace: 'nowrap',
-                        color: colors.sell,
-                        fontWeight: 600,
-                      }}
+                      className="num"
+                      style={{ ...td, textAlign: 'right', color: colors.sell, fontWeight: 600 }}
                     >
                       {m.margin}
                     </td>
@@ -738,13 +624,43 @@ export function Reports() {
                 ))}
               </tbody>
               <tfoot>
-                <tr style={{ background: colors.goldLight, fontWeight: 700 }}>
-                  <td style={{ padding: '14px 20px' }}>စုစုပေါင်း</td>
-                  <td style={{ padding: '14px 10px', whiteSpace: 'nowrap' }}>{yearData.sellPure}</td>
-                  <td style={{ padding: '14px 10px', textAlign: 'right' }}>{yearData.sellAmt}</td>
-                  <td style={{ padding: '14px 10px', whiteSpace: 'nowrap' }}>{yearData.buyPure}</td>
-                  <td style={{ padding: '14px 10px', textAlign: 'right' }}>{yearData.buyAmt}</td>
-                  <td style={{ padding: '14px 20px', textAlign: 'right' }}>{yearData.margin}</td>
+                <tr style={{ background: '#F3F5F7', fontWeight: 700 }}>
+                  <td style={{ ...td, borderTop: `1.5px solid ${colors.cardBorder}` }}>စုစုပေါင်း</td>
+                  <td
+                    className="num"
+                    style={{ ...td, borderTop: `1.5px solid ${colors.cardBorder}`, color: colors.sell }}
+                  >
+                    {yearData.sellPure}
+                  </td>
+                  <td
+                    className="num"
+                    style={{ ...td, borderTop: `1.5px solid ${colors.cardBorder}`, textAlign: 'right' }}
+                  >
+                    {yearData.sellAmt}
+                  </td>
+                  <td
+                    className="num"
+                    style={{ ...td, borderTop: `1.5px solid ${colors.cardBorder}`, color: colors.buy }}
+                  >
+                    {yearData.buyPure}
+                  </td>
+                  <td
+                    className="num"
+                    style={{ ...td, borderTop: `1.5px solid ${colors.cardBorder}`, textAlign: 'right' }}
+                  >
+                    {yearData.buyAmt}
+                  </td>
+                  <td
+                    className="num"
+                    style={{
+                      ...td,
+                      borderTop: `1.5px solid ${colors.cardBorder}`,
+                      textAlign: 'right',
+                      color: colors.sell,
+                    }}
+                  >
+                    {yearData.margin}
+                  </td>
                 </tr>
               </tfoot>
             </table>
@@ -765,71 +681,87 @@ function TxnList({
   title: string;
   titleColor: string;
   count: string;
-  rows: { no: string; date: string; cust: string; pure: string; amount: string }[];
+  rows: { no: string; date: string; cust: string; pure: string; price: string; amount: string }[];
   tot: { count: string; pure: string; amt: string };
 }) {
   return (
     <Card padding={0} style={{ overflow: 'hidden' }}>
       <div
         style={{
-          padding: '18px 20px 6px',
+          padding: '16px 18px 8px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'baseline',
         }}
       >
-        <div style={{ fontSize: 19, fontWeight: 700, color: titleColor }}>{title}</div>
-        <div style={{ fontSize: 15, color: colors.muted }}>{count} စောင်</div>
+        <div style={{ fontSize: 17, fontWeight: 700, color: titleColor }}>{title}</div>
+        <div style={{ fontSize: 13, color: colors.muted }}>{count} စောင်</div>
       </div>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 16 }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
-          <tr style={{ color: colors.muted, textAlign: 'left', fontSize: 15 }}>
-            <th style={{ padding: '12px 20px', fontWeight: 600 }}>ဘောင်ချာ</th>
-            <th style={{ padding: '12px 10px', fontWeight: 600 }}>ဖောက်သည်</th>
-            <th style={{ padding: '12px 10px', fontWeight: 600 }}>အလေးချိန်</th>
-            <th style={{ padding: '12px 20px', fontWeight: 600, textAlign: 'right' }}>ငွေ</th>
+          <tr>
+            <th style={th}>ဘောင်ချာ</th>
+            <th style={th}>ဖောက်သည်</th>
+            <th style={th}>အလေးချိန်</th>
+            <th style={{ ...th, textAlign: 'right' }}>စျေး</th>
+            <th style={{ ...th, textAlign: 'right' }}>ငွေ</th>
           </tr>
         </thead>
         <tbody>
+          {rows.length === 0 && (
+            <tr>
+              <td colSpan={5} style={{ ...td, textAlign: 'center', color: colors.muted2, padding: 28 }}>
+                စာရင်း မရှိပါ
+              </td>
+            </tr>
+          )}
           {rows.map((r) => (
             <tr key={r.no + r.date}>
-              <td style={{ padding: '12px 20px', borderTop: `1px solid ${colors.rowDivider}`, whiteSpace: 'nowrap' }}>
+              <td style={{ ...td, whiteSpace: 'nowrap' }}>
                 <div style={{ fontWeight: 600 }}>{r.no}</div>
-                <div style={{ fontSize: 14, color: colors.muted2 }}>{r.date}</div>
+                <div style={{ fontSize: 13, color: colors.muted2 }}>{r.date}</div>
               </td>
-              <td style={{ padding: '12px 10px', borderTop: `1px solid ${colors.rowDivider}` }}>{r.cust}</td>
-              <td
-                style={{
-                  padding: '12px 10px',
-                  borderTop: `1px solid ${colors.rowDivider}`,
-                  whiteSpace: 'nowrap',
-                  fontSize: 17,
-                  fontWeight: 700,
-                }}
-              >
+              <td style={td}>{r.cust}</td>
+              <td className="num" style={{ ...td, whiteSpace: 'nowrap', fontWeight: 700 }}>
                 {r.pure}
               </td>
-              <td
-                style={{
-                  padding: '12px 20px',
-                  borderTop: `1px solid ${colors.rowDivider}`,
-                  textAlign: 'right',
-                  color: colors.muted,
-                  whiteSpace: 'nowrap',
-                }}
-              >
+              <td className="num" style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 600 }}>
+                {r.price}
+              </td>
+              <td className="num" style={{ ...td, textAlign: 'right', color: colors.muted, whiteSpace: 'nowrap' }}>
                 {r.amount}
               </td>
             </tr>
           ))}
         </tbody>
         <tfoot>
-          <tr style={{ background: colors.goldLight, fontWeight: 700 }}>
-            <td colSpan={2} style={{ padding: '14px 20px' }}>
+          <tr style={{ background: '#F3F5F7', fontWeight: 700 }}>
+            <td colSpan={2} style={{ ...td, borderTop: `1.5px solid ${colors.cardBorder}` }}>
               စုစုပေါင်း
             </td>
-            <td style={{ padding: '14px 10px', whiteSpace: 'nowrap' }}>{tot.pure}</td>
-            <td style={{ padding: '14px 20px', textAlign: 'right', whiteSpace: 'nowrap' }}>{tot.amt}</td>
+            <td
+              className="num"
+              style={{ ...td, borderTop: `1.5px solid ${colors.cardBorder}`, whiteSpace: 'nowrap' }}
+            >
+              {tot.pure}
+            </td>
+            <td
+              className="num"
+              style={{ ...td, borderTop: `1.5px solid ${colors.cardBorder}`, textAlign: 'right' }}
+            >
+              —
+            </td>
+            <td
+              className="num"
+              style={{
+                ...td,
+                borderTop: `1.5px solid ${colors.cardBorder}`,
+                textAlign: 'right',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {tot.amt}
+            </td>
           </tr>
         </tfoot>
       </table>
