@@ -38,16 +38,16 @@ export function Settings() {
 
   const restoreFromAuto = async (srcPath: string) => {
     if (!isTauri()) {
-      setMsg('Desktop app (.exe) မှာသာ ပြန်ထည့်နိုင်သည်');
+      setMsg('Restore works in the desktop app only');
       return;
     }
     if (!srcPath) {
-      setMsg('ပြန်ယူမည့် အရံဖိုင် မရှိသေးပါ — အရောင်း/အဝယ် တစ်ခု သိမ်းပြီးမှ ရပါမည်');
+      setMsg('No backup yet — save a sale or purchase first');
       return;
     }
     if (
       !window.confirm(
-        'လက်ရှိဒေတာကို အရံနဲ့ အစားထိုးမည်။\nအစကနေ နောက်ဆုံးသိမ်းထားသည့် စာရင်းအထိ ပြန်ရမည်။\nလက်ရှိအခြေအနေကိုလည်း အရံအဖြစ် သိမ်းထားပါမည်။\nဆက်လုပ်မလား?',
+        'Replace all current data with this backup?\nYour current data will be saved first.',
       )
     ) {
       return;
@@ -61,7 +61,7 @@ export function Settings() {
       await refresh();
       await refreshSettings();
       await reloadBackupStatus();
-      setMsg('ဒေတာ ပြန်ရပြီးပါပြီ — အစကနေ နောက်ဆုံးအရံအထိ');
+      setMsg('Restored successfully');
     } catch (e) {
       setMsg(e instanceof Error ? e.message : String(e));
       try {
@@ -107,7 +107,7 @@ export function Settings() {
 
   const backup = async () => {
     if (!isTauri()) {
-      setMsg('Backup သည် Desktop app (.exe) ထဲမှာသာ ရပါသည်');
+      setMsg('Backup works in the desktop app only');
       return;
     }
     setBusy(true);
@@ -116,14 +116,14 @@ export function Settings() {
       const { save } = await import('@tauri-apps/plugin-dialog');
       const { invoke } = await import('@tauri-apps/api/core');
       const dest = await save({
-        title: 'ဒေတာအရံသိမ်းမည်',
+        title: 'Save backup',
         defaultPath: `gold-ledger-backup-${new Date().toISOString().slice(0, 10)}.db`,
         filters: [{ name: 'SQLite', extensions: ['db'] }],
       });
       if (!dest) return;
       await invoke('backup_database', { dest });
       await reloadBackupStatus();
-      setMsg('အရံသိမ်းပြီးပါပြီ');
+      setMsg('Backup saved');
     } catch (e) {
       setMsg(e instanceof Error ? e.message : String(e));
     } finally {
@@ -133,17 +133,17 @@ export function Settings() {
 
   const restore = async () => {
     if (!isTauri()) {
-      setMsg('Restore သည် Desktop app (.exe) ထဲမှာသာ ရပါသည်');
+      setMsg('Restore works in the desktop app only');
       return;
     }
-    if (!window.confirm('လက်ရှိဒေတာကို အစားထိုးမှာ သေချာပါသလား?')) return;
+    if (!window.confirm('Replace all current data with this file?')) return;
     setBusy(true);
     setMsg('');
     try {
       const { open } = await import('@tauri-apps/plugin-dialog');
       const { invoke } = await import('@tauri-apps/api/core');
       const src = await open({
-        title: 'ဒေတာပြန်ထည့်မည်',
+        title: 'Restore from file',
         multiple: false,
         filters: [{ name: 'SQLite', extensions: ['db'] }],
       });
@@ -153,7 +153,7 @@ export function Settings() {
       await reopenDb();
       await refresh();
       await refreshSettings();
-      setMsg('ပြန်ထည့်ပြီးပါပြီ');
+      setMsg('Restored successfully');
     } catch (e) {
       setMsg(e instanceof Error ? e.message : String(e));
       try {
@@ -274,12 +274,9 @@ export function Settings() {
 
       <Card padding="20px 22px">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>အလိုအလျောက် အရံသိမ်း / ပြန်ယူ</div>
-          <div style={{ fontSize: 15, color: colors.muted2, lineHeight: 1.55 }}>
-            ဒေတာပြောင်းတိုင်း (ဝယ်သူ · ဘောင်ချာ · လက်ကျန် · စျေး) အရံယူသည်။ ပြန်ယူရင် DB အပြည့် —
-            ဝယ်သူ၊ ဘောင်ချာ၊ လက်ကျန်၊ စျေး အကုန် ပြန်ရမည်။ စာရင်းအရံ{' '}
-            {digits === 'myanmar' ? '၁၀၀' : '100'} · နေ့စဉ် {digits === 'myanmar' ? '၉၀' : '90'} ·
-            အပတ်စဉ် {digits === 'myanmar' ? '၅၂' : '52'} ထိန်းထားသည်။
+          <div style={{ fontSize: 18, fontWeight: 700 }}>Auto Backup</div>
+          <div style={{ fontSize: 15, color: colors.ink, lineHeight: 1.5 }}>
+            Saves a copy whenever your data changes.
           </div>
           {backupStatus && (
             <div
@@ -296,34 +293,24 @@ export function Settings() {
               }}
             >
               <div>
-                <span style={{ color: colors.muted, fontWeight: 600 }}>ဖိုလ်ဒါ · </span>
+                <span style={{ color: colors.ink, fontWeight: 600 }}>Folder · </span>
                 <span style={{ wordBreak: 'break-all' }}>{backupStatus.backupsDir}</span>
               </div>
               <div>
-                <span style={{ color: colors.muted, fontWeight: 600 }}>နောက်ဆုံး သိမ်း (စာရင်း) · </span>
+                <span style={{ color: colors.ink, fontWeight: 600 }}>Last backup · </span>
                 {backupStatus.lastTxn
                   ? `${backupStatus.lastTxn.createdAt} · ${backupStatus.lastTxn.fileName}`
                   : '—'}
               </div>
-              <div>
-                <span style={{ color: colors.muted, fontWeight: 600 }}>နေ့စဉ် · </span>
-                {backupStatus.lastDaily
-                  ? `${backupStatus.lastDaily.createdAt} · ${backupStatus.lastDaily.fileName}`
-                  : '—'}
-              </div>
-              <div style={{ color: colors.muted2, fontSize: 14 }}>
-                စာရင်းအရံ {backupStatus.txnCount} ဖိုင် · နေ့စဉ် {backupStatus.dailyCount} ဖိုင်
+              <div style={{ fontSize: 14 }}>
+                {backupStatus.txnCount} backups
               </div>
             </div>
           )}
 
           {isTauri() && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.45 }}>ဒေတာ ပြန်ယူမည်</div>
-              <div style={{ fontSize: 14, color: colors.muted2, lineHeight: 1.5 }}>
-                နောက်ဆုံးအရံမှ ပြန်ယူရင် ဝယ်သူ · ဘောင်ချာ · လက်ကျန် · စျေး အစကနေ ထိုအချိန်အထိ
-                အကုန် ပြန်ရမည်။
-              </div>
+              <div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.45 }}>Restore</div>
               <select
                 value={restorePick}
                 onChange={(e) => setRestorePick(e.target.value)}
@@ -340,17 +327,17 @@ export function Settings() {
                 }}
               >
                 {(backupStatus?.recent ?? []).length === 0 && (
-                  <option value="">အရံ မရှိသေးပါ</option>
+                  <option value="">No backups yet</option>
                 )}
                 {(backupStatus?.recent ?? []).map((b) => (
                   <option key={b.path} value={b.path}>
                     {b.kind === 'txn'
-                      ? 'စာရင်း'
+                      ? 'Auto'
                       : b.kind === 'daily'
-                        ? 'နေ့စဉ်'
+                        ? 'Daily'
                         : b.kind === 'weekly'
-                          ? 'အပတ်စဉ်'
-                          : 'ပြန်ယူမတိုင်မီ'}{' '}
+                          ? 'Weekly'
+                          : 'Before restore'}{' '}
                     · {b.createdAt} · {b.fileName}
                   </option>
                 ))}
@@ -369,7 +356,7 @@ export function Settings() {
                     opacity: busy || !backupStatus?.lastTxn ? 0.55 : 1,
                   }}
                 >
-                  နောက်ဆုံးအရံက ပြန်ယူမည်
+                  Restore latest
                 </button>
                 <button
                   type="button"
@@ -382,7 +369,7 @@ export function Settings() {
                     opacity: busy || !restorePick ? 0.55 : 1,
                   }}
                 >
-                  ရွေးထားသည်ကို ပြန်ယူမည်
+                  Restore selected
                 </button>
                 <button
                   type="button"
@@ -396,7 +383,7 @@ export function Settings() {
                     await runAutoBackup('weekly');
                     await runAutoBackup('txn');
                     await reloadBackupStatus();
-                    setMsg('အလိုအလျောက် အရံ ခုတင် သိမ်းပြီးပါပြီ');
+                    setMsg('Backup saved');
                       } catch (e) {
                         setMsg(e instanceof Error ? e.message : String(e));
                       } finally {
@@ -406,7 +393,7 @@ export function Settings() {
                   }}
                   style={{ ...clearOutlineBtn, height: 46, opacity: busy ? 0.6 : 1 }}
                 >
-                  ခုတင် အရံသိမ်းမည်
+                  Backup now
                 </button>
               </div>
             </div>
@@ -416,9 +403,9 @@ export function Settings() {
 
       <Card padding="20px 22px">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>ဒေတာ အရံ / ပြန်ထည့် (ကိုယ်တိုင်)</div>
-          <div style={{ fontSize: 14, color: colors.muted2, wordBreak: 'break-all', lineHeight: 1.5 }}>
-            DB · {getDbPath() || '—'}
+          <div style={{ fontSize: 18, fontWeight: 700 }}>Manual Backup</div>
+          <div style={{ fontSize: 14, color: colors.ink, wordBreak: 'break-all', lineHeight: 1.5 }}>
+            File · {getDbPath() || '—'}
           </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <button
@@ -427,7 +414,7 @@ export function Settings() {
               onClick={() => void backup()}
               style={{ ...clearPrimaryBtn, height: 44, opacity: busy ? 0.6 : 1 }}
             >
-              ဖိုင်အဖြစ် ထုတ်မည်
+              Export file
             </button>
             <button
               type="button"
@@ -435,11 +422,19 @@ export function Settings() {
               onClick={() => void restore()}
               style={{ ...clearOutlineBtn, height: 44, opacity: busy ? 0.6 : 1 }}
             >
-              ပြန်ထည့်မည်
+              Import file
             </button>
           </div>
           {msg && (
-            <div style={{ fontSize: 16, color: msg.includes('ပြီး') ? colors.sell : colors.buy }}>{msg}</div>
+            <div
+              style={{
+                fontSize: 16,
+                color:
+                  /saved|restored|successfully/i.test(msg) ? colors.sell : colors.buy,
+              }}
+            >
+              {msg}
+            </div>
           )}
         </div>
       </Card>

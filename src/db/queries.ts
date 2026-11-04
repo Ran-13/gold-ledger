@@ -57,6 +57,8 @@ type SqlDb = {
 let db: SqlDb | null = null;
 let dbPathAbs = '';
 let mode: 'tauri' | 'browser' | null = null;
+/** Prevents parallel initDb() from nesting SQLite transactions (Promise.all on refresh). */
+let initPromise: Promise<void> | null = null;
 
 export function getDbPath(): string {
   if (mode === 'browser') return browser.browserGetDbPath();
@@ -69,39 +71,57 @@ export async function initDb(): Promise<void> {
     return;
   }
   if (db) return;
-
-  if (!isTauri()) {
-    mode = 'browser';
-    await browser.browserInit();
+  if (initPromise) {
+    await initPromise;
     return;
   }
 
-  mode = 'tauri';
-  const { default: Database } = await import('@tauri-apps/plugin-sql');
-  const { appDataDir, join } = await import('@tauri-apps/api/path');
-  const dir = await appDataDir();
-  dbPathAbs = await join(dir, 'gold-ledger.db');
-  db = (await Database.load(`sqlite:${dbPathAbs}`)) as unknown as SqlDb;
-  await runMigrations(db);
-  if (import.meta.env.SEED === '1' || import.meta.env.VITE_SEED === '1') {
-    await seedIfEmpty(db);
+  initPromise = (async () => {
+    if (!isTauri()) {
+      mode = 'browser';
+      await browser.browserInit();
+      return;
+    }
+
+    mode = 'tauri';
+    const { default: Database } = await import('@tauri-apps/plugin-sql');
+    const { appDataDir, join } = await import('@tauri-apps/api/path');
+    const dir = await appDataDir();
+    dbPathAbs = await join(dir, 'gold-ledger.db');
+    db = (await Database.load(`sqlite:${dbPathAbs}`)) as unknown as SqlDb;
+    await runMigrations(db);
+    if (import.meta.env.SEED === '1' || import.meta.env.VITE_SEED === '1') {
+      await seedIfEmpty(db);
+    }
+  })();
+
+  try {
+    await initPromise;
+  } catch (e) {
+    initPromise = null;
+    db = null;
+    mode = null;
+    throw e;
   }
 }
 
 export async function closeDb(): Promise<void> {
   if (mode === 'browser') {
     await browser.browserClose();
+    initPromise = null;
     return;
   }
   if (db) {
     await db.close();
     db = null;
   }
+  initPromise = null;
 }
 
 export async function reopenDb(): Promise<void> {
   await closeDb();
   mode = null;
+  initPromise = null;
   await initDb();
 }
 
@@ -118,15 +138,14 @@ async function runMigrations(database: SqlDb): Promise<void> {
   const have = new Set(applied.map((r) => r.version));
   for (const m of MIGRATIONS) {
     if (have.has(m.version)) continue;
-    await database.execute('BEGIN');
+    // No explicit BEGIN — tauri-plugin-sql/sqlx can already be in a txn per execute,
+    // and nested BEGIN causes: "cannot start a transaction within a transaction"
     try {
       for (const stmt of m.sql.split(';').map((s) => s.trim()).filter(Boolean)) {
         await database.execute(stmt);
       }
       await database.execute('INSERT INTO _migrations (version) VALUES ($1)', [m.version]);
-      await database.execute('COMMIT');
     } catch (e) {
-      await database.execute('ROLLBACK');
       throw e;
     }
   }
@@ -420,58 +439,52 @@ export async function saveTxn(input: SaveTxnInput): Promise<number> {
   const date = isoDate(now);
   const time = isoTime(now);
 
-  await database.execute('BEGIN');
-  try {
-    let customerId = input.customerId;
-    if (input.newCustomer) {
-      const res = await database.execute(
-        'INSERT INTO customers (name, phone, nrc, address) VALUES ($1, $2, $3, $4)',
-        [
-          input.newCustomer.name.trim(),
-          input.newCustomer.phone.trim(),
-          input.newCustomer.nrc.trim(),
-          input.newCustomer.address.trim(),
-        ],
-      );
-      customerId = res.lastInsertId as number;
-    }
-    const rows = await database.select<{ m: number | null }[]>(
-      'SELECT MAX(voucher_no) as m FROM txns',
-    );
-    const no = (rows[0]?.m ?? 0) + 1;
+  // Avoid explicit BEGIN/COMMIT — plugin-sql can nest transactions and error
+  let customerId = input.customerId;
+  if (input.newCustomer) {
     const res = await database.execute(
-      `INSERT INTO txns (voucher_no, date, time, type, customer_id, yway, price, amount, note, channel, card_fee)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      'INSERT INTO customers (name, phone, nrc, address) VALUES ($1, $2, $3, $4)',
       [
-        no,
-        date,
-        time,
-        input.type,
-        customerId,
-        yway,
-        input.price,
-        amt,
-        input.note || null,
-        channel,
-        cardFeeStored,
+        input.newCustomer.name.trim(),
+        input.newCustomer.phone.trim(),
+        input.newCustomer.nrc.trim(),
+        input.newCustomer.address.trim(),
       ],
     );
-    const txnId = res.lastInsertId as number;
-    if (channel === 'card') {
-      for (const line of lines) {
-        await database.execute(
-          'INSERT INTO txn_cards (txn_id, denom, qty) VALUES ($1, $2, $3)',
-          [txnId, line.denom, line.qty],
-        );
-      }
-    }
-    await database.execute('COMMIT');
-    scheduleDbBackup();
-    return txnId;
-  } catch (e) {
-    await database.execute('ROLLBACK');
-    throw e;
+    customerId = res.lastInsertId as number;
   }
+  const rows = await database.select<{ m: number | null }[]>(
+    'SELECT MAX(voucher_no) as m FROM txns',
+  );
+  const no = (rows[0]?.m ?? 0) + 1;
+  const res = await database.execute(
+    `INSERT INTO txns (voucher_no, date, time, type, customer_id, yway, price, amount, note, channel, card_fee)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+    [
+      no,
+      date,
+      time,
+      input.type,
+      customerId,
+      yway,
+      input.price,
+      amt,
+      input.note || null,
+      channel,
+      cardFeeStored,
+    ],
+  );
+  const txnId = res.lastInsertId as number;
+  if (channel === 'card') {
+    for (const line of lines) {
+      await database.execute(
+        'INSERT INTO txn_cards (txn_id, denom, qty) VALUES ($1, $2, $3)',
+        [txnId, line.denom, line.qty],
+      );
+    }
+  }
+  scheduleDbBackup();
+  return txnId;
 }
 
 export async function deleteTxn(id: number): Promise<void> {
