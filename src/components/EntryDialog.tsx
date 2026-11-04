@@ -3,7 +3,8 @@ import { CardQtyPicker } from './CardQtyPicker';
 import { CustomerCombobox } from './Combobox';
 import { Dialog, dialogBtnGhost, dialogBtnPrimary } from './Dialog';
 import { formInput } from './FormRow';
-import { IconPrint } from './Icons';
+import { IconEdit, IconPrint, IconSave } from './Icons';
+import { KbdHint } from './KbdHint';
 import { Segmented } from './Segmented';
 import type { Customer, TxnChannel, TxnType } from '../db/types';
 import { saveTxn, upsertPrice } from '../db/queries';
@@ -33,6 +34,12 @@ import {
   toYway,
   voucherNo,
 } from '../lib/units';
+import {
+  SAVE_PRINT_ENTRY_EVENT,
+  isMod,
+  isTypingTarget,
+  modLabel,
+} from '../lib/shortcuts';
 import { colors, radii } from '../styles/tokens';
 import { useStore } from '../store';
 
@@ -79,6 +86,7 @@ export function EntryDialog() {
   const [cardFeeStr, setCardFeeStr] = useState('');
   const [editingCardFee, setEditingCardFee] = useState(false);
   const [saving, setSaving] = useState(false);
+  const savingLock = useRef(false);
   const priceInputRef = useRef<HTMLInputElement | null>(null);
   const cardFeeInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -184,6 +192,7 @@ export function EntryDialog() {
   const isNew = !!ql && !customers.find((c) => c.id === form.customerId);
 
   const save = async (andPrint = false) => {
+    if (savingLock.current) return;
     if (!form.customerId && !ql) {
       window.alert('ဝယ်သူ ရွေးပါ သို့မဟုတ် အမည် ထည့်ပါ');
       return;
@@ -221,6 +230,7 @@ export function EntryDialog() {
         return;
       }
     }
+    savingLock.current = true;
     setSaving(true);
     try {
       const buy = form.type === 'buy' ? price : curBuy;
@@ -256,9 +266,38 @@ export function EntryDialog() {
     } catch (e) {
       window.alert(e instanceof Error ? e.message : String(e));
     } finally {
+      savingLock.current = false;
       setSaving(false);
     }
   };
+
+  const saveRef = useRef(save);
+  saveRef.current = save;
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter') return;
+      if (isMod(e)) {
+        e.preventDefault();
+        void saveRef.current(false);
+        return;
+      }
+      if (!isTypingTarget(e.target)) {
+        e.preventDefault();
+        void saveRef.current(false);
+      }
+    };
+    const onSavePrint = () => {
+      void saveRef.current(true);
+    };
+    window.addEventListener('keydown', onKey);
+    window.addEventListener(SAVE_PRINT_ENTRY_EVENT, onSavePrint);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener(SAVE_PRINT_ENTRY_EVENT, onSavePrint);
+    };
+  }, [open]);
 
   const priceLabel = form.type === 'sell' ? 'အရောင်းစျေး' : 'အဝယ်စျေး';
 
@@ -283,7 +322,7 @@ export function EntryDialog() {
         value={form[key]}
         onChange={(e) => setForm((f) => ({ ...f, [key]: keepNumInput(e.target.value) }))}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') {
+          if (e.key === 'Enter' && !isMod(e)) {
             e.preventDefault();
             void save();
           }
@@ -323,7 +362,7 @@ export function EntryDialog() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
           <div>
             <div style={{ fontSize: 14, color: colors.muted, fontWeight: 700, letterSpacing: '0.01em' }}>
-              ပေးရမည့်ငွေ
+              စုစုပေါင်း ကျသင့်ငွေ
             </div>
             <div
               className="num"
@@ -339,8 +378,20 @@ export function EntryDialog() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <button type="button" onClick={close} style={{ ...dialogBtnGhost, height: 46, fontSize: 16 }}>
+            <button
+              type="button"
+              onClick={close}
+              style={{
+                ...dialogBtnGhost,
+                height: 46,
+                fontSize: 16,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
               ပိတ်မည်
+              <KbdHint>Esc</KbdHint>
             </button>
             <button
               type="button"
@@ -354,9 +405,14 @@ export function EntryDialog() {
                 color: colors.ink,
                 cursor: saving || blocked ? 'default' : 'pointer',
                 opacity: blocked ? 0.45 : 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
               }}
             >
+              <IconSave size={16} />
               သိမ်းမည်
+              <KbdHint>{`${modLabel()}+↵`}</KbdHint>
             </button>
             <button
               type="button"
@@ -375,6 +431,7 @@ export function EntryDialog() {
             >
               <IconPrint size={16} />
               {saving ? 'သိမ်းနေ…' : 'သိမ်းပြီး ပရင့်'}
+              {!saving ? <KbdHint onDark>{`${modLabel()}+P`}</KbdHint> : null}
             </button>
           </div>
         </div>
@@ -558,6 +615,7 @@ export function EntryDialog() {
                 </span>
                 {!editingPrice && (
                   <button type="button" onClick={() => setEditingPrice(true)} style={linkBtn}>
+                    <IconEdit size={13} />
                     ပြင်ရန်
                   </button>
                 )}
@@ -572,7 +630,7 @@ export function EntryDialog() {
                     value={priceStr}
                     onChange={(e) => setPriceStr(keepNumInput(e.target.value))}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.key === 'Enter' && !isMod(e)) {
                         e.preventDefault();
                         setEditingPrice(false);
                       }
@@ -616,6 +674,7 @@ export function EntryDialog() {
                     </span>
                     {!editingCardFee && (
                       <button type="button" onClick={() => setEditingCardFee(true)} style={linkBtn}>
+                        <IconEdit size={13} />
                         ပြင်ရန်
                       </button>
                     )}
@@ -631,7 +690,7 @@ export function EntryDialog() {
                           value={cardFeeStr}
                           onChange={(e) => setCardFeeStr(keepNumInput(e.target.value))}
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
+                            if (e.key === 'Enter' && !isMod(e)) {
                               e.preventDefault();
                               setEditingCardFee(false);
                             }
@@ -680,7 +739,7 @@ export function EntryDialog() {
               style={{
                 marginTop: 2,
                 padding: '12px 14px',
-                borderRadius: 10,
+                borderRadius: radii.card,
                 background: colors.white,
                 border: `1.5px solid ${colors.cardBorder}`,
               }}
@@ -693,7 +752,7 @@ export function EntryDialog() {
                   letterSpacing: '0.01em',
                 }}
               >
-                စုစုပေါင်း
+                စုစုပေါင်း ကျသင့်ငွေ
               </div>
               <div
                 className="num"
@@ -765,7 +824,7 @@ function miniBtn(filled: boolean): CSSProperties {
     height: 40,
     padding: '0 12px',
     border: filled ? 'none' : `1px solid ${colors.ink}`,
-    borderRadius: 6,
+    borderRadius: radii.button,
     background: filled ? colors.ink : colors.white,
     color: filled ? colors.white : colors.ink,
     fontSize: 14,
@@ -786,4 +845,7 @@ const linkBtn: CSSProperties = {
   textDecoration: 'underline',
   textUnderlineOffset: 3,
   lineHeight: 1.5,
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 4,
 };

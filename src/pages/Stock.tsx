@@ -11,13 +11,14 @@ import {
   tableTh,
   ty,
 } from '../components/ClearUI';
-import { IconMinus, IconPlus } from '../components/Icons';
+
+import { DateChip } from '../components/DateChip';
+import { IconMinus, IconPlus, IconTrash } from '../components/Icons';
 import { PaginationBar, usePagination } from '../components/Pagination';
 import {
   FilterField,
   FilterPanel,
   FilterSelect,
-  filterInputStyle,
 } from '../components/TableFilters';
 import { deleteCardAdjustment, deleteStockAdjustment } from '../db/queries';
 import {
@@ -31,9 +32,8 @@ import {
 import {
   D,
   W,
-  YWAY_PER_KYAT,
   formatDateTime,
-  money,
+  isoDate,
   stock as stockCalc,
 } from '../lib/units';
 import { colors, radii } from '../styles/tokens';
@@ -59,7 +59,6 @@ type MoveRow = {
 
 export function Stock() {
   const txns = useStore((s) => s.txns);
-  const prices = useStore((s) => s.prices);
   const adjustments = useStore((s) => s.stockAdjustments);
   const cardOpenings = useStore((s) => s.cardOpenings);
   const cardAdjustments = useStore((s) => s.cardAdjustments);
@@ -75,14 +74,17 @@ export function Stock() {
   const [to, setTo] = useState('');
   const [pendingDelete, setPendingDelete] = useState<MoveRow | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const today = isoDate();
 
-  const sortedPrices = [...prices].sort((a, b) => {
-    const ka = `${a.date}T${a.time.length === 5 ? a.time + ':00' : a.time}`;
-    const kb = `${b.date}T${b.time.length === 5 ? b.time + ':00' : b.time}`;
-    return ka < kb ? -1 : 1;
-  });
-  const cur = sortedPrices[sortedPrices.length - 1];
-  const curSell = cur?.sell ?? 0;
+  const pickFrom = (d: string) => {
+    setFrom(d);
+    setTo((prev) => (!prev || d > prev ? d : prev));
+  };
+
+  const pickTo = (d: string) => {
+    setTo(d);
+    setFrom((prev) => (!prev || d < prev ? d : prev));
+  };
 
   const cardStock = useMemo(() => {
     const typeById = new Map(txns.map((t) => [t.id, t.type]));
@@ -108,7 +110,6 @@ export function Stock() {
   const opening = settings.opening_stock_yway;
   const looseY = stockCalc(opening, buyY, sellY, adjInY, adjOutY);
   const totalY = cardWeight + looseY;
-  const valueSell = (totalY / YWAY_PER_KYAT) * curSell;
   const negative = totalY < 0;
 
   const moves = useMemo(() => {
@@ -239,11 +240,7 @@ export function Stock() {
           label="စုစုပေါင်း လက်ကျန်"
           value={W(totalY, digits)}
           tone={negative ? 'buy' : 'ink'}
-          sub={
-            negative
-              ? 'အနှုတ်ဖြစ်နေသည်'
-              : `ရောင်းဈေး· ${money(Math.max(0, valueSell), digits)}`
-          }
+          sub={negative ? 'အနှုတ်ဖြစ်နေသည်' : undefined}
         />
         <MiniFact label={`အကယ်ဒမီအခေါက်ရွှေ · ${D(cardCount, digits)} ကဒ်`} value={W(cardWeight, digits)} />
         <MiniFact label="မီးလင်းဖြတ်စ" value={W(looseY, digits)} />
@@ -262,7 +259,7 @@ export function Stock() {
           <SectionHead
             title="အကယ်ဒမီအခေါက်ရွှေများ"
             right={
-              <span className="num" style={{ fontSize: 15, fontWeight: 600, color: colors.muted }}>
+              <span className="num" style={{ fontSize: 16, fontWeight: 600, color: colors.muted }}>
                 {D(cardCount, digits)} ကဒ်
               </span>
             }
@@ -292,7 +289,7 @@ export function Stock() {
                   }}
                 >
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: colors.muted, lineHeight: 1.5 }}>
+                    <div style={{ fontSize: 17, fontWeight: 700, color: colors.muted, lineHeight: 1.45 }}>
                       {d.label}
                     </div>
                     <div
@@ -302,13 +299,13 @@ export function Stock() {
                         fontWeight: 700,
                         marginTop: 4,
                         letterSpacing: '-0.01em',
-                        lineHeight: 1.25,
+                        lineHeight: 1.4,
                         color: q === 0 ? colors.muted2 : colors.ink,
                       }}
                     >
                       {D(q, digits)}
                     </div>
-                    <div className="num" style={{ fontSize: 14, color: colors.muted2, marginTop: 4 }}>
+                    <div className="num" style={{ ...ty.meta, marginTop: 4 }}>
                       {W(q * d.yway, digits)}
                     </div>
                   </div>
@@ -347,7 +344,7 @@ export function Stock() {
           <SectionHead title="မီးလင်းဖြတ်စ" />
           <div style={{ padding: '18px 18px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: colors.muted, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 17, fontWeight: 700, color: colors.muted, lineHeight: 1.45 }}>
                 လက်ကျန်
               </div>
               <div
@@ -357,7 +354,7 @@ export function Stock() {
                   fontWeight: 700,
                   marginTop: 6,
                   letterSpacing: '-0.01em',
-                  lineHeight: 1.25,
+                  lineHeight: 1.4,
                   color: looseY < 0 ? colors.buy : colors.ink,
                 }}
               >
@@ -384,11 +381,7 @@ export function Stock() {
       {/* Activity */}
       <Card padding={0} style={{ overflow: 'hidden' }}>
         <SectionHead title="ထည့် / လျှော့ မှတ်တမ်း" />
-        <FilterPanel
-          active={filterActive}
-          onClear={clearFilters}
-          countLabel={`${D(filtered.length, digits)} ကြောင်း`}
-        >
+        <FilterPanel active={filterActive} onClear={clearFilters}>
           <FilterField label="အမျိုးအစား" minWidth={140}>
             <FilterSelect
               value={filter}
@@ -396,34 +389,41 @@ export function Stock() {
               options={typeOptions}
             />
           </FilterField>
-          <FilterField label="စတင်ရက်" minWidth={150}>
-            <input
-              type="date"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              style={filterInputStyle}
-            />
-          </FilterField>
           <div
             style={{
-              alignSelf: 'flex-end',
-              height: 32,
               display: 'flex',
-              alignItems: 'center',
-              color: colors.muted2,
-              fontSize: 16,
+              alignItems: 'flex-end',
+              gap: 10,
+              flexWrap: 'wrap',
             }}
           >
-            →
-          </div>
-          <FilterField label="ပြီးဆုံးရက်" minWidth={150}>
-            <input
-              type="date"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              style={filterInputStyle}
+            <DateChip
+              caption="မှ"
+              value={from || today}
+              digits={digits}
+              max={to || today}
+              onChange={pickFrom}
             />
-          </FilterField>
+            <span
+              style={{
+                color: colors.muted2,
+                fontSize: 18,
+                fontWeight: 700,
+                paddingBottom: 14,
+                flexShrink: 0,
+              }}
+            >
+              —
+            </span>
+            <DateChip
+              caption="ထိ"
+              value={to || today}
+              digits={digits}
+              min={from || undefined}
+              max={today}
+              onChange={pickTo}
+            />
+          </div>
         </FilterPanel>
 
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -520,8 +520,12 @@ export function Stock() {
                           fontSize: 17,
                           fontWeight: 700,
                           cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
                         }}
                       >
+                        <IconTrash size={15} />
                         ဖျက်
                       </button>
                     )}
@@ -566,6 +570,7 @@ export function Stock() {
               onClick={() => void confirmDelete()}
               style={{ ...dialogBtnPrimary, background: colors.buy }}
             >
+              <IconTrash size={16} />
               {deleting ? 'ဖျက်နေသည်…' : 'ဖျက်မည်'}
             </button>
           </div>
@@ -591,7 +596,7 @@ function SectionHead({ title, right }: { title: string; right?: ReactNode }) {
         gap: 12,
       }}
     >
-      <div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.4 }}>{title}</div>
+      <div style={ty.section}>{title}</div>
       {right}
     </div>
   );
@@ -602,7 +607,7 @@ const cardActionIn: CSSProperties = {
   height: 32,
   padding: '0 6px',
   border: 'none',
-  borderRadius: 6,
+  borderRadius: radii.button,
   background: colors.ink,
   color: colors.white,
   fontSize: 15,
@@ -620,7 +625,7 @@ const cardActionOut: CSSProperties = {
   height: 32,
   padding: '0 6px',
   border: `1px solid ${colors.ink}`,
-  borderRadius: 6,
+  borderRadius: radii.button,
   background: colors.white,
   color: colors.ink,
   fontSize: 15,

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Dialog } from './Dialog';
+import { IconSave } from './Icons';
 import { setCardOpenings } from '../db/queries';
 import { CARD_DENOMS, type CardDenom } from '../lib/cards';
 import { D, N, W, keepNumInput } from '../lib/units';
-import { colors } from '../styles/tokens';
+import { colors, radii } from '../styles/tokens';
 import { useStore } from '../store';
 
 export function CardOpeningDialog() {
@@ -61,6 +62,7 @@ export function CardOpeningDialog() {
             onClick={() => void save()}
             style={primaryBtn}
           >
+            <IconSave size={16} />
             သိမ်းမည်
           </button>
         </div>
@@ -69,7 +71,7 @@ export function CardOpeningDialog() {
       <div
         style={{
           border: `1.5px solid ${colors.cardBorder}`,
-          borderRadius: 10,
+          borderRadius: radii.card,
           overflow: 'hidden',
         }}
       >
@@ -108,7 +110,7 @@ export function CardOpeningDialog() {
                 width: 88,
                 height: 42,
                 border: `1.5px solid ${colors.inputBorder}`,
-                borderRadius: 8,
+                borderRadius: radii.input,
                 textAlign: 'right',
                 fontSize: 20,
                 fontWeight: 700,
@@ -126,7 +128,7 @@ const ghostBtn = {
   height: 46,
   padding: '0 18px',
   border: `1.5px solid ${colors.inputBorder}`,
-  borderRadius: 8,
+  borderRadius: radii.button,
   background: colors.white,
   color: colors.muted,
   fontSize: 17,
@@ -138,10 +140,13 @@ const primaryBtn = {
   height: 46,
   padding: '0 22px',
   border: 'none',
-  borderRadius: 8,
+  borderRadius: radii.button,
   background: colors.ink,
   color: colors.white,
   fontSize: 17,
   fontWeight: 700,
   cursor: 'pointer',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
 } as const;

@@ -131,6 +131,8 @@ describe('report bucketing', () => {
 });
 
 describe('voucherNo letter series', () => {
+  const SIZE = 10_000;
+
   it('formats A-0000 … A-9999 → B-0000 → Z-9999 → AA-0000', () => {
     expect(voucherNo(0)).toBe('A-0000');
     expect(voucherNo(1)).toBe('A-0001');
@@ -146,10 +148,58 @@ describe('voucherNo letter series', () => {
     expect(voucherPrefix(25)).toBe('Z');
     expect(voucherPrefix(26)).toBe('AA');
     expect(voucherPrefix(27)).toBe('AB');
+    expect(voucherPrefix(51)).toBe('AZ');
+    expect(voucherPrefix(52)).toBe('BA');
   });
 
-  it('nextVoucherInt starts at 0 when empty', () => {
+  it('increments the letter after every 10,000 from A through Z then AA', () => {
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    for (let i = 0; i < 26; i++) {
+      const start = i * SIZE;
+      expect(voucherNo(start)).toBe(`${letters[i]}-0000`);
+      expect(voucherNo(start + 9999)).toBe(`${letters[i]}-9999`);
+      if (i < 25) {
+        expect(voucherNo(start + SIZE)).toBe(`${letters[i + 1]}-0000`);
+      }
+    }
+    expect(voucherNo(25 * SIZE + 9999)).toBe('Z-9999');
+    expect(voucherNo(26 * SIZE)).toBe('AA-0000');
+    expect(voucherNo(27 * SIZE)).toBe('AB-0000');
+  });
+
+  it('nextVoucherInt walks A-9999 → B-0000 and Z-9999 → AA-0000', () => {
     expect(nextVoucherInt([])).toBe(0);
-    expect(nextVoucherInt([0, 3, 2])).toBe(4);
+    expect(voucherNo(nextVoucherInt([0, 3, 2]))).toBe('A-0004');
+    expect(voucherNo(nextVoucherInt([9999]))).toBe('B-0000');
+    expect(voucherNo(nextVoucherInt([25 * SIZE + 9999]))).toBe('AA-0000');
+    expect(voucherNo(nextVoucherInt([26 * SIZE]))).toBe('AA-0001');
+  });
+
+  it('each next integer maps to a unique label', () => {
+    const labels = [
+      voucherNo(0),
+      voucherNo(1),
+      voucherNo(9999),
+      voucherNo(10_000),
+      voucherNo(10_001),
+      voucherNo(25 * SIZE + 9999),
+      voucherNo(26 * SIZE),
+      voucherNo(26 * SIZE + 1),
+    ];
+    expect(labels).toEqual([
+      'A-0000',
+      'A-0001',
+      'A-9999',
+      'B-0000',
+      'B-0001',
+      'Z-9999',
+      'AA-0000',
+      'AA-0001',
+    ]);
+    expect(new Set(labels).size).toBe(labels.length);
+    for (const n of [0, 9999, 10_000, 25 * SIZE + 9999, 26 * SIZE]) {
+      expect(nextVoucherInt([n])).toBe(n + 1);
+      expect(voucherNo(n + 1)).not.toBe(voucherNo(n));
+    }
   });
 });

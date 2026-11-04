@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Dialog, dialogBtnGhost, dialogBtnPrimary } from './Dialog';
+import { IconSave } from './Icons';
 import { createCardAdjustment } from '../db/queries';
 import { CARD_DENOMS, computeCardStock } from '../lib/cards';
 import { D, N, W, keepNumInput } from '../lib/units';
@@ -91,6 +92,7 @@ export function CardAdjustDialog() {
               opacity: overdraw ? 0.45 : 1,
             }}
           >
+            <IconSave size={16} />
             သိမ်းမည်
           </button>
         </div>
@@ -100,7 +102,7 @@ export function CardAdjustDialog() {
         <div
           style={{
             padding: '12px 14px',
-            borderRadius: 8,
+            borderRadius: radii.card,
             border: `1.5px solid ${colors.cardBorder}`,
             background: '#F7F8FA',
             display: 'flex',
@@ -185,7 +187,7 @@ const stepBtn = {
   width: 40,
   height: 40,
   border: `1px solid ${colors.inputBorder}`,
-  borderRadius: 6,
+  borderRadius: radii.button,
   background: colors.white,
   color: colors.ink,
   fontSize: 18,

@@ -1,7 +1,9 @@
 import { useEffect, useMemo, type CSSProperties } from 'react';
 import { IconPrint } from './Icons';
+import { KbdHint } from './KbdHint';
 import { VoucherSlipPreview } from './VoucherSlipPreview';
 import { customerName } from '../lib/format';
+import { PRINT_VOUCHER_EVENT, modLabel } from '../lib/shortcuts';
 import { dashPrint, printVoucher, type VoucherPrintData } from '../lib/printVoucher';
 import { D, W, formatDate, formatTimeAmPm, fromYway, voucherNo } from '../lib/units';
 import { colors, radii } from '../styles/tokens';
@@ -50,6 +52,15 @@ export function VoucherDialog() {
   }, [open, close]);
 
   useEffect(() => {
+    if (!open) return;
+    const onPrint = () => {
+      if (printData) printVoucher(printSize, printData);
+    };
+    window.addEventListener(PRINT_VOUCHER_EVENT, onPrint);
+    return () => window.removeEventListener(PRINT_VOUCHER_EVENT, onPrint);
+  }, [open, printData, printSize]);
+
+  useEffect(() => {
     if (!open || !printAfterOpen || !printData) return;
     let alive = true;
     const t = window.setTimeout(() => {
@@ -73,7 +84,7 @@ export function VoucherDialog() {
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 1000,
+        zIndex: 1100,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -129,6 +140,7 @@ export function VoucherDialog() {
           <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
             <button type="button" onClick={close} style={ghostBtn}>
               ပိတ်မည်
+              <KbdHint>Esc</KbdHint>
             </button>
             <button
               type="button"
@@ -137,6 +149,7 @@ export function VoucherDialog() {
             >
               <IconPrint size={16} />
               ပရင့်ထုတ်မည်
+              <KbdHint onDark>{`${modLabel()}+P`}</KbdHint>
             </button>
           </div>
         </div>
@@ -157,6 +170,9 @@ const ghostBtn: CSSProperties = {
   fontSize: 15,
   fontWeight: 600,
   cursor: 'pointer',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
 };
 
 const printBtn: CSSProperties = {

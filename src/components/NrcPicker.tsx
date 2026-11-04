@@ -48,37 +48,41 @@ export function NrcPicker({
   height?: number;
   inputStyle?: CSSProperties;
 }) {
-  const initial = applyDefaultParts();
+  const parsed = parseNrc(value);
+  const initial = parsed
+    ? {
+        stateEn: parsed.stateEn,
+        townshipId: parsed.townshipId,
+        typeMm: parsed.typeMm || DEFAULT_NRC_TYPE,
+        serial: parsed.serial,
+      }
+    : { ...applyDefaultParts(), serial: '' };
   const [stateEn, setStateEn] = useState(initial.stateEn);
   const [townshipId, setTownshipId] = useState(initial.townshipId);
   const [typeMm, setTypeMm] = useState(initial.typeMm);
-  const [serial, setSerial] = useState('');
+  const [serial, setSerial] = useState(initial.serial);
   const lastEmitted = useRef(value);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
   useEffect(() => {
-    if (value.trim()) return;
-    if (lastEmitted.current === DEFAULT_NRC) return;
+    if (value === lastEmitted.current) return;
+    const p = parseNrc(value);
+    if (p) {
+      lastEmitted.current = value;
+      setStateEn(p.stateEn);
+      setTownshipId(p.townshipId);
+      setTypeMm(p.typeMm || DEFAULT_NRC_TYPE);
+      setSerial(p.serial);
+      return;
+    }
     const d = applyDefaultParts();
     setStateEn(d.stateEn);
     setTownshipId(d.townshipId);
     setTypeMm(d.typeMm);
     setSerial('');
     lastEmitted.current = DEFAULT_NRC;
-    onChangeRef.current(DEFAULT_NRC);
-  }, [value]);
-
-  useEffect(() => {
-    if (!value.trim()) return;
-    if (value === lastEmitted.current) return;
-    lastEmitted.current = value;
-    const p = parseNrc(value);
-    if (!p) return;
-    setStateEn(p.stateEn);
-    setTownshipId(p.townshipId);
-    setTypeMm(p.typeMm || DEFAULT_NRC_TYPE);
-    setSerial(p.serial);
+    if (value !== DEFAULT_NRC) onChangeRef.current(DEFAULT_NRC);
   }, [value]);
 
   const townships = useMemo(

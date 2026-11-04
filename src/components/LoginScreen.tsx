@@ -1,5 +1,6 @@
 import { useState, type CSSProperties, type FormEvent } from 'react';
 import { clearPrimaryBtn } from './ClearUI';
+import { IconLock, IconLogin, IconUser } from './Icons';
 import { colors, radii } from '../styles/tokens';
 import { useStore } from '../store';
 
@@ -65,7 +66,10 @@ export function LoginScreen() {
         </div>
 
         <label style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%', textAlign: 'left' }}>
-          <span style={{ fontSize: 17, fontWeight: 700, color: colors.ink }}>အသုံးပြုသူအမည်</span>
+          <span style={{ fontSize: 17, fontWeight: 700, color: colors.ink, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <IconUser size={16} />
+            အသုံးပြုသူအမည်
+          </span>
           <input
             autoFocus
             autoComplete="username"
@@ -76,7 +80,10 @@ export function LoginScreen() {
         </label>
 
         <label style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%', textAlign: 'left' }}>
-          <span style={{ fontSize: 17, fontWeight: 700, color: colors.ink }}>စကားဝှက်</span>
+          <span style={{ fontSize: 17, fontWeight: 700, color: colors.ink, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <IconLock size={16} />
+            စကားဝှက်
+          </span>
           <input
             type="password"
             autoComplete="current-password"
@@ -114,6 +121,7 @@ export function LoginScreen() {
             justifyContent: 'center',
           }}
         >
+          <IconLogin size={18} />
           {busy ? 'စစ်ဆေးနေ…' : 'ဝင်မည်'}
         </button>
       </form>

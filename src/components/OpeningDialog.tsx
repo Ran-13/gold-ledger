@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Dialog } from './Dialog';
+import { IconSave } from './Icons';
 import { setSetting } from '../db/queries';
 import { N, W, YWAY_PER_KYAT, fromYway, keepNumInput, stockFromParts, toYway } from '../lib/units';
 import { colors, radii } from '../styles/tokens';
@@ -78,7 +79,7 @@ export function OpeningDialog() {
               height: 46,
               padding: '0 18px',
               border: `1.5px solid ${colors.inputBorder}`,
-              borderRadius: 8,
+              borderRadius: radii.button,
               background: colors.white,
               color: colors.muted,
               fontSize: 17,
@@ -96,15 +97,19 @@ export function OpeningDialog() {
               height: 46,
               padding: '0 22px',
               border: 'none',
-              borderRadius: 8,
+              borderRadius: radii.button,
               background: colors.ink,
               color: colors.white,
               fontSize: 17,
               fontWeight: 700,
               cursor: saving || wouldGoNegative ? 'default' : 'pointer',
               opacity: wouldGoNegative ? 0.45 : 1,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
             }}
           >
+            <IconSave size={16} />
             သိမ်းမည်
           </button>
         </div>
@@ -141,7 +146,7 @@ export function OpeningDialog() {
             alignItems: 'center',
             padding: '14px 16px',
             border: `1.5px solid ${colors.cardBorder}`,
-            borderRadius: 8,
+            borderRadius: radii.card,
           }}
         >
           <span style={{ fontSize: 16, color: colors.muted }}>အစလက်ကျန်</span>

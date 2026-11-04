@@ -13,7 +13,8 @@ import {
   tableTh,
   ty,
 } from '../components/ClearUI';
-import { IconPrint, IconSearch } from '../components/Icons';
+import { DateChip } from '../components/DateChip';
+import { IconDownload, IconPrint, IconSearch, IconX } from '../components/Icons';
 import { PaginationBar, usePagination } from '../components/Pagination';
 import { Segmented } from '../components/Segmented';
 import { filterInputStyle } from '../components/TableFilters';
@@ -61,9 +62,8 @@ export function Ledger() {
   }, [txnCards]);
 
   const today = isoDate();
-  const monthStart = `${today.slice(0, 7)}-01`;
 
-  // Entering မှတ်တမ်း → always start on ယနေ့
+  // Entering အရောင်း/အဝယ် စာရင်း → always start on ယနေ့
   useEffect(() => {
     setFlt({ from: today, to: today });
   }, [setFlt, today]);
@@ -100,6 +100,16 @@ export function Ledger() {
     openVoucherDlg(id);
   };
 
+  const pickFrom = (d: string) => {
+    const nextTo = flt.to || today;
+    setFlt({ from: d, to: d > nextTo ? d : nextTo });
+  };
+
+  const pickTo = (d: string) => {
+    const nextFrom = flt.from || d;
+    setFlt({ from: d < nextFrom ? d : nextFrom, to: d });
+  };
+
   const exportExcel = () => {
     if (rows.length === 0) {
       window.alert('ထုတ်ယူရန် စာရင်း မရှိပါ');
@@ -111,10 +121,10 @@ export function Ledger() {
       'အချိန်',
       'အမျိုးအစား',
       'လမ်းကြောင်း',
-      'ဖောက်သည်',
+      'ဝယ်သူ',
       'အလေးချိန်',
-      'စျေးနှုန်း',
-      'ငွေ',
+      'ရွှေစျေး',
+      'ကျသင့်ငွေ',
       'မှတ်ချက်',
       'အကယ်ဒမီအခေါက်ရွှေ',
     ];
@@ -149,8 +159,8 @@ export function Ledger() {
       { wch: 24 },
     ];
     const book = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(book, sheet, 'မှတ်တမ်း');
-    XLSX.writeFile(book, `ledger-${today}.xlsx`);
+    XLSX.utils.book_append_sheet(book, sheet, 'အရောင်းအဝယ်');
+    XLSX.writeFile(book, `အရောင်းအဝယ်-${today}.xlsx`);
   };
 
   return (
@@ -162,7 +172,7 @@ export function Ledger() {
             borderBottom: `1px solid ${colors.rowDivider}`,
             display: 'flex',
             flexDirection: 'column',
-            gap: 14,
+            gap: 12,
             background: colors.white,
           }}
         >
@@ -176,121 +186,102 @@ export function Ledger() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-              <div style={ty.section}>ဘောင်ချာစာရင်း</div>
-              <div style={{ fontSize: 16, color: colors.muted }}>
+              <div style={ty.page}>အရောင်း/အဝယ် စာရင်း</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: colors.muted }}>
                 {D(rows.length, digits)} စောင်
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <div style={{ display: 'inline-flex', gap: 4, padding: 3, border: `1px solid ${colors.cardBorder}`, borderRadius: radii.sm, background: colors.white }}>
-                <PresetChip
-                  label="ယနေ့"
-                  active={flt.from === today && flt.to === today}
-                  onClick={() => setFlt({ from: today, to: today })}
-                />
-                <PresetChip
-                  label="ဒီလ"
-                  active={flt.from === monthStart && flt.to === today}
-                  onClick={() => setFlt({ from: monthStart, to: today })}
-                />
-                <PresetChip
-                  label="အားလုံး"
-                  active={!flt.from && !flt.to}
-                  onClick={() => setFlt({ from: '', to: '' })}
-                />
-              </div>
               {filterActive && (
                 <button type="button" onClick={clearFlt} style={btnClear}>
+                  <IconX size={14} />
                   ရှင်းမည်
                 </button>
               )}
               <button type="button" onClick={exportExcel} style={{ ...clearOutlineBtn, height: 40 }}>
+                <IconDownload size={16} />
                 Excel ထုတ်မည်
               </button>
             </div>
           </div>
 
-          <div style={{ position: 'relative' }}>
-            <span
-              style={{
-                position: 'absolute',
-                left: 14,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: colors.muted2,
-                display: 'flex',
-                pointerEvents: 'none',
-              }}
-            >
-              <IconSearch size={16} />
-            </span>
-            <input
-              value={flt.q}
-              onChange={(e) => setFlt({ q: e.target.value })}
-              placeholder="ဝယ်သူအမည် သို့မဟုတ် ဘောင်ချာနံပါတ်…"
-              style={{
-                ...filterInputStyle,
-                height: 44,
-                paddingLeft: 42,
-                fontSize: 16,
-                borderRadius: radii.input,
-                background: colors.white,
-              }}
-            />
-          </div>
-
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'minmax(200px, 1fr) minmax(200px, 1fr) minmax(280px, 1.2fr)',
-              gap: 14,
-              alignItems: 'end',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              flexWrap: 'wrap',
             }}
           >
-            <label style={fieldWrap}>
-              <span style={fieldLabel}>အမျိုးအစား</span>
-              <Segmented
-                size="chip"
-                value={flt.type}
-                onChange={(v) => setFlt({ type: v })}
-                options={[
-                  { value: 'all', label: 'အားလုံး' },
-                  { value: 'sell', label: 'ရောင်း' },
-                  { value: 'buy', label: 'ဝယ်' },
-                ]}
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              <span style={rangeLabel}>မှ</span>
+              <DateChip
+                value={flt.from || today}
+                digits={digits}
+                max={flt.to || today}
+                onChange={pickFrom}
               />
-            </label>
-            <label style={fieldWrap}>
-              <span style={fieldLabel}>အကယ်ဒမီအခေါက်ရွှေ / မီးလင်းဖြတ်စ</span>
-              <Segmented
-                size="chip"
-                value={flt.channel}
-                onChange={(v) => setFlt({ channel: v })}
-                options={[
-                  { value: 'all', label: 'အားလုံး' },
-                  { value: 'card', label: 'အကယ်ဒမီအခေါက်ရွှေ' },
-                  { value: 'loose', label: 'မီးလင်းဖြတ်စ' },
-                ]}
+              <span style={{ color: colors.muted2, fontSize: 16, fontWeight: 700 }}>—</span>
+              <span style={rangeLabel}>ထိ</span>
+              <DateChip
+                value={flt.to || today}
+                digits={digits}
+                min={flt.from || undefined}
+                max={today}
+                onChange={pickTo}
               />
-            </label>
-            <label style={fieldWrap}>
-              <span style={fieldLabel}>ရက်စွဲ အပိုင်းအခြား</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  type="date"
-                  value={flt.from}
-                  onChange={(e) => setFlt({ from: e.target.value })}
-                  style={{ ...filterInputStyle, flex: 1, minWidth: 0, background: colors.white }}
-                />
-                <span style={{ color: colors.muted2, fontSize: 16, flexShrink: 0 }}>—</span>
-                <input
-                  type="date"
-                  value={flt.to}
-                  onChange={(e) => setFlt({ to: e.target.value })}
-                  style={{ ...filterInputStyle, flex: 1, minWidth: 0, background: colors.white }}
-                />
-              </div>
-            </label>
+            </div>
+
+            <div style={{ position: 'relative', flex: '1 1 180px', minWidth: 160 }}>
+              <span
+                style={{
+                  position: 'absolute',
+                  left: 14,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: colors.ink,
+                  display: 'flex',
+                  pointerEvents: 'none',
+                }}
+              >
+                <IconSearch size={16} stroke={2} />
+              </span>
+              <input
+                value={flt.q}
+                onChange={(e) => setFlt({ q: e.target.value })}
+                placeholder="ဝယ်သူ / ဘောင်ချာ…"
+                style={{
+                  ...filterInputStyle,
+                  width: '100%',
+                  height: 44,
+                  paddingLeft: 42,
+                  fontSize: 16,
+                  fontWeight: 600,
+                  borderRadius: radii.input,
+                  background: colors.white,
+                }}
+              />
+            </div>
+            <Segmented
+              size="chip"
+              value={flt.type}
+              onChange={(v) => setFlt({ type: v })}
+              options={[
+                { value: 'all', label: 'အားလုံး' },
+                { value: 'sell', label: 'ရောင်း' },
+                { value: 'buy', label: 'ဝယ်' },
+              ]}
+            />
+            <Segmented
+              size="chip"
+              value={flt.channel}
+              onChange={(v) => setFlt({ channel: v })}
+              options={[
+                { value: 'all', label: 'အားလုံး' },
+                { value: 'card', label: 'အကယ်ဒမီ' },
+                { value: 'loose', label: 'မီးလင်း' },
+              ]}
+            />
           </div>
         </div>
 
@@ -307,10 +298,10 @@ export function Ledger() {
               <tr>
                 <th style={{ ...tableTh, paddingLeft: 16 }}>ဘောင်ချာ</th>
                 <th style={tableTh}>အမျိုးအစား</th>
-                <th style={tableTh}>ဖောက်သည်</th>
+                <th style={tableTh}>ဝယ်သူ</th>
                 <th style={{ ...tableTh, textAlign: 'right' }}>အလေးချိန်</th>
-                <th style={{ ...tableTh, textAlign: 'right' }}>စျေး</th>
-                <th style={{ ...tableTh, textAlign: 'right' }}>ငွေ</th>
+                <th style={{ ...tableTh, textAlign: 'right' }}>ရွှေစျေး</th>
+                <th style={{ ...tableTh, textAlign: 'right' }}>ကျသင့်ငွေ</th>
                 <th style={{ ...tableTh, paddingRight: 16, textAlign: 'right' }} />
               </tr>
             </thead>
@@ -320,10 +311,11 @@ export function Ledger() {
                   <td
                     colSpan={7}
                     style={{
+                      ...tableTd,
                       padding: '36px 16px',
                       textAlign: 'center',
                       color: colors.muted2,
-                      fontSize: 16,
+                      borderBottom: 'none',
                     }}
                   >
                     {filterActive ? 'စစ်ထုတ်မှုနှင့် ကိုက်ညီသော စာရင်း မရှိပါ' : 'စာရင်း မရှိသေးပါ'}
@@ -332,6 +324,7 @@ export function Ledger() {
               )}
               {page.slice.map((t) => {
                 const sell = t.type === 'sell';
+                const nrc = custMap.get(t.customer_id ?? -1)?.nrc?.trim() || '';
                 return (
                   <tr
                     key={t.id}
@@ -364,6 +357,14 @@ export function Ledger() {
                       >
                         {customerName(t.customer_id, custMap)}
                       </CellPrimary>
+                      {nrc ? (
+                        <CellMeta
+                          className="num"
+                          style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                        >
+                          {D(nrc, digits)}
+                        </CellMeta>
+                      ) : null}
                       {t.note ? (
                         <CellMeta
                           style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
@@ -443,47 +444,11 @@ export function Ledger() {
   );
 }
 
-function PresetChip({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        height: 32,
-        padding: '0 12px',
-        borderRadius: radii.xs,
-        border: 'none',
-        background: active ? colors.ink : 'transparent',
-        color: active ? colors.white : colors.muted,
-        fontSize: 16,
-        fontWeight: 600,
-        cursor: 'pointer',
-      }}
-    >
-      {label}
-    </button>
-  );
-}
-
-const fieldWrap: CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 7,
-  minWidth: 0,
-};
-
-const fieldLabel: CSSProperties = {
-  fontSize: 16,
+const rangeLabel: CSSProperties = {
+  fontSize: 15,
   fontWeight: 700,
   color: colors.muted,
+  flexShrink: 0,
 };
 
 const btnClear: CSSProperties = {
@@ -496,5 +461,8 @@ const btnClear: CSSProperties = {
   fontSize: 16,
   fontWeight: 600,
   cursor: 'pointer',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
 };
 

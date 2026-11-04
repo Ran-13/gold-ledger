@@ -1,15 +1,15 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { IconFilter } from './Icons';
+import { IconFilter, IconX } from './Icons';
 import { colors, radii } from '../styles/tokens';
 
 export const filterInputStyle: CSSProperties = {
   height: 46,
   width: '100%',
-  border: `1px solid ${colors.cardBorder}`,
+  border: `1.5px solid ${colors.inputBorder}`,
   borderRadius: radii.input,
   padding: '0 14px',
   fontSize: 17,
-  fontWeight: 500,
+  fontWeight: 600,
   lineHeight: 1.5,
   background: colors.white,
   color: colors.ink,
@@ -110,8 +110,12 @@ export function FilterPanel({
                 fontSize: 16,
                 fontWeight: 600,
                 cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
               }}
             >
+              <IconX size={14} />
               စစ်ထုတ်မှု ရှင်းမည်
             </button>
           )}

@@ -9,6 +9,7 @@ import {
   tableTh,
   ty,
 } from '../components/ClearUI';
+import { IconPlus } from '../components/Icons';
 import { PaginationBar, usePagination } from '../components/Pagination';
 import { formatDate, formatTimeAmPm, money } from '../lib/units';
 import { colors } from '../styles/tokens';
@@ -57,7 +58,8 @@ export function Prices() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 1160 }}>
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <button type="button" onClick={openPriceDialog} style={clearPrimaryBtn}>
-          + စျေးနှုန်းအသစ်
+          <IconPlus size={17} />
+          ရွှေစျေးအသစ်
         </button>
       </div>
 
@@ -106,7 +108,7 @@ export function Prices() {
                   colSpan={6}
                   style={{ ...tableTd, padding: 36, textAlign: 'center', color: colors.muted2, borderBottom: 'none' }}
                 >
-                  စျေးနှုန်း မှတ်တမ်း မရှိသေးပါ
+                  ရွှေစျေး မှတ်တမ်း မရှိသေးပါ
                 </td>
               </tr>
             )}

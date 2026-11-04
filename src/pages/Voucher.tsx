@@ -122,7 +122,7 @@ export function Voucher() {
                 marginBottom: 14,
               }}
             >
-              <div style={ty.section}>ဘောင်ချာစာရင်း</div>
+              <div style={ty.section}>အရောင်း/အဝယ် စာရင်း</div>
               <div style={{ fontSize: 17, color: colors.muted, fontWeight: 700, lineHeight: 1.4 }}>
                 {D(filtered.length, digits)} စောင်
               </div>
@@ -134,11 +134,11 @@ export function Voucher() {
                   left: 14,
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  color: colors.muted,
+                  color: colors.ink,
                   display: 'flex',
                 }}
               >
-                <IconSearch size={17} />
+                <IconSearch size={17} stroke={2} />
               </span>
               <input
                 value={q}
@@ -152,6 +152,7 @@ export function Voucher() {
                   borderRadius: radii.input,
                   padding: '0 14px 0 42px',
                   fontSize: 18,
+                  fontWeight: 600,
                   lineHeight: 1.5,
                   background: colors.white,
                 }}

@@ -45,6 +45,7 @@ export function PaginationBar({
   from,
   to,
   digits = 'latin',
+  pageSize = PAGE_SIZE,
   onPage,
 }: {
   page: number;
@@ -53,6 +54,7 @@ export function PaginationBar({
   from: number;
   to: number;
   digits?: DigitsMode;
+  pageSize?: number;
   onPage: (p: number) => void;
 }) {
   if (total <= 0) return null;
@@ -95,6 +97,8 @@ export function PaginationBar({
     >
       <div className="num" style={{ fontSize: 17, color: colors.muted, fontWeight: 500 }}>
         {D(from, digits)}–{D(to, digits)} / {D(total, digits)}
+        <span style={{ margin: '0 8px', color: colors.cardBorder }}>·</span>
+        တစ်မျက်နှာ {D(pageSize, digits)} စောင်
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {btn('‹', page - 1, page <= 1)}

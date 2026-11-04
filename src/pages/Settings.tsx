@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Card } from '../components/Card';
-import { PageTitle, clearOutlineBtn, clearPrimaryBtn } from '../components/ClearUI';
+import { clearOutlineBtn, clearPrimaryBtn, ty } from '../components/ClearUI';
+import { IconDownload, IconLock, IconRestore, IconSave, IconUpload, IconUser } from '../components/Icons';
 import { Segmented } from '../components/Segmented';
 import { isTauri } from '../db/env';
 import { closeDb, reopenDb, setSetting } from '../db/queries';
@@ -13,7 +14,7 @@ import {
 import { hashPassword, verifyLogin } from '../lib/auth';
 import { PRINT_SIZE_OPTIONS } from '../lib/printVoucher';
 import { keepNumInput, money, N } from '../lib/units';
-import { colors } from '../styles/tokens';
+import { colors, radii } from '../styles/tokens';
 import { useStore } from '../store';
 import type { PrintSize } from '../db/types';
 
@@ -220,7 +221,7 @@ export function Settings() {
   const field = {
     height: 44,
     border: `1px solid ${colors.cardBorder}`,
-    borderRadius: 8,
+    borderRadius: radii.input,
     padding: '0 12px',
     fontSize: 17,
     lineHeight: 1.5,
@@ -231,11 +232,11 @@ export function Settings() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 720 }}>
-      <PageTitle>ဆက်တင်</PageTitle>
+      <div style={ty.page}>ဆက်တင်</div>
 
       <Card padding="20px 22px">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.45 }}>ဆိုင်အမည်</div>
+          <div style={ty.section}>ဆိုင်အမည်</div>
           <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 12 }}>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <span style={{ fontSize: 16, fontWeight: 600, color: colors.muted }}>တံဆိပ်</span>
@@ -270,6 +271,7 @@ export function Settings() {
             onClick={() => void saveShop()}
             style={{ ...clearPrimaryBtn, alignSelf: 'flex-start', height: 44 }}
           >
+            <IconSave size={16} />
             သိမ်းမည်
           </button>
         </div>
@@ -277,7 +279,7 @@ export function Settings() {
 
       <Card padding="20px 22px">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>ဂဏန်းပုံစံ</div>
+          <div style={ty.section}>ဂဏန်းပုံစံ</div>
           <div style={{ fontSize: 15, color: colors.ink, lineHeight: 1.5 }}>
             စာမျက်နှာများပေါ်တွင် ပြမည့် ဂဏန်းပုံစံ
           </div>
@@ -294,7 +296,7 @@ export function Settings() {
 
       <Card padding="20px 22px">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>ဘောင်ချာ ပရင့်အရွယ်</div>
+          <div style={ty.section}>ဘောင်ချာ ပရင့်အရွယ်</div>
           <Segmented
             options={PRINT_SIZE_OPTIONS}
             value={settings.print_size}
@@ -305,13 +307,17 @@ export function Settings() {
 
       <Card padding="20px 22px">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>ဝင်ရောက်မှု</div>
+          <div style={ty.section}>ဝင်ရောက်မှု</div>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 16, fontWeight: 600, color: colors.ink }}>အသုံးပြုသူအမည်</span>
+            <span style={{ fontSize: 16, fontWeight: 600, color: colors.ink, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <IconUser size={15} />
+              အသုံးပြုသူအမည်
+            </span>
             <input value={authUser} onChange={(e) => setAuthUser(e.target.value)} style={field} />
           </label>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 16, fontWeight: 600, color: colors.ink }}>
+            <span style={{ fontSize: 16, fontWeight: 600, color: colors.ink, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <IconLock size={15} />
               လက်ရှိ စကားဝှက်
             </span>
             <input
@@ -322,7 +328,8 @@ export function Settings() {
             />
           </label>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 16, fontWeight: 600, color: colors.ink }}>
+            <span style={{ fontSize: 16, fontWeight: 600, color: colors.ink, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <IconLock size={15} />
               စကားဝှက်အသစ် (လိုလျှင်)
             </span>
             <input
@@ -333,7 +340,8 @@ export function Settings() {
             />
           </label>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 16, fontWeight: 600, color: colors.ink }}>
+            <span style={{ fontSize: 16, fontWeight: 600, color: colors.ink, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <IconLock size={15} />
               စကားဝှက်အသစ် ထပ်မံ
             </span>
             <input
@@ -348,6 +356,7 @@ export function Settings() {
             onClick={() => void saveAuth()}
             style={{ ...clearPrimaryBtn, alignSelf: 'flex-start', height: 44 }}
           >
+            <IconSave size={16} />
             သိမ်းမည်
           </button>
         </div>
@@ -355,7 +364,7 @@ export function Settings() {
 
       <Card padding="20px 22px">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>ကဒ်တစ်ခုဖိုး</div>
+          <div style={ty.section}>ကဒ်တစ်ခုဖိုး</div>
           <div style={{ fontSize: 15, color: colors.muted2, lineHeight: 1.5 }}>
             ကဒ်ရောင်း/ဝယ်တိုင်း ထည့်သည့် ကဒ်ဖိုး (ကျပ်)
           </div>
@@ -370,7 +379,7 @@ export function Settings() {
                 height: 44,
                 width: 160,
                 border: `1px solid ${colors.cardBorder}`,
-                borderRadius: 8,
+                borderRadius: radii.input,
                 padding: '0 12px',
                 fontSize: 20,
                 fontWeight: 700,
@@ -378,6 +387,7 @@ export function Settings() {
               }}
             />
             <button type="button" onClick={() => void saveCardFee()} style={{ ...clearPrimaryBtn, height: 44 }}>
+              <IconSave size={16} />
               သိမ်းမည်
             </button>
           </div>
@@ -386,7 +396,7 @@ export function Settings() {
 
       <Card padding="20px 22px">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>Auto Backup</div>
+          <div style={ty.section}>Auto Backup</div>
 
           {isTauri() && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -398,7 +408,7 @@ export function Settings() {
                 style={{
                   height: 44,
                   border: `1px solid ${colors.cardBorder}`,
-                  borderRadius: 8,
+                  borderRadius: radii.input,
                   padding: '0 12px',
                   fontSize: 15,
                   fontWeight: 600,
@@ -436,6 +446,7 @@ export function Settings() {
                     opacity: busy || !backupStatus?.lastTxn ? 0.55 : 1,
                   }}
                 >
+                  <IconRestore size={16} />
                   Restore latest
                 </button>
                 <button
@@ -449,6 +460,7 @@ export function Settings() {
                     opacity: busy || !restorePick ? 0.55 : 1,
                   }}
                 >
+                  <IconRestore size={16} />
                   Restore selected
                 </button>
                 <button
@@ -473,6 +485,7 @@ export function Settings() {
                   }}
                   style={{ ...clearOutlineBtn, height: 46, opacity: busy ? 0.6 : 1 }}
                 >
+                  <IconSave size={16} />
                   Backup now
                 </button>
               </div>
@@ -483,7 +496,7 @@ export function Settings() {
 
       <Card padding="20px 22px">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>Manual Backup</div>
+          <div style={ty.section}>Manual Backup</div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <button
               type="button"
@@ -491,6 +504,7 @@ export function Settings() {
               onClick={() => void backup()}
               style={{ ...clearPrimaryBtn, height: 44, opacity: busy ? 0.6 : 1 }}
             >
+              <IconDownload size={16} />
               Export file
             </button>
             <button
@@ -499,6 +513,7 @@ export function Settings() {
               onClick={() => void restore()}
               style={{ ...clearOutlineBtn, height: 44, opacity: busy ? 0.6 : 1 }}
             >
+              <IconUpload size={16} />
               Import file
             </button>
           </div>

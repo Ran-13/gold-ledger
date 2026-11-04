@@ -1,4 +1,4 @@
-import { NavIcon, IconSettings } from './Icons';
+import { NavIcon, IconLogout, IconSettings } from './Icons';
 import { NAV, Screen, useStore } from '../store';
 import { TOP_BAR_HEIGHT, colors, radii } from '../styles/tokens';
 
@@ -185,6 +185,7 @@ export function Nav() {
           onClick={() => logout()}
           style={{ ...navItemStyle(false), marginTop: 4 }}
         >
+          <IconLogout size={22} stroke={2} />
           ထွက်မည်
         </button>
       </div>

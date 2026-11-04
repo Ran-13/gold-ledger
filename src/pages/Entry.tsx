@@ -103,7 +103,7 @@ export function Entry() {
     flexDirection: 'column',
     gap: 4,
     padding: '12px 16px',
-    borderRadius: 8,
+    borderRadius: radii.card,
     cursor: 'text',
     border: active ? `2px solid ${colors.gold}` : `1px solid ${colors.inputBorder}`,
     background: active ? colors.goldWash : colors.white,
@@ -494,7 +494,7 @@ export function Entry() {
             style={{
               height: 58,
               border: 'none',
-              borderRadius: 8,
+              borderRadius: radii.button,
               background: saving || overdraw ? colors.inputBorder : colors.ink,
               color: colors.white,
               fontSize: 19,
@@ -511,7 +511,7 @@ export function Entry() {
             style={{
               height: 46,
               border: `1px solid ${colors.navyBorder}`,
-              borderRadius: 8,
+              borderRadius: radii.button,
               background: 'none',
               color: colors.mutedOnNavy,
               fontSize: 18,

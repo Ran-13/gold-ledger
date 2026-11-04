@@ -192,6 +192,9 @@ export function TextBtn({ children, onClick }: { children: ReactNode; onClick: (
         cursor: 'pointer',
         padding: 0,
         lineHeight: 1.4,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
       }}
     >
       {children}
@@ -228,6 +231,13 @@ export const tableHover = '#E8ECF2';
  * Ledger / Reports / Dashboard.
  */
 export const ty = {
+  /** Page heading — matches ဝယ်သူ page */
+  page: {
+    fontSize: 20,
+    fontWeight: 700,
+    color: colors.ink,
+    lineHeight: 1.4,
+  } satisfies CSSProperties,
   /** Voucher no, customer name, weight, amount */
   primary: {
     fontSize: 20,
@@ -247,7 +257,7 @@ export const ty = {
   tone: {
     fontSize: 19,
     fontWeight: 700,
-    lineHeight: 1.35,
+    lineHeight: 1.4,
   } satisfies CSSProperties,
   /** Channel under type */
   channel: {
@@ -266,9 +276,9 @@ export const ty = {
   } satisfies CSSProperties,
   /** Card / panel section title above a table */
   section: {
-    fontSize: 19,
+    fontSize: 20,
     fontWeight: 700,
-    lineHeight: 1.35,
+    lineHeight: 1.4,
   } satisfies CSSProperties,
 } as const;
 

@@ -16,12 +16,14 @@ import { Customers } from './pages/Customers';
 import { Stock } from './pages/Stock';
 import { Prices } from './pages/Prices';
 import { Settings } from './pages/Settings';
+import { useAppShortcuts } from './hooks/useAppShortcuts';
 
 export default function App() {
   const ready = useStore((s) => s.ready);
   const authenticated = useStore((s) => s.authenticated);
   const screen = useStore((s) => s.screen);
   const error = useStore((s) => s.error);
+  useAppShortcuts();
 
   if (!ready) {
     return (

@@ -59,6 +59,7 @@ interface AppState {
   error: string | null
   entryDialogOpen: boolean
   customerDialogOpen: boolean
+  editingCustomerId: number | null
   priceDialogOpen: boolean
   openingStockDialogOpen: boolean
   stockAdjustDialogOpen: boolean
@@ -89,7 +90,7 @@ interface AppState {
   setRepYear: (y: number) => void
   openEntryDialog: () => void
   closeEntryDialog: () => void
-  openCustomerDialog: () => void
+  openCustomerDialog: (id?: number | null) => void
   closeCustomerDialog: () => void
   openPriceDialog: () => void
   closePriceDialog: () => void
@@ -140,6 +141,7 @@ export const useStore = create<AppState>((set, get) => ({
   error: null,
   entryDialogOpen: false,
   customerDialogOpen: false,
+  editingCustomerId: null,
   priceDialogOpen: false,
   openingStockDialogOpen: false,
   stockAdjustDialogOpen: false,
@@ -156,7 +158,7 @@ export const useStore = create<AppState>((set, get) => ({
       set({ entryDialogOpen: true })
       return
     }
-    // ဘောင်ချာ = မှတ်တမ်း ထဲက dialog — separate screen မလို
+    // ဘောင်ချာ = အရောင်း/အဝယ် စာရင်း ထဲက dialog — separate screen မလို
     if (screen === 'voucher') {
       set({ voucherDialogOpen: true, screen: get().screen === 'voucher' ? 'ledger' : get().screen })
       return
@@ -190,8 +192,8 @@ export const useStore = create<AppState>((set, get) => ({
   setRepYear: (repYear) => set({ repYear }),
   openEntryDialog: () => set({ entryDialogOpen: true }),
   closeEntryDialog: () => set({ entryDialogOpen: false }),
-  openCustomerDialog: () => set({ customerDialogOpen: true }),
-  closeCustomerDialog: () => set({ customerDialogOpen: false }),
+  openCustomerDialog: (id) => set({ customerDialogOpen: true, editingCustomerId: id ?? null }),
+  closeCustomerDialog: () => set({ customerDialogOpen: false, editingCustomerId: null }),
   openPriceDialog: () => set({ priceDialogOpen: true }),
   closePriceDialog: () => set({ priceDialogOpen: false }),
   openOpeningStockDialog: () => set({ openingStockDialogOpen: true }),
@@ -258,9 +260,9 @@ export const useStore = create<AppState>((set, get) => ({
 
 export const NAV: { key: Screen; label: string; title: string }[] = [
   { key: 'dash', label: 'ပင်မ', title: 'ပင်မ' },
-  { key: 'ledger', label: 'မှတ်တမ်း', title: 'မှတ်တမ်း' },
+  { key: 'ledger', label: 'အရောင်း/အဝယ် စာရင်း', title: 'အရောင်း/အဝယ် စာရင်း' },
   { key: 'reports', label: 'စာရင်းချုပ်', title: 'စာရင်းချုပ်' },
   { key: 'customers', label: 'ဝယ်သူ', title: 'ဝယ်သူများ' },
   { key: 'stock', label: 'လက်ကျန်စာရင်းသွင်း', title: 'လက်ကျန်စာရင်းသွင်း' },
-  { key: 'prices', label: 'စျေးနှုန်း', title: 'စျေးနှုန်း' },
+  { key: 'prices', label: 'ရွှေစျေး', title: 'ရွှေစျေး' },
 ]

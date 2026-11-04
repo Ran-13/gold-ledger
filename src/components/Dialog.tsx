@@ -1,4 +1,5 @@
 import { useEffect, type CSSProperties, type ReactNode } from 'react';
+import { IconX } from './Icons';
 import { colors, radii } from '../styles/tokens';
 
 export function Dialog({
@@ -10,7 +11,10 @@ export function Dialog({
   width = 720,
   footer,
   headerRight,
+  toolbar,
   compact,
+  full,
+  closeOnEsc = true,
 }: {
   open: boolean;
   title: string;
@@ -20,17 +24,21 @@ export function Dialog({
   width?: number | string;
   footer?: ReactNode;
   headerRight?: ReactNode;
+  toolbar?: ReactNode;
   /** Tighter chrome — prefer fitting without scroll */
   compact?: boolean;
+  /** Nearly full-page sheet */
+  full?: boolean;
+  closeOnEsc?: boolean;
 }) {
   useEffect(() => {
-    if (!open) return;
+    if (!open || !closeOnEsc) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  }, [open, onClose, closeOnEsc]);
 
   if (!open) return null;
 
@@ -47,7 +55,7 @@ export function Dialog({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 24,
+        padding: full ? 8 : 24,
       }}
     >
       <div
@@ -64,7 +72,8 @@ export function Dialog({
           position: 'relative',
           width: '100%',
           maxWidth: width,
-          maxHeight: compact ? 'min(92vh, 820px)' : 'min(90vh, 920px)',
+          height: full ? '96vh' : undefined,
+          maxHeight: full ? '96vh' : compact ? 'min(92vh, 820px)' : 'min(90vh, 920px)',
           display: 'flex',
           flexDirection: 'column',
           background: colors.white,
@@ -81,7 +90,7 @@ export function Dialog({
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 16,
-            padding: compact ? '14px 20px' : '22px 24px 18px',
+            padding: compact || full ? '14px 20px' : '22px 24px 18px',
             flexShrink: 0,
             background: colors.white,
           }}
@@ -90,7 +99,7 @@ export function Dialog({
             <h2
               style={{
                 margin: 0,
-                fontSize: compact ? 24 : 28,
+                fontSize: compact || full ? 24 : 28,
                 fontWeight: 700,
                 lineHeight: 1.4,
                 letterSpacing: '0.015em',
@@ -136,9 +145,8 @@ export function Dialog({
                 height: 36,
                 border: 'none',
                 borderRadius: '50%',
-                background: '#EEF1F5',
-                color: colors.muted,
-                fontSize: 20,
+                background: colors.ink,
+                color: colors.white,
                 lineHeight: 1,
                 display: 'flex',
                 alignItems: 'center',
@@ -147,7 +155,7 @@ export function Dialog({
                 flexShrink: 0,
               }}
             >
-              ×
+              <IconX size={18} stroke={2.2} />
             </button>
           </div>
         </div>
@@ -161,10 +169,22 @@ export function Dialog({
           }}
         />
 
+        {toolbar ? (
+          <div
+            style={{
+              padding: compact ? '10px 20px 12px' : '12px 24px 14px',
+              flexShrink: 0,
+              background: colors.white,
+            }}
+          >
+            {toolbar}
+          </div>
+        ) : null}
+
         <div
           style={{
             overflow: 'auto',
-            padding: compact ? '14px 20px 10px' : '20px 24px 8px',
+            padding: full ? 0 : compact ? '14px 20px 10px' : '20px 24px 8px',
             flex: 1,
             minHeight: 0,
           }}
@@ -201,6 +221,9 @@ export const dialogBtnGhost: CSSProperties = {
   fontWeight: 700,
   cursor: 'pointer',
   lineHeight: 1.4,
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
 };
 
 export const dialogBtnPrimary: CSSProperties = {
@@ -214,6 +237,9 @@ export const dialogBtnPrimary: CSSProperties = {
   fontWeight: 700,
   cursor: 'pointer',
   lineHeight: 1.4,
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
 };
 
 export const dialogField: CSSProperties = {

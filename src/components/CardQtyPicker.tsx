@@ -1,6 +1,6 @@
 import { CARD_DENOMS, type CardDenom } from '../lib/cards';
 import { D, DigitsMode, N, W, keepNumInput } from '../lib/units';
-import { colors } from '../styles/tokens';
+import { colors, radii } from '../styles/tokens';
 
 export function CardQtyPicker({
   qty,
@@ -42,7 +42,7 @@ export function CardQtyPicker({
               key={d.id}
               style={{
                 padding: '10px 10px 12px',
-                borderRadius: 10,
+                borderRadius: radii.card,
                 border: `1.5px solid ${bad ? colors.buy : active ? colors.ink : colors.cardBorder}`,
                 background: bad ? 'rgba(178,58,42,.04)' : active ? '#F7F8FA' : colors.white,
                 minWidth: 0,
@@ -86,7 +86,7 @@ export function CardQtyPicker({
                     minWidth: 0,
                     height: 38,
                     border: `1.5px solid ${bad ? colors.buy : colors.inputBorder}`,
-                    borderRadius: 8,
+                    borderRadius: radii.input,
                     textAlign: 'center',
                     fontSize: 18,
                     fontWeight: 700,
@@ -127,7 +127,7 @@ export function CardQtyPicker({
     <div
       style={{
         border: `1px solid ${colors.cardBorder}`,
-        borderRadius: 10,
+        borderRadius: radii.card,
         overflow: 'hidden',
       }}
     >
@@ -199,7 +199,7 @@ export function CardQtyPicker({
                   width: 48,
                   height: 34,
                   border: `1px solid ${bad ? colors.buy : colors.inputBorder}`,
-                  borderRadius: 6,
+                  borderRadius: radii.input,
                   textAlign: 'center',
                   fontSize: 17,
                   fontWeight: 700,
@@ -253,7 +253,7 @@ function StepBtn({
         width: compact ? 32 : 28,
         height: compact ? 38 : 32,
         border: `1px solid ${colors.inputBorder}`,
-        borderRadius: 6,
+        borderRadius: radii.button,
         background: colors.white,
         color: disabled ? colors.muted2 : colors.ink,
         fontSize: 17,

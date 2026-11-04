@@ -6,6 +6,8 @@ import {
   dialogField,
   dialogLabel,
 } from './Dialog';
+import { IconSave } from './Icons';
+import { KbdHint } from './KbdHint';
 import { upsertPrice } from '../db/queries';
 import { N, dateTimeKey, isoDate, keepNumInput, money } from '../lib/units';
 import { colors, radii } from '../styles/tokens';
@@ -40,6 +42,7 @@ export function PriceDialog() {
   const spread = pfS - pfB;
 
   const save = async () => {
+    if (saving) return;
     if (!pfB || !pfS) {
       window.alert('ရောင်းစျေး / ဝယ်စျေး ထည့်ပါ');
       return;
@@ -59,7 +62,7 @@ export function PriceDialog() {
   return (
     <Dialog
       open={open}
-      title="စျေးနှုန်းပြင်ဆင်ရန်"
+      title="ရွှေစျေးပြင်ရန်"
       onClose={close}
       width={440}
       footer={
@@ -75,14 +78,27 @@ export function PriceDialog() {
               ...dialogBtnPrimary,
               opacity: saving ? 0.7 : 1,
               cursor: saving ? 'default' : 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
             }}
           >
+            <IconSave size={16} />
             သိမ်းမည်
+            <KbdHint onDark>↵</KbdHint>
           </button>
         </div>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 12 }}>
+      <form
+        noValidate
+        onSubmit={(e) => {
+          e.preventDefault();
+          void save();
+        }}
+        style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 12 }}
+      >
+        <button type="submit" tabIndex={-1} style={{ display: 'none' }} aria-hidden />
         <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <span style={dialogLabel}>ရောင်းစျေး</span>
           <input
@@ -135,7 +151,7 @@ export function PriceDialog() {
             {money(spread, digits)}
           </span>
         </div>
-      </div>
+      </form>
     </Dialog>
   );
 }

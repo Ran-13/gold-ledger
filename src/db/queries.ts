@@ -285,19 +285,24 @@ export function assertCustomerDetails(phone: string, address: string, nrc: strin
   if (!isNrcComplete(nrc)) throw new Error('မှတ်ပုံတင် ပြည့်စုံရွေးပါ (နံပါတ် ၆ လုံး)');
 }
 
-async function assertNrcUnique(nrc: string): Promise<void> {
+async function assertNrcUnique(nrc: string, excludeId?: number): Promise<void> {
   const key = normalizeNrcKey(nrc);
   if (mode === 'browser') {
     const hit = (await browser.browserListCustomers()).find(
-      (c) => normalizeNrcKey(c.nrc) === key,
+      (c) => normalizeNrcKey(c.nrc) === key && c.id !== excludeId,
     );
     if (hit) throw new Error(`မှတ်ပုံတင်တူ ရှိပြီး — ${hit.name}`);
     return;
   }
-  const rows = await db!.select<{ id: number; name: string }[]>(
-    "SELECT id, name FROM customers WHERE REPLACE(TRIM(COALESCE(nrc, '')), ' ', '') = $1 LIMIT 1",
-    [key],
-  );
+  const rows = excludeId
+    ? await db!.select<{ id: number; name: string }[]>(
+        "SELECT id, name FROM customers WHERE REPLACE(TRIM(COALESCE(nrc, '')), ' ', '') = $1 AND id != $2 LIMIT 1",
+        [key, excludeId],
+      )
+    : await db!.select<{ id: number; name: string }[]>(
+        "SELECT id, name FROM customers WHERE REPLACE(TRIM(COALESCE(nrc, '')), ' ', '') = $1 LIMIT 1",
+        [key],
+      );
   if (rows[0]) throw new Error(`မှတ်ပုံတင်တူ ရှိပြီး — ${rows[0].name}`);
 }
 
@@ -318,6 +323,33 @@ export async function createCustomer(
   );
   scheduleDbBackup();
   return res.lastInsertId as number;
+}
+
+export async function updateCustomer(
+  id: number,
+  name: string,
+  phone = '',
+  address = '',
+  nrc = '',
+): Promise<void> {
+  await initDb();
+  if (!name.trim()) throw new Error('ဝယ်သူအမည် ထည့်ပါ');
+  assertCustomerDetails(phone, address, nrc);
+  await assertNrcUnique(nrc, id);
+  if (mode === 'browser') return browser.browserUpdateCustomer(id, name, phone, address, nrc);
+  await db!.execute(
+    'UPDATE customers SET name = $1, phone = $2, nrc = $3, address = $4 WHERE id = $5',
+    [name.trim(), phone.trim(), nrc.trim(), address.trim(), id],
+  );
+  scheduleDbBackup();
+}
+
+export async function deleteCustomer(id: number): Promise<void> {
+  await initDb();
+  if (mode === 'browser') return browser.browserDeleteCustomer(id);
+  await db!.execute('UPDATE txns SET customer_id = NULL WHERE customer_id = $1', [id]);
+  await db!.execute('DELETE FROM customers WHERE id = $1', [id]);
+  scheduleDbBackup();
 }
 
 export async function listPrices(): Promise<Price[]> {

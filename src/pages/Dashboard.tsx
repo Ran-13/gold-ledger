@@ -8,12 +8,15 @@ import {
   MiniFact,
   StatStrip,
   TextBtn,
+  btnTableAction,
   tableHover,
   tableTd,
   tableTh,
   ty,
 } from '../components/ClearUI';
-import { IconCalendar } from '../components/Icons';
+import { DateChip } from '../components/DateChip';
+import { IconChevronRight, IconLedger, IconPrint, IconStock } from '../components/Icons';
+import { PaginationBar, usePagination } from '../components/Pagination';
 import { customerName, typeLabel } from '../lib/format';
 import {
   cardStockTotalYway,
@@ -25,7 +28,6 @@ import {
 import {
   D,
   W,
-  formatDate,
   formatDateTime,
   money,
   isoDate,
@@ -33,7 +35,7 @@ import {
   sumMoney,
   voucherNo,
 } from '../lib/units';
-import { colors, radii } from '../styles/tokens';
+import { colors } from '../styles/tokens';
 import { useStore } from '../store';
 
 export function Dashboard() {
@@ -82,18 +84,20 @@ export function Dashboard() {
     return map;
   }, [txnCards]);
 
-  const tt = txns.filter((t) => t.date === today);
-  const tS = tt.filter((t) => t.type === 'sell');
-  const tB = tt.filter((t) => t.type === 'buy');
-  const sum = (arr: typeof tt, f: (t: (typeof tt)[0]) => number) =>
+  const todayRows = useMemo(
+    () => txns.filter((t) => t.date === today).sort((a, b) => b.voucher_no - a.voucher_no),
+    [txns, today],
+  );
+  const tS = todayRows.filter((t) => t.type === 'sell');
+  const tB = todayRows.filter((t) => t.type === 'buy');
+  const sum = (arr: typeof todayRows, f: (t: (typeof todayRows)[0]) => number) =>
     arr.reduce((a, t) => a + f(t), 0);
 
   const sellAmt = sumMoney(tS, (t) => t.amount);
   const buyAmt = sumMoney(tB, (t) => t.amount);
   const sellGold = sum(tS, (t) => t.yway);
   const buyGold = sum(tB, (t) => t.yway);
-
-  const recent = [...txns].sort((a, b) => b.voucher_no - a.voucher_no).slice(0, 8);
+  const page = usePagination(todayRows, { resetKey: today });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 1280 }}>
@@ -105,38 +109,12 @@ export function Dashboard() {
           gap: 12,
         }}
       >
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '8px 14px',
-            borderRadius: radii.button,
-            background: colors.white,
-            border: `1.5px solid ${colors.cardBorder}`,
-            color: colors.ink,
-          }}
-        >
-          <span
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 32,
-              height: 32,
-              borderRadius: radii.md,
-              background: '#EEF2F7',
-              color: colors.ink,
-              flexShrink: 0,
-            }}
-          >
-            <IconCalendar size={17} />
-          </span>
-          <span className="num" style={{ fontSize: 20, fontWeight: 700, letterSpacing: 0.3, lineHeight: 1.2 }}>
-            {formatDate(today, digits)}
-          </span>
-        </div>
-        <TextBtn onClick={() => setScreen('stock')}>လက်ကျန် ကြည့်ရန် →</TextBtn>
+        <DateChip value={today} digits={digits} />
+        <TextBtn onClick={() => setScreen('stock')}>
+          <IconStock size={16} />
+          လက်ကျန် ကြည့်ရန်
+          <IconChevronRight size={16} />
+        </TextBtn>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -172,27 +150,43 @@ export function Dashboard() {
             borderBottom: `1.5px solid ${colors.rowDivider}`,
           }}
         >
-          <div style={ty.section}>နောက်ဆုံး စာရင်း</div>
-          <TextBtn onClick={() => setScreen('ledger')}>အားလုံး →</TextBtn>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+            <div style={ty.page}>ယနေ့ စာရင်း</div>
+            <div style={{ fontSize: 16, color: colors.muted, fontWeight: 600 }}>
+              {D(todayRows.length, digits)} စောင်
+            </div>
+          </div>
+          <TextBtn onClick={() => setScreen('ledger')}>
+            <IconLedger size={16} />
+            အားလုံး
+            <IconChevronRight size={16} />
+          </TextBtn>
         </div>
 
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 860 }}>
+          <table
+            style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              minWidth: 860,
+            }}
+          >
             <thead>
               <tr>
                 <th style={{ ...tableTh, paddingLeft: 16 }}>ဘောင်ချာ</th>
                 <th style={tableTh}>အမျိုးအစား</th>
-                <th style={tableTh}>ဖောက်သည်</th>
+                <th style={tableTh}>ဝယ်သူ</th>
                 <th style={{ ...tableTh, textAlign: 'right' }}>အလေးချိန်</th>
-                <th style={{ ...tableTh, textAlign: 'right' }}>စျေး</th>
-                <th style={{ ...tableTh, paddingRight: 16, textAlign: 'right' }}>ငွေ</th>
+                <th style={{ ...tableTh, textAlign: 'right' }}>ရွှေစျေး</th>
+                <th style={{ ...tableTh, textAlign: 'right' }}>ကျသင့်ငွေ</th>
+                <th style={{ ...tableTh, paddingRight: 16, textAlign: 'right' }} />
               </tr>
             </thead>
             <tbody>
-              {recent.length === 0 && (
+              {todayRows.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     style={{
                       ...tableTd,
                       padding: '36px 16px',
@@ -201,12 +195,13 @@ export function Dashboard() {
                       borderBottom: 'none',
                     }}
                   >
-                    ယနေ့ / မကြာသေးမီ စာရင်း မရှိသေးပါ
+                    ယနေ့ စာရင်း မရှိသေးပါ
                   </td>
                 </tr>
               )}
-              {recent.map((t) => {
+              {page.slice.map((t) => {
                 const sell = t.type === 'sell';
+                const nrc = custMap.get(t.customer_id ?? -1)?.nrc?.trim() || '';
                 return (
                   <tr
                     key={t.id}
@@ -239,6 +234,14 @@ export function Dashboard() {
                       >
                         {customerName(t.customer_id, custMap)}
                       </CellPrimary>
+                      {nrc ? (
+                        <CellMeta
+                          className="num"
+                          style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                        >
+                          {D(nrc, digits)}
+                        </CellMeta>
+                      ) : null}
                       {t.note ? (
                         <CellMeta
                           style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
@@ -266,7 +269,6 @@ export function Dashboard() {
                       className="num"
                       style={{
                         ...tableTd,
-                        paddingRight: 16,
                         textAlign: 'right',
                         fontWeight: 700,
                         whiteSpace: 'nowrap',
@@ -275,12 +277,34 @@ export function Dashboard() {
                     >
                       {money(t.amount, digits)}
                     </td>
+                    <td
+                      style={{ ...tableTd, paddingRight: 16, textAlign: 'right', whiteSpace: 'nowrap' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => openVoucher(t.id)}
+                        style={btnTableAction}
+                      >
+                        <IconPrint size={14} />
+                        ဘောင်ချာ
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
+        <PaginationBar
+          page={page.page}
+          totalPages={page.totalPages}
+          total={page.total}
+          from={page.from}
+          to={page.to}
+          digits={digits}
+          onPage={page.setPage}
+        />
       </Card>
     </div>
   );

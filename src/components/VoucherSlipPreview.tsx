@@ -4,6 +4,7 @@ import {
   type PrintSize,
   type VoucherPrintData,
 } from '../lib/printVoucher';
+import { radii } from '../styles/tokens';
 
 /** Aspect ratios match print paper (width ÷ height). */
 const ASPECT: Record<PrintSize, number> = {
@@ -59,7 +60,7 @@ export function VoucherSlipPreview({ data, size, maxWidth = 440, style }: Props)
         height: frameH,
         boxSizing: 'border-box',
         background: '#E8EAED',
-        borderRadius: 6,
+        borderRadius: radii.card,
         boxShadow: '0 10px 36px rgba(0, 0, 0, 0.08)',
         padding: 10,
         position: 'relative',

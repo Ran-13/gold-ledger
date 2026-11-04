@@ -260,6 +260,30 @@ export async function browserCreateCustomer(
   return id
 }
 
+export async function browserUpdateCustomer(
+  id: number,
+  name: string,
+  phone = '',
+  address = '',
+  nrc = '',
+): Promise<void> {
+  const d = load()
+  const c = d.customers.find((x) => x.id === id)
+  if (!c) throw new Error('ဝယ်သူ မတွေ့ပါ')
+  c.name = name.trim()
+  c.phone = phone.trim()
+  c.nrc = nrc.trim()
+  c.address = address.trim()
+  persist()
+}
+
+export async function browserDeleteCustomer(id: number): Promise<void> {
+  const d = load()
+  d.txns = d.txns.map((t) => (t.customer_id === id ? { ...t, customer_id: null } : t))
+  d.customers = d.customers.filter((c) => c.id !== id)
+  persist()
+}
+
 export async function browserListPrices(): Promise<Price[]> {
   return [...load().prices].sort((a, b) => {
     const ka = `${a.date}T${a.time.length === 5 ? a.time + ':00' : a.time}`

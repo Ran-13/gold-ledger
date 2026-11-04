@@ -104,9 +104,49 @@ input, select, button, textarea {
   color: inherit;
 }
 
+input::placeholder,
+textarea::placeholder {
+  color: #1B2A41;
+  font-weight: 600;
+  opacity: 1;
+}
+
+input::-webkit-input-placeholder,
+textarea::-webkit-input-placeholder {
+  color: #1B2A41;
+  font-weight: 600;
+  opacity: 1;
+}
+
 input:focus, select:focus, textarea:focus {
   outline: 3px solid #0F1A2B;
   outline-offset: -1px;
+}
+
+.date-chip-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border: none;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 16px;
+  background: transparent;
+}
+.date-chip-input:focus {
+  outline: none;
+}
+.date-chip-input::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 
 button {

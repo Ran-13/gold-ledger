@@ -18,7 +18,7 @@ export const colors = {
   /** Borders — soft cool grey (clean on white, not muddy) */
   cardBorder: '#D2D7DE',
   rowDivider: '#E8EBEF',
-  inputBorder: '#C5CCD6',
+  inputBorder: '#9AA3B0',
   segmentTrack: '#EEF0F3',
   buyBar: '#9AA6B8',
   buyBarSoft: '#C9CFDA',
@@ -43,27 +43,26 @@ export const fonts = {
 } as const;
 
 /**
- * Radius scale — sharper controls, softer large surfaces
- * (avoids one flat “everything 8/12” look)
+ * Radius scale — softer controls/buttons/inputs site-wide
  */
 export const radii = {
   /** Badges / pills / table chips */
-  xs: 4,
+  xs: 6,
   /** Compact row buttons, filter chips */
-  sm: 6,
+  sm: 10,
   /** Inputs, primary buttons, segmented */
-  md: 8,
+  md: 12,
   /** Cards, stat strips, panels */
-  lg: 10,
+  lg: 12,
   /** Dialogs / large sheets */
-  xl: 14,
+  xl: 16,
   // Semantic aliases used across the app
-  pill: 4,
-  input: 6,
-  button: 6,
-  segment: 6,
-  card: 10,
-  dialog: 14,
+  pill: 8,
+  input: 10,
+  button: 12,
+  segment: 12,
+  card: 12,
+  dialog: 16,
 } as const;
 
 /** Sidebar brand row + top price strip — keep aligned */

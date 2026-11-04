@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Card } from '../components/Card';
 import {
   CellChannel,
@@ -13,7 +13,12 @@ import {
   tableTh,
   ty,
 } from '../components/ClearUI';
+import { DateChip } from '../components/DateChip';
+import { Dialog, dialogBtnGhost } from '../components/Dialog';
+import { IconEye, IconPrint } from '../components/Icons';
+import { KbdHint } from '../components/KbdHint';
 import { PaginationBar, usePagination } from '../components/Pagination';
+import { Segmented } from '../components/Segmented';
 import { customerName, typeLabel } from '../lib/format';
 import { formatCardLines, isCardDenom, type CardDenom } from '../lib/cards';
 import {
@@ -31,7 +36,23 @@ import type { DigitsMode } from '../lib/units';
 import { MONTHS_MY, colors, radii } from '../styles/tokens';
 import { useStore } from '../store';
 
-type View = 'today' | '7' | '30' | 'month' | 'year';
+type View = 'today' | '7' | '30' | 'month' | 'year' | 'range';
+
+function monthBounds(ym: string, today: string): { from: string; to: string } {
+  const [Y, M] = ym.split('-').map(Number) as [number, number];
+  const from = `${ym}-01`;
+  const last = new Date(Y, M, 0).getDate();
+  let to = `${ym}-${String(last).padStart(2, '0')}`;
+  if (to > today) to = today;
+  return { from, to };
+}
+
+function yearBounds(year: number, today: string): { from: string; to: string } {
+  const from = `${year}-01-01`;
+  let to = `${year}-12-31`;
+  if (to > today) to = today;
+  return { from, to };
+}
 
 type TxnLine = {
   id: number;
@@ -39,6 +60,7 @@ type TxnLine = {
   date: string;
   time: string;
   name: string;
+  nrc: string;
   typeLabel: string;
   channel: string;
   weight: string;
@@ -66,7 +88,47 @@ export function Reports() {
 
   const [view, setView] = useState<View>('today');
   const [showDetail, setShowDetail] = useState(false);
+  const [detailTab, setDetailTab] = useState<'days' | 'sell' | 'buy'>('days');
   const today = isoDate();
+  const [from, setFrom] = useState(today);
+  const [to, setTo] = useState(today);
+
+  const applyView = (id: View) => {
+    setView(id);
+    setShowDetail(false);
+    if (id === 'today') {
+      setFrom(today);
+      setTo(today);
+    } else if (id === '7') {
+      setFrom(isoDate(addDays(new Date(), -6)));
+      setTo(today);
+    } else if (id === '30') {
+      setFrom(isoDate(addDays(new Date(), -29)));
+      setTo(today);
+    } else if (id === 'month') {
+      const b = monthBounds(repMonth, today);
+      setFrom(b.from);
+      setTo(b.to);
+    } else if (id === 'year') {
+      const b = yearBounds(repYear, today);
+      setFrom(b.from);
+      setTo(b.to);
+    }
+  };
+
+  const pickFrom = (d: string) => {
+    setView('range');
+    setShowDetail(false);
+    setFrom(d);
+    if (d > to) setTo(d);
+  };
+
+  const pickTo = (d: string) => {
+    setView('range');
+    setShowDetail(false);
+    setTo(d);
+    if (d < from) setFrom(d);
+  };
 
   const custMap = useMemo(() => new Map(customers.map((c) => [c.id, c])), [customers]);
   const cardsByTxn = useMemo(() => {
@@ -85,51 +147,68 @@ export function Reports() {
     openVoucherDlg(id);
   };
 
+  const closeDetail = () => {
+    if (useStore.getState().voucherDialogOpen) return;
+    setShowDetail(false);
+  };
+
+  useEffect(() => {
+    if (!showDetail) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (useStore.getState().voucherDialogOpen) return;
+      setShowDetail(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showDetail]);
+
   const period = useMemo(() => {
-    let from = '';
-    let to = today;
     let title = '';
     let canPrev = false;
     let canNext = false;
     let onPrev = () => {};
     let onNext = () => {};
 
-    if (view === 'today') {
-      from = today;
-      to = today;
-      title = `ယနေ့ · ${formatDate(today, digits)}`;
-    } else if (view === '7') {
-      from = isoDate(addDays(new Date(), -6));
-      title = `နောက်ဆုံး ၇ ရက်`;
-    } else if (view === '30') {
-      from = isoDate(addDays(new Date(), -29));
-      title = `နောက်ဆုံး ၃၀ ရက်`;
-    } else if (view === 'month') {
+    if (view === 'month') {
       const [Y, M] = repMonth.split('-').map(Number) as [number, number];
-      from = `${repMonth}-01`;
-      const last = new Date(Y, M, 0).getDate();
-      to = `${repMonth}-${String(last).padStart(2, '0')}`;
-      if (to > today) to = today;
       title = `${MONTHS_MY[M - 1]} ${D(Y, digits)}`;
       canPrev = true;
       canNext = true;
       onPrev = () => {
         const x = new Date(Y, M - 2, 1);
-        setRepMonth(`${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}`);
+        const ym = `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}`;
+        setRepMonth(ym);
+        const b = monthBounds(ym, today);
+        setFrom(b.from);
+        setTo(b.to);
       };
       onNext = () => {
         const x = new Date(Y, M, 1);
-        setRepMonth(`${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}`);
+        const ym = `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}`;
+        setRepMonth(ym);
+        const b = monthBounds(ym, today);
+        setFrom(b.from);
+        setTo(b.to);
       };
-    } else {
-      from = `${repYear}-01-01`;
-      to = `${repYear}-12-31`;
-      if (to > today) to = today;
+    } else if (view === 'year') {
       title = `${D(repYear, digits)} ခုနှစ်`;
       canPrev = true;
       canNext = true;
-      onPrev = () => setRepYear(repYear - 1);
-      onNext = () => setRepYear(repYear + 1);
+      onPrev = () => {
+        const y = repYear - 1;
+        setRepYear(y);
+        const b = yearBounds(y, today);
+        setFrom(b.from);
+        setTo(b.to);
+      };
+      onNext = () => {
+        const y = repYear + 1;
+        setRepYear(y);
+        const b = yearBounds(y, today);
+        setFrom(b.from);
+        setTo(b.to);
+      };
     }
 
     const list = txns.filter((t) => t.date >= from && t.date <= to);
@@ -154,12 +233,14 @@ export function Reports() {
 
     const toLine = (t: (typeof list)[0]): TxnLine => {
       const cards = cardsByTxn.get(t.id);
+      const nrcRaw = custMap.get(t.customer_id ?? -1)?.nrc?.trim() || '';
       return {
         id: t.id,
         no: voucherNo(t.voucher_no, digits),
         date: formatDate(t.date, digits),
         time: t.time ? formatTimeAmPm(t.time) : '',
         name: customerName(t.customer_id, custMap),
+        nrc: nrcRaw ? D(nrcRaw, digits) : '',
         typeLabel: typeLabel(t.type),
         channel: t.channel === 'card' ? 'အကယ်ဒမီအခေါက်ရွှေ' : 'မီးလင်းဖြတ်စ',
         weight: W(t.yway, digits),
@@ -250,16 +331,24 @@ export function Reports() {
       looseN: list.filter((t) => t.channel !== 'card').length,
       sellLines: [...sells].sort((a, b) => b.voucher_no - a.voucher_no).map(toLine),
       buyLines: [...buys].sort((a, b) => b.voucher_no - a.voucher_no).map(toLine),
+      allLines: [...list].sort((a, b) => b.voucher_no - a.voucher_no).map(toLine),
       byDay,
       months,
     };
-  }, [view, today, digits, repMonth, repYear, txns, custMap, cardsByTxn, setRepMonth, setRepYear]);
+  }, [view, from, to, today, digits, repMonth, repYear, txns, custMap, cardsByTxn, setRepMonth, setRepYear]);
 
   const openMonth = (ym: string) => {
     setRepMonth(ym);
     setView('month');
     setShowDetail(false);
+    const b = monthBounds(ym, today);
+    setFrom(b.from);
+    setTo(b.to);
   };
+
+  const dayPage = usePagination(period.byDay, {
+    resetKey: `${period.from}|${period.to}|byDay`,
+  });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 1360 }}>
@@ -272,7 +361,7 @@ export function Reports() {
           flexWrap: 'wrap',
         }}
       >
-        <div style={{ minWidth: 0, paddingTop: 4 }}>
+        <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
           {(view === 'month' || view === 'year') && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <NavBtn onClick={period.onPrev} disabled={!period.canPrev}>
@@ -294,17 +383,34 @@ export function Reports() {
               </NavBtn>
             </div>
           )}
-          {view !== 'month' && view !== 'year' && (
-            <div style={{ fontSize: 17, fontWeight: 600, color: colors.ink, lineHeight: 1.45 }}>
-              {period.title}
-              {view !== 'today' && (
-                <span style={{ color: colors.muted, fontWeight: 500 }}>
-                  {' '}
-                  · {formatDate(period.from, digits)} – {formatDate(period.to, digits)}
-                </span>
-              )}
-            </div>
-          )}
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, flexWrap: 'wrap' }}>
+            <DateChip
+              caption="မှ"
+              value={from}
+              digits={digits}
+              max={today}
+              onChange={pickFrom}
+            />
+            <span
+              style={{
+                color: colors.muted2,
+                fontSize: 18,
+                fontWeight: 700,
+                paddingBottom: 14,
+                flexShrink: 0,
+              }}
+            >
+              —
+            </span>
+            <DateChip
+              caption="ထိ"
+              value={to}
+              digits={digits}
+              min={from}
+              max={today}
+              onChange={pickTo}
+            />
+          </div>
         </div>
 
         <div
@@ -325,6 +431,7 @@ export function Reports() {
                 ['30', '၃၀ ရက်'],
                 ['month', 'လအလိုက်'],
                 ['year', 'နှစ်အလိုက်'],
+                ['range', 'မှ–ထိ'],
               ] as const
             ).map(([id, label]) => {
               const on = view === id;
@@ -332,10 +439,7 @@ export function Reports() {
                 <button
                   key={id}
                   type="button"
-                  onClick={() => {
-                    setView(id);
-                    setShowDetail(false);
-                  }}
+                  onClick={() => applyView(id)}
                   style={{
                     height: 44,
                     padding: '0 18px',
@@ -357,7 +461,7 @@ export function Reports() {
         </div>
       </div>
 
-      {period.empty ? (
+      {period.empty && view !== 'today' ? (
         <Card padding="48px 24px">
           <div style={{ textAlign: 'center', color: colors.muted2, fontSize: 18, lineHeight: 1.6 }}>
             ဤကာလတွင် စာရင်း မရှိသေးပါ
@@ -409,8 +513,8 @@ export function Reports() {
           {/* 4. Year → month tiles */}
           {view === 'year' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ fontSize: 18, fontWeight: 700 }}>လအလိုက်</div>
-              <div style={{ fontSize: 14, color: colors.muted, lineHeight: 1.45 }}>
+              <div style={ty.section}>လအလိုက်</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: colors.muted, lineHeight: 1.45 }}>
                 စာရင်းရှိသောလကို နှိပ်ပြီး အသေးစိတ်ကြည့်နိုင်သည်
               </div>
               <div
@@ -436,36 +540,38 @@ export function Reports() {
                       opacity: m.empty ? 0.55 : 1,
                     }}
                   >
-                    <div style={{ fontSize: 17, fontWeight: 700, lineHeight: 1.4 }}>{m.name}</div>
+                    <div style={{ fontSize: 19, fontWeight: 700, lineHeight: 1.4 }}>{m.name}</div>
                     {m.empty ? (
-                      <div style={{ fontSize: 15, color: colors.muted2, marginTop: 6 }}>မရှိ</div>
+                      <div style={{ fontSize: 16, fontWeight: 600, color: colors.muted2, marginTop: 6 }}>
+                        မရှိ
+                      </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: colors.sell }}>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: colors.sell }}>
                             အရောင်း · {D(m.sellN, digits)} စောင်
                           </div>
                           <div
                             className="num"
-                            style={{ fontSize: 17, fontWeight: 700, color: colors.sell, marginTop: 2 }}
+                            style={{ fontSize: 20, fontWeight: 700, color: colors.sell, marginTop: 2 }}
                           >
                             {money(m.sellAmt, digits)}
                           </div>
-                          <div style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>
+                          <div style={{ fontSize: 15, fontWeight: 600, color: colors.muted, marginTop: 2 }}>
                             {W(m.sellY, digits)}
                           </div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: colors.buy }}>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: colors.buy }}>
                             အဝယ် · {D(m.buyN, digits)} စောင်
                           </div>
                           <div
                             className="num"
-                            style={{ fontSize: 17, fontWeight: 700, color: colors.buy, marginTop: 2 }}
+                            style={{ fontSize: 20, fontWeight: 700, color: colors.buy, marginTop: 2 }}
                           >
                             {money(m.buyAmt, digits)}
                           </div>
-                          <div style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>
+                          <div style={{ fontSize: 15, fontWeight: 600, color: colors.muted, marginTop: 2 }}>
                             {W(m.buyY, digits)}
                           </div>
                         </div>
@@ -477,124 +583,270 @@ export function Reports() {
             </div>
           )}
 
-          {/* 5. Detail toggle */}
-          {view !== 'year' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <button
-                type="button"
-                onClick={() => setShowDetail((v) => !v)}
-                style={{
-                  alignSelf: 'flex-start',
-                  height: 44,
-                  padding: '0 18px',
-                  borderRadius: radii.button,
-                  border: `1px solid ${colors.ink}`,
-                  background: showDetail ? colors.ink : colors.white,
-                  color: showDetail ? colors.white : colors.ink,
-                  fontSize: 16,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                {showDetail ? 'အသေးစိတ် ပိတ်မည်' : 'အသေးစိတ် ကြည့်မည်'}
-              </button>
-
-              {showDetail && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {/* Day breakdown for multi-day views */}
-                  {view !== 'today' && period.byDay.length > 0 && (
-                    <Card padding={0} style={{ overflow: 'hidden' }}>
-                      <BlockTitle>နေ့အလိုက်</BlockTitle>
-                      <div>
-                        {period.byDay.map((d) => (
-                          <div
-                            key={d.date}
-                            style={{
-                              display: 'grid',
-                              gridTemplateColumns: '140px 1fr 1fr',
-                              gap: 12,
-                              padding: '14px 18px',
-                              borderTop: `1px solid ${colors.rowDivider}`,
-                              alignItems: 'center',
-                            }}
-                          >
-                            <div>
-                              <div style={{ fontWeight: 700, fontSize: 16 }}>{d.label}</div>
-                              <div style={{ fontSize: 14, color: colors.muted2, marginTop: 2 }}>
-                                {D(d.n, digits)} စောင်
-                              </div>
-                            </div>
-                            <div>
-                              <div style={{ fontSize: 14, color: colors.sell, fontWeight: 600 }}>
-                                ရောင်း · {D(d.sellN, digits)}
-                              </div>
-                              <div className="num" style={{ fontSize: 17, fontWeight: 700, color: colors.sell }}>
-                                {d.sellAmt ? money(d.sellAmt, digits) : '—'}
-                              </div>
-                              <div style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>
-                                {d.sellY ? W(d.sellY, digits) : '—'}
-                                {d.sellFee > 0n ? ` · ကဒ် ${money(d.sellFee, digits)}` : ''}
-                              </div>
-                            </div>
-                            <div>
-                              <div style={{ fontSize: 14, color: colors.buy, fontWeight: 600 }}>
-                                ဝယ် · {D(d.buyN, digits)}
-                              </div>
-                              <div className="num" style={{ fontSize: 17, fontWeight: 700, color: colors.buy }}>
-                                {d.buyAmt ? money(d.buyAmt, digits) : '—'}
-                              </div>
-                              <div style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>
-                                {d.buyY ? W(d.buyY, digits) : '—'}
-                                {d.buyFee > 0n ? ` · ကဒ် ${money(d.buyFee, digits)}` : ''}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </Card>
-                  )}
-
-                  <TxnTable
-                    title="ရောင်းစာရင်း"
-                    tone="sell"
-                    rows={period.sellLines}
-                    empty="ရောင်းစာရင်း မရှိပါ"
-                    digits={digits}
-                    resetKey={`${period.from}|${period.to}|sell`}
-                    onOpen={openVoucher}
-                  />
-                  <TxnTable
-                    title="ဝယ်စာရင်း"
-                    tone="buy"
-                    rows={period.buyLines}
-                    empty="ဝယ်စာရင်း မရှိပါ"
-                    digits={digits}
-                    resetKey={`${period.from}|${period.to}|buy`}
-                    onOpen={openVoucher}
-                  />
-                </div>
-              )}
-            </div>
+          {view === 'today' && (
+            <TxnTable
+              title="ယနေ့ စာရင်း"
+              rows={period.allLines}
+              empty="ယနေ့ စာရင်း မရှိသေးပါ"
+              digits={digits}
+              resetKey={`${period.from}|${period.to}|all`}
+              onOpen={openVoucher}
+            />
           )}
+
         </>
       )}
+
+      {view !== 'year' && view !== 'today' && (
+        <button
+          type="button"
+          onClick={() => {
+            setDetailTab('days');
+            setShowDetail(true);
+          }}
+          style={{
+            alignSelf: 'flex-start',
+            height: 44,
+            padding: '0 18px',
+            borderRadius: radii.button,
+            border: `1px solid ${colors.ink}`,
+            background: colors.white,
+            color: colors.ink,
+            fontSize: 16,
+            fontWeight: 700,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <IconEye size={16} />
+          အသေးစိတ် ကြည့်မည်
+        </button>
+      )}
+
+      <Dialog
+        open={showDetail}
+        onClose={closeDetail}
+        closeOnEsc={false}
+        full
+        width="min(1320px, 96vw)"
+        title="အသေးစိတ်"
+        subtitle={
+          period.title
+            ? `${period.title} · ${formatDate(period.from, digits)} – ${formatDate(period.to, digits)}`
+            : `${formatDate(period.from, digits)} – ${formatDate(period.to, digits)}`
+        }
+        toolbar={
+          <Segmented
+            size="big"
+            value={detailTab}
+            onChange={setDetailTab}
+            options={[
+              { value: 'days', label: `နေ့အလိုက် · ${D(period.byDay.length, digits)}` },
+              { value: 'sell', label: `ရောင်းစာရင်း · ${D(period.sellN, digits)}` },
+              { value: 'buy', label: `ဝယ်စာရင်း · ${D(period.buyN, digits)}` },
+            ]}
+          />
+        }
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button type="button" onClick={closeDetail} style={dialogBtnGhost}>
+              ပိတ်မည်
+              <KbdHint>Esc</KbdHint>
+            </button>
+          </div>
+        }
+      >
+        {detailTab === 'days' ? (
+          <ByDayTable dayPage={dayPage} digits={digits} />
+        ) : detailTab === 'sell' ? (
+          <TxnTable
+            bare
+            title="ရောင်းစာရင်း"
+            tone="sell"
+            rows={period.sellLines}
+            empty="ရောင်းစာရင်း မရှိပါ"
+            digits={digits}
+            resetKey={`${period.from}|${period.to}|sell`}
+            onOpen={openVoucher}
+          />
+        ) : (
+          <TxnTable
+            bare
+            title="ဝယ်စာရင်း"
+            tone="buy"
+            rows={period.buyLines}
+            empty="ဝယ်စာရင်း မရှိပါ"
+            digits={digits}
+            resetKey={`${period.from}|${period.to}|buy`}
+            onOpen={openVoucher}
+          />
+        )}
+      </Dialog>
     </div>
   );
 }
 
 /* ───────── pieces ───────── */
 
-function BlockTitle({ children }: { children: ReactNode }) {
+function ByDayTable({
+  dayPage,
+  digits,
+}: {
+  dayPage: ReturnType<typeof usePagination<{
+    date: string;
+    label: string;
+    n: number;
+    sellN: number;
+    buyN: number;
+    sellAmt: bigint;
+    buyAmt: bigint;
+    sellFee: bigint;
+    buyFee: bigint;
+    sellY: number;
+    buyY: number;
+  }>>;
+  digits: DigitsMode;
+}) {
   return (
-    <div
-      style={{
-        padding: '13px 16px',
-        fontSize: 16,
-        fontWeight: 700,
-        borderBottom: `1px solid ${colors.rowDivider}`,
-      }}
-    >
-      {children}
+    <div>
+      <div style={{ overflowX: 'auto' }}>
+        <table
+          style={{
+            width: '100%',
+            borderCollapse: 'collapse',
+            minWidth: 860,
+          }}
+        >
+          <thead>
+            <tr>
+              <th style={{ ...tableTh, paddingLeft: 16 }}>ရက်စွဲ</th>
+              <th style={{ ...tableTh, textAlign: 'right' }}>စောင်</th>
+              <th style={{ ...tableTh, textAlign: 'right' }}>ရွှေဖိုး(အရောင်း)</th>
+              <th style={{ ...tableTh, textAlign: 'right' }}>ကဒ်ဖိုး(အရောင်း)</th>
+              <th style={{ ...tableTh, textAlign: 'right' }}>ရွှေ(အရောင်း)</th>
+              <th style={{ ...tableTh, textAlign: 'right' }}>ရွှေဖိုး(အဝယ်)</th>
+              <th style={{ ...tableTh, textAlign: 'right' }}>ကဒ်ဖိုး(အဝယ်)</th>
+              <th style={{ ...tableTh, paddingRight: 16, textAlign: 'right' }}>ရွှေ(အဝယ်)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {dayPage.total === 0 && (
+              <tr>
+                <td
+                  colSpan={8}
+                  style={{
+                    ...tableTd,
+                    textAlign: 'center',
+                    color: colors.muted2,
+                    padding: 36,
+                    borderBottom: 'none',
+                  }}
+                >
+                  နေ့အလိုက် စာရင်း မရှိပါ
+                </td>
+              </tr>
+            )}
+            {dayPage.slice.map((d) => (
+              <tr key={d.date}>
+                <td style={{ ...tableTd, paddingLeft: 16, whiteSpace: 'nowrap' }}>
+                  <CellPrimary className="num">{d.label}</CellPrimary>
+                  <CellMeta>
+                    ရောင်း {D(d.sellN, digits)} · ဝယ် {D(d.buyN, digits)}
+                  </CellMeta>
+                </td>
+                <td className="num" style={{ ...tableTd, textAlign: 'right', fontWeight: 700 }}>
+                  {D(d.n, digits)}
+                </td>
+                <td
+                  className="num"
+                  style={{
+                    ...tableTd,
+                    textAlign: 'right',
+                    fontWeight: 700,
+                    color: colors.sell,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {d.sellAmt ? money(d.sellAmt, digits) : '—'}
+                </td>
+                <td
+                  className="num"
+                  style={{
+                    ...tableTd,
+                    textAlign: 'right',
+                    fontWeight: 600,
+                    color: colors.sell,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {d.sellFee > 0n ? money(d.sellFee, digits) : '—'}
+                </td>
+                <td
+                  className="num"
+                  style={{
+                    ...tableTd,
+                    textAlign: 'right',
+                    fontWeight: 700,
+                    color: colors.sell,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {d.sellY ? W(d.sellY, digits) : '—'}
+                </td>
+                <td
+                  className="num"
+                  style={{
+                    ...tableTd,
+                    textAlign: 'right',
+                    fontWeight: 700,
+                    color: colors.buy,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {d.buyAmt ? money(d.buyAmt, digits) : '—'}
+                </td>
+                <td
+                  className="num"
+                  style={{
+                    ...tableTd,
+                    textAlign: 'right',
+                    fontWeight: 600,
+                    color: colors.buy,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {d.buyFee > 0n ? money(d.buyFee, digits) : '—'}
+                </td>
+                <td
+                  className="num"
+                  style={{
+                    ...tableTd,
+                    paddingRight: 16,
+                    textAlign: 'right',
+                    fontWeight: 700,
+                    color: colors.buy,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {d.buyY ? W(d.buyY, digits) : '—'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <PaginationBar
+        page={dayPage.page}
+        totalPages={dayPage.totalPages}
+        total={dayPage.total}
+        from={dayPage.from}
+        to={dayPage.to}
+        digits={digits}
+        pageSize={dayPage.pageSize}
+        onPage={dayPage.setPage}
+      />
     </div>
   );
 }
@@ -638,20 +890,23 @@ function TxnTable({
   digits,
   resetKey,
   onOpen,
+  bare,
 }: {
   title: string;
-  tone: 'sell' | 'buy';
+  tone?: 'sell' | 'buy';
   rows: TxnLine[];
   empty: string;
   digits: DigitsMode;
   resetKey: string;
   onOpen: (id: number) => void;
+  bare?: boolean;
 }) {
   const page = usePagination(rows, { resetKey });
-  const color = tone === 'sell' ? colors.sell : colors.buy;
+  const titleColor = tone === 'sell' ? colors.sell : tone === 'buy' ? colors.buy : colors.ink;
 
-  return (
-    <Card padding={0} style={{ overflow: 'hidden' }}>
+  const inner = (
+    <>
+      {!bare && (
       <div
         style={{
           padding: '13px 16px',
@@ -661,21 +916,22 @@ function TxnTable({
           borderBottom: `1px solid ${colors.rowDivider}`,
         }}
       >
-        <div style={{ ...ty.section, color }}>{title}</div>
+        <div style={{ ...ty.section, color: titleColor }}>{title}</div>
         <div style={{ fontSize: 17, color: colors.muted, fontWeight: 700 }}>
           {D(rows.length, digits)} စောင်
         </div>
       </div>
+      )}
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 860 }}>
           <thead>
             <tr>
               <th style={{ ...tableTh, paddingLeft: 16 }}>ဘောင်ချာ</th>
               <th style={tableTh}>အမျိုးအစား</th>
-              <th style={tableTh}>ဖောက်သည်</th>
+              <th style={tableTh}>ဝယ်သူ</th>
               <th style={{ ...tableTh, textAlign: 'right' }}>အလေးချိန်</th>
-              <th style={{ ...tableTh, textAlign: 'right' }}>စျေး</th>
-              <th style={{ ...tableTh, textAlign: 'right' }}>ငွေ</th>
+              <th style={{ ...tableTh, textAlign: 'right' }}>ရွှေစျေး</th>
+              <th style={{ ...tableTh, textAlign: 'right' }}>ကျသင့်ငွေ</th>
               <th style={{ ...tableTh, paddingRight: 16, textAlign: 'right' }} />
             </tr>
           </thead>
@@ -690,7 +946,9 @@ function TxnTable({
                 </td>
               </tr>
             )}
-            {page.slice.map((r) => (
+            {page.slice.map((r) => {
+              const color = r.sell ? colors.sell : colors.buy;
+              return (
               <tr
                 key={r.id}
                 onClick={() => onOpen(r.id)}
@@ -723,6 +981,14 @@ function TxnTable({
                   >
                     {r.name}
                   </CellPrimary>
+                  {r.nrc ? (
+                    <CellMeta
+                      className="num"
+                      style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                    >
+                      {r.nrc}
+                    </CellMeta>
+                  ) : null}
                   {r.note ? (
                     <CellMeta
                       style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
@@ -749,11 +1015,13 @@ function TxnTable({
                   onClick={(e) => e.stopPropagation()}
                 >
                   <button type="button" onClick={() => onOpen(r.id)} style={btnTableAction}>
+                    <IconPrint size={14} />
                     ဘောင်ချာ
                   </button>
                 </td>
               </tr>
-            ))}
+            );
+            })}
           </tbody>
         </table>
       </div>
@@ -764,8 +1032,17 @@ function TxnTable({
         from={page.from}
         to={page.to}
         digits={digits}
+        pageSize={page.pageSize}
         onPage={page.setPage}
       />
+    </>
+  );
+
+  if (bare) return <div>{inner}</div>;
+
+  return (
+    <Card padding={0} style={{ overflow: 'hidden' }}>
+      {inner}
     </Card>
   );
 }

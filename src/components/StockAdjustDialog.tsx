@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Dialog, dialogBtnGhost, dialogBtnPrimary } from './Dialog';
+import { IconSave } from './Icons';
 import { createStockAdjustment } from '../db/queries';
 import { N, W, keepNumInput, stockFromParts, toYway } from '../lib/units';
 import { colors, radii } from '../styles/tokens';
@@ -97,6 +98,7 @@ export function StockAdjustDialog() {
               opacity: overdraw ? 0.45 : 1,
             }}
           >
+            <IconSave size={16} />
             {saving ? 'သိမ်းနေသည်…' : 'သိမ်းမည်'}
           </button>
         </div>
@@ -140,7 +142,7 @@ export function StockAdjustDialog() {
             alignItems: 'center',
             padding: '14px 16px',
             border: `1.5px solid ${overdraw ? colors.buy : colors.cardBorder}`,
-            borderRadius: 8,
+            borderRadius: radii.card,
           }}
         >
           <span style={{ fontSize: 16, color: colors.muted }}>

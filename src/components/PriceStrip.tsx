@@ -1,6 +1,7 @@
 import { IconEdit, IconPlus, IconPrice } from './Icons';
+import { KbdHint } from './KbdHint';
 import { dateTimeKey, isoDate, money } from '../lib/units';
-import { TOP_BAR_HEIGHT, cardShadow, colors, radii } from '../styles/tokens';
+import { TOP_BAR_HEIGHT, colors, radii } from '../styles/tokens';
 import { useStore } from '../store';
 
 /** Top price bar — buy / sell only */
@@ -45,7 +46,7 @@ export function PriceStrip() {
           borderRadius: radii.button,
           background: colors.white,
           color: colors.ink,
-          fontSize: 18,
+          fontSize: 17,
           fontWeight: 700,
           cursor: 'pointer',
           display: 'inline-flex',
@@ -55,7 +56,8 @@ export function PriceStrip() {
         }}
       >
         <IconEdit size={16} />
-        စျေးနှုန်းပြင်ဆင်ရန်
+        ရွှေစျေးပြင်ရန်
+        <KbdHint>P</KbdHint>
       </button>
 
       <button
@@ -68,7 +70,7 @@ export function PriceStrip() {
           borderRadius: radii.button,
           background: colors.ink,
           color: colors.white,
-          fontSize: 18,
+          fontSize: 17,
           fontWeight: 700,
           lineHeight: 1.4,
           cursor: 'pointer',
@@ -79,6 +81,7 @@ export function PriceStrip() {
       >
         <IconPlus size={17} />
         အရောင်း/အဝယ်
+        <KbdHint onDark>N</KbdHint>
       </button>
     </div>
   );
@@ -93,21 +96,21 @@ function PriceBox({ label, value }: { label: string; value: string }) {
         gap: 10,
         padding: '12px 16px',
         background: colors.white,
-        border: `1.5px solid ${colors.cardBorder}`,
-        boxShadow: cardShadow,
+        border: 'none',
+        boxShadow: 'none',
         borderRadius: radii.button,
         minWidth: 168,
       }}
     >
       <IconPrice size={15} style={{ color: colors.muted }} />
-      <span style={{ fontSize: 17, fontWeight: 700, color: colors.muted, lineHeight: 1.45 }}>{label}</span>
+      <span style={{ fontSize: 17, fontWeight: 700, color: colors.muted, lineHeight: 1.4 }}>{label}</span>
       <span
         className="num"
         style={{
-          fontSize: 24,
+          fontSize: 20,
           fontWeight: 700,
           color: colors.ink,
-          lineHeight: 1.3,
+          lineHeight: 1.4,
           letterSpacing: '-0.01em',
         }}
       >

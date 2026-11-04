@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react';
 import type { Customer } from '../db/types';
 import { isNrcComplete, normalizeNrcKey } from '../lib/nrc';
 import { D, DigitsMode } from '../lib/units';
-import { colors } from '../styles/tokens';
+import { colors, radii } from '../styles/tokens';
 import { formInput } from './FormRow';
+import { IconId, IconMapPin, IconPhone, IconUser } from './Icons';
 import { NrcPicker } from './NrcPicker';
 
 const labelStyle = {
@@ -75,7 +76,10 @@ export function CustomerCombobox({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <span style={labelStyle}>ဝယ်သူအမည်</span>
+        <span style={{ ...labelStyle, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <IconUser size={15} />
+          ဝယ်သူအမည်
+        </span>
         <div style={{ position: 'relative' }}>
           <input
             value={query}
@@ -98,7 +102,7 @@ export function CustomerCombobox({
                 zIndex: 20,
                 background: colors.white,
                 border: `1.5px solid ${colors.cardBorder}`,
-                borderRadius: 8,
+                borderRadius: radii.card,
                 boxShadow: '0 10px 28px rgba(27,42,65,.12)',
                 maxHeight: 300,
                 overflow: 'auto',
@@ -125,7 +129,7 @@ export function CustomerCombobox({
                       width: '100%',
                       padding: '12px 14px',
                       border: 'none',
-                      borderRadius: 6,
+                      borderRadius: radii.button,
                       background: hoverKey === key ? 'rgba(27,42,65,.06)' : 'transparent',
                       textAlign: 'left',
                       cursor: 'pointer',
@@ -183,7 +187,10 @@ export function CustomerCombobox({
                 minWidth: 110,
               }}
             >
-              <span style={labelStyle}>ဖုန်း</span>
+              <span style={{ ...labelStyle, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <IconPhone size={15} />
+                ဖုန်း
+              </span>
               <input
                 value={newPhone}
                 onChange={(e) => onNewPhone(e.target.value)}
@@ -202,7 +209,10 @@ export function CustomerCombobox({
                 minWidth: 110,
               }}
             >
-              <span style={labelStyle}>နေရပ်</span>
+              <span style={{ ...labelStyle, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <IconMapPin size={15} />
+                နေရပ်
+              </span>
               <input
                 value={newAddress}
                 onChange={(e) => onNewAddress(e.target.value)}
@@ -212,7 +222,10 @@ export function CustomerCombobox({
               />
             </label>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: '0 0 auto' }}>
-              <span style={labelStyle}>မှတ်ပုံတင်</span>
+              <span style={{ ...labelStyle, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <IconId size={15} />
+                မှတ်ပုံတင်
+              </span>
               <NrcPicker value={newNrc} onChange={onNewNrc} digits={digits} height={fieldH} />
             </label>
           </div>

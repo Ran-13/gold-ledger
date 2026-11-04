@@ -225,6 +225,102 @@ export function IconScale(p: IconProps) {
   );
 }
 
+export function IconSave(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M5 3h11l4 4v14H5V3Z" />
+      <path d="M7 3v6h8V3M7 21v-8h10v8" />
+    </Svg>
+  );
+}
+
+export function IconTrash(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13M10 11v5M14 11v5" />
+    </Svg>
+  );
+}
+
+export function IconLogout(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3" />
+      <path d="M16 17l5-5-5-5M21 12H9" />
+    </Svg>
+  );
+}
+
+export function IconLogin(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M15 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3" />
+      <path d="M10 17l5-5-5-5M15 12H3" />
+    </Svg>
+  );
+}
+
+export function IconDownload(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M12 4v12M7 11l5 5 5-5" />
+      <path d="M5 20h14" />
+    </Svg>
+  );
+}
+
+export function IconEye(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M2.5 12S6 6.5 12 6.5 21.5 12 21.5 12 18 17.5 12 17.5 2.5 12 2.5 12Z" />
+      <circle cx="12" cy="12" r="2.6" />
+    </Svg>
+  );
+}
+
+export function IconLock(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+      <path d="M6.5 11h11v9h-11v-9Z" />
+    </Svg>
+  );
+}
+
+export function IconChevronRight(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M9 6l6 6-6 6" />
+    </Svg>
+  );
+}
+
+export function IconUpload(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M12 16V4M7 9l5-5 5 5" />
+      <path d="M5 20h14" />
+    </Svg>
+  );
+}
+
+export function IconRestore(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M4 12a8 8 0 1 0 2.3-5.6" />
+      <path d="M4 4v5h5" />
+    </Svg>
+  );
+}
+
+export function IconX(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M7 7l10 10M17 7 7 17" />
+    </Svg>
+  );
+}
+
 const NAV_ICONS: Partial<Record<Screen, (p: IconProps) => ReactNode>> = {
   dash: IconHome,
   ledger: IconLedger,

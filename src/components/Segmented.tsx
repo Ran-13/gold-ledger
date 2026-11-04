@@ -32,7 +32,7 @@ export function Segmented<T extends string>({
               onClick={() => onChange(o.value)}
               style={{
                 height: 48,
-                borderRadius: radii.input,
+                borderRadius: radii.button,
                 fontSize: 18,
                 fontWeight: 700,
                 lineHeight: 1.45,
@@ -70,7 +70,7 @@ export function Segmented<T extends string>({
             ? {
                 height: 44,
                 padding: '0 16px',
-                borderRadius: radii.input,
+                borderRadius: radii.md,
                 fontSize: 18,
                 fontWeight: 700,
                 lineHeight: 1.4,
@@ -84,7 +84,7 @@ export function Segmented<T extends string>({
                 height: 38,
                 padding: '0 14px',
                 border: 'none',
-                borderRadius: radii.segment,
+                borderRadius: radii.md,
                 fontSize: 17,
                 cursor: 'pointer',
                 fontWeight: 700,
