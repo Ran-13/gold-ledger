@@ -6,10 +6,10 @@ export type { PrintSize };
  * Page size for each option.
  * ပုံမှန် (M) = shop slip 4in × 6in (width × height).
  */
-const PAGE: Record<PrintSize, { size: string; width: string; height: string; pad: string }> = {
-  S: { size: '3.5in 5in', width: '3.5in', height: '5in', pad: '8px 10px 10px' },
-  M: { size: '4in 6in', width: '4in', height: '6in', pad: '10px 12px 12px' },
-  L: { size: '5in 7in', width: '5in', height: '7in', pad: '12px 14px 14px' },
+const PAGE: Record<PrintSize, { size: string; width: string; height: string }> = {
+  S: { size: '3.5in 5in', width: '3.5in', height: '5in' },
+  M: { size: '4in 6in', width: '4in', height: '6in' },
+  L: { size: '5in 7in', width: '5in', height: '7in' },
 };
 
 export const PRINT_SIZE_OPTIONS: { value: PrintSize; label: string }[] = [
@@ -18,156 +18,249 @@ export const PRINT_SIZE_OPTIONS: { value: PrintSize; label: string }[] = [
   { value: 'L', label: 'ကြီး' },
 ];
 
-function pickPrintRoot(): HTMLElement | null {
-  const dialogRoot = document.querySelector(
-    '[role="dialog"][aria-label="ဘောင်ချာ"] [data-print-root]',
-  ) as HTMLElement | null;
-  if (dialogRoot) return dialogRoot;
-  return document.querySelector('[data-print-root]') as HTMLElement | null;
+export type VoucherPrintData = {
+  date: string;
+  time: string;
+  name: string;
+  nrc: string;
+  address: string;
+  phone: string;
+  kyat: string;
+  pe: string;
+  yway: string;
+};
+
+export function dashPrint(v: string | null | undefined): string {
+  const t = (v || '').trim();
+  return t || '—';
 }
 
-function printCss(size: PrintSize): string {
+function esc(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function buildHtml(size: PrintSize, data: VoucherPrintData): string {
   const p = PAGE[size];
-  return `
-    @page {
-      size: ${p.size};
-      margin: 0;
-    }
-    * {
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-      box-sizing: border-box;
-    }
-    html, body {
-      margin: 0 !important;
-      padding: 0 !important;
-      background: #fff !important;
-      width: ${p.width};
-      height: ${p.height};
-      overflow: hidden !important;
-      font-family: 'Pyidaungsu', 'IBM Plex Sans', sans-serif;
-      color: #111;
-    }
-    [data-print-root] {
-      width: ${p.width} !important;
-      height: ${p.height} !important;
-      max-width: ${p.width} !important;
-      max-height: ${p.height} !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      overflow: hidden !important;
-      box-shadow: none !important;
-      border: 1px solid #111 !important;
-      background: #fff !important;
-    }
-    [data-print-root] > div {
-      width: calc(100% - 10px) !important;
-      height: calc(100% - 10px) !important;
-      max-width: none !important;
-      max-height: none !important;
-      min-height: 0 !important;
-      margin: 5px !important;
-      padding: ${p.pad} !important;
-      overflow: hidden !important;
-      border: 1px solid #111 !important;
-      background: #fff !important;
-      position: relative !important;
-    }
-  `;
-}
-
-function fitSlipContent(doc: Document): void {
-  const shell = doc.querySelector('[data-print-root] > div') as HTMLElement | null;
-  if (!shell) return;
-  const content = Array.from(shell.children).find((el) => {
-    const s = (el as HTMLElement).style;
-    return s.position === 'relative' && (s.zIndex === '1' || getComputedStyle(el).zIndex === '1');
-  }) as HTMLElement | undefined;
-  const target = content ?? shell;
-  const availH = shell.clientHeight;
-  const availW = shell.clientWidth;
-  const needH = target.scrollHeight;
-  const needW = target.scrollWidth;
-  if (availH <= 0 || availW <= 0) return;
-  const scale = Math.min(1, availH / needH, availW / needW);
-  if (scale < 0.999) {
-    target.style.transformOrigin = 'top center';
-    target.style.transform = `scale(${scale})`;
-    target.style.width = '100%';
+  return `<!DOCTYPE html>
+<html lang="my">
+<head>
+<meta charset="utf-8" />
+<title>&nbsp;</title>
+<style>
+  @page {
+    size: ${p.size};
+    margin: 0;
   }
+  * {
+    box-sizing: border-box;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: ${p.width};
+    height: ${p.height};
+    overflow: hidden;
+    background: #fff;
+    color: #111;
+    font-family: 'Pyidaungsu', 'Myanmar Text', 'Noto Sans Myanmar', sans-serif;
+  }
+  .page {
+    width: ${p.width};
+    height: ${p.height};
+    padding: 0.12in;
+  }
+  .slip {
+    width: 100%;
+    height: 100%;
+    border: 1.5px solid #111;
+    padding: 0.14in 0.16in 0.12in;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+  .head {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: end;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+  .title {
+    text-align: center;
+    font-family: 'Times New Roman', 'Cormorant Garamond', serif;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    line-height: 1;
+  }
+  .title-line {
+    width: 40px;
+    height: 2px;
+    margin: 6px auto 0;
+    background: #111;
+  }
+  .time {
+    justify-self: end;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    padding-bottom: 2px;
+  }
+  .rule {
+    height: 1px;
+    background: #111;
+    opacity: 0.35;
+    margin-bottom: 10px;
+  }
+  .fields {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 78px 10px minmax(0, 1fr);
+    align-items: end;
+    gap: 2px;
+    font-size: 14px;
+    line-height: 1.35;
+  }
+  .label { font-weight: 700; }
+  .sep { text-align: center; }
+  .value {
+    font-weight: 500;
+    border-bottom: 1px dotted #999;
+    min-height: 18px;
+    padding-bottom: 2px;
+    word-break: break-word;
+  }
+  .weights {
+    margin: 10px auto 0;
+    width: 100%;
+    max-width: 2.4in;
+    border-collapse: collapse;
+  }
+  .weights th,
+  .weights td {
+    border: 1.5px solid #111;
+    text-align: center;
+    padding: 6px 4px;
+  }
+  .weights th {
+    font-size: 13px;
+    font-weight: 700;
+    background: #f5f5f5;
+  }
+  .weights td {
+    font-size: 18px;
+    font-weight: 700;
+    min-width: 0.7in;
+  }
+  .thanks {
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 12px;
+    letter-spacing: 0.3px;
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <div class="slip">
+      <div class="head">
+        <div></div>
+        <div>
+          <div class="title">Voucher</div>
+          <div class="title-line"></div>
+        </div>
+        <div class="time">${esc(data.time)}</div>
+      </div>
+      <div class="rule"></div>
+      <div class="fields">
+        <div class="row"><span class="label">ရက်စွဲ</span><span class="sep">-</span><span class="value">${esc(data.date)}</span></div>
+        <div class="row"><span class="label">အမည်</span><span class="sep">-</span><span class="value">${esc(data.name)}</span></div>
+        <div class="row"><span class="label">မှတ်ပုံတင်</span><span class="sep">-</span><span class="value">${esc(data.nrc)}</span></div>
+        <div class="row"><span class="label">နေရပ်</span><span class="sep">-</span><span class="value">${esc(data.address)}</span></div>
+        <div class="row"><span class="label">ဖုန်းနံပါတ်</span><span class="sep">-</span><span class="value">${esc(data.phone)}</span></div>
+      </div>
+      <table class="weights">
+        <thead>
+          <tr><th>ကျပ်</th><th>ပဲ</th><th>ရွေး</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>${esc(data.kyat)}</td>
+            <td>${esc(data.pe)}</td>
+            <td>${esc(data.yway)}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="thanks">ကျေးဇူးတင်ပါသည်။</div>
+    </div>
+  </div>
+</body>
+</html>`;
 }
 
 /**
  * Print only the voucher slip at the chosen page size (default 4in × 6in).
- * Uses a dedicated iframe so ledger/lists never appear in the printout.
+ * Opens a blank-titled print window so shop name never appears in headers.
  */
-export function printVoucher(size: PrintSize = 'M'): void {
-  const root = pickPrintRoot();
-  if (!root) return;
+export function printVoucher(size: PrintSize = 'M', data?: VoucherPrintData): void {
+  if (!data) return;
 
+  const prevTitle = document.title;
+  document.title = '\u00A0';
+
+  const html = buildHtml(size, data);
+  const p = PAGE[size];
+
+  // Visible off-screen frame — WebView2 prints this document, not the app shell.
   const iframe = document.createElement('iframe');
   iframe.setAttribute('aria-hidden', 'true');
-  iframe.setAttribute('title', 'voucher-print');
+  iframe.setAttribute('title', ' ');
   Object.assign(iframe.style, {
     position: 'fixed',
-    right: '0',
-    bottom: '0',
-    width: '0',
-    height: '0',
+    left: '0',
+    top: '0',
+    width: p.width,
+    height: p.height,
     border: '0',
     opacity: '0',
     pointerEvents: 'none',
+    zIndex: '-1',
   });
   document.body.appendChild(iframe);
 
   const doc = iframe.contentDocument;
   const win = iframe.contentWindow;
   if (!doc || !win) {
+    document.title = prevTitle;
     iframe.remove();
     return;
   }
 
-  const fontLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
-    .map((n) => n.outerHTML)
-    .join('\n');
-  const fontFaces = Array.from(document.styleSheets)
-    .map((sheet) => {
-      try {
-        return Array.from(sheet.cssRules || [])
-          .filter((r) => r instanceof CSSFontFaceRule)
-          .map((r) => r.cssText)
-          .join('\n');
-      } catch {
-        return '';
-      }
-    })
-    .filter(Boolean)
-    .join('\n');
-
   doc.open();
-  doc.write(`<!DOCTYPE html>
-<html lang="my">
-<head>
-<meta charset="utf-8" />
-<title> </title>
-${fontLinks}
-<style>
-${fontFaces}
-${printCss(size)}
-</style>
-</head>
-<body>
-${root.outerHTML}
-</body>
-</html>`);
+  doc.write(html);
   doc.close();
-
-  // Size the iframe so layout metrics match the slip (0×0 would break fit)
-  const p = PAGE[size];
-  iframe.style.width = p.width;
-  iframe.style.height = p.height;
+  try {
+    doc.title = '\u00A0';
+  } catch {
+    /* ignore */
+  }
 
   const cleanup = () => {
+    document.title = prevTitle;
     try {
       iframe.remove();
     } catch {
@@ -176,14 +269,14 @@ ${root.outerHTML}
   };
 
   const run = () => {
-    fitSlipContent(doc);
     try {
       win.focus();
       win.print();
     } finally {
-      window.setTimeout(cleanup, 1500);
+      window.setTimeout(cleanup, 2000);
     }
   };
 
-  window.setTimeout(run, 280);
+  // Wait for layout; fonts fall back to system Myanmar Text on Windows.
+  window.setTimeout(run, 200);
 }

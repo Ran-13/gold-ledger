@@ -9,7 +9,7 @@ import {
   IconUser,
 } from './Icons';
 import { customerName } from '../lib/format';
-import { printVoucher } from '../lib/printVoucher';
+import { dashPrint, printVoucher, type VoucherPrintData } from '../lib/printVoucher';
 import { D, W, formatDate, formatTimeAmPm, fromYway, voucherNo } from '../lib/units';
 import { colors } from '../styles/tokens';
 import { useStore } from '../store';
@@ -39,13 +39,31 @@ export function VoucherDialog() {
     return () => window.removeEventListener('keydown', onKey);
   }, [open, close]);
 
+  const buildPrintData = (): VoucherPrintData | null => {
+    if (!vt) return null;
+    const parts = fromYway(vt.yway);
+    return {
+      date: formatDate(vt.date, 'latin'),
+      time: formatTimeAmPm(vt.time, digits),
+      name: customerName(vt.customer_id, custMap),
+      nrc: dashPrint(vc?.nrc),
+      address: vc?.address?.trim() || '—',
+      phone: dashPrint(vc?.phone),
+      kyat: parts.k ? D(Math.abs(parts.k), digits) : '—',
+      pe: parts.p ? D(parts.p, digits) : '—',
+      yway: parts.y ? D(parts.y, digits) : '—',
+    };
+  };
+
   useEffect(() => {
     if (!open || !printAfterOpen || !vt) return;
     let alive = true;
     const t = window.setTimeout(() => {
       if (!alive) return;
+      const data = buildPrintData();
+      if (!data) return;
       setPrintAfterOpen(false);
-      printVoucher(printSize);
+      printVoucher(printSize, data);
     }, 450);
     return () => {
       alive = false;
@@ -126,7 +144,14 @@ export function VoucherDialog() {
             <button type="button" onClick={close} style={ghostBtn}>
               ပိတ်မည်
             </button>
-            <button type="button" onClick={() => printVoucher(printSize)} style={printBtn}>
+            <button
+              type="button"
+              onClick={() => {
+                const data = buildPrintData();
+                if (data) printVoucher(printSize, data);
+              }}
+              style={printBtn}
+            >
               <IconPrint size={16} />
               ပရင့်ထုတ်မည်
             </button>

@@ -12,7 +12,7 @@ import {
 } from '../components/Icons';
 import { PaginationBar, usePagination } from '../components/Pagination';
 import { customerName } from '../lib/format';
-import { printVoucher } from '../lib/printVoucher';
+import { dashPrint, printVoucher, type VoucherPrintData } from '../lib/printVoucher';
 import { D, W, formatDate, formatTimeAmPm, fromYway, voucherNo } from '../lib/units';
 import { colors } from '../styles/tokens';
 import { useStore } from '../store';
@@ -51,6 +51,22 @@ export function Voucher() {
   const vt = txns.find((t) => t.id === voucherId) ?? filtered[0] ?? desc[0] ?? null;
   const vc = vt ? custMap.get(vt.customer_id ?? -1) : null;
 
+  const buildPrintData = (): VoucherPrintData | null => {
+    if (!vt) return null;
+    const parts = fromYway(vt.yway);
+    return {
+      date: formatDate(vt.date, 'latin'),
+      time: formatTimeAmPm(vt.time, digits),
+      name: customerName(vt.customer_id, custMap),
+      nrc: dashPrint(vc?.nrc),
+      address: vc?.address?.trim() || '—',
+      phone: dashPrint(vc?.phone),
+      kyat: parts.k ? D(Math.abs(parts.k), digits) : '—',
+      pe: parts.p ? D(parts.p, digits) : '—',
+      yway: parts.y ? D(parts.y, digits) : '—',
+    };
+  };
+
   // Save → print: wait for paint; clear flag only when actually printing
   // (clearing early breaks React Strict Mode remount / cancels the dialog)
   useEffect(() => {
@@ -58,8 +74,10 @@ export function Voucher() {
     let alive = true;
     const t = window.setTimeout(() => {
       if (!alive) return;
+      const data = buildPrintData();
+      if (!data) return;
       setPrintAfterOpen(false);
-      printVoucher(printSize);
+      printVoucher(printSize, data);
     }, 450);
     return () => {
       alive = false;
@@ -352,7 +370,10 @@ export function Voucher() {
           </div>
           <button
             type="button"
-            onClick={() => printVoucher(printSize)}
+            onClick={() => {
+              const data = buildPrintData();
+              if (data) printVoucher(printSize, data);
+            }}
             style={{
               height: 42,
               padding: '0 18px',
