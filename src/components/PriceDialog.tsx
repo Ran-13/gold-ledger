@@ -8,7 +8,7 @@ import {
 } from './Dialog';
 import { upsertPrice } from '../db/queries';
 import { N, dateTimeKey, isoDate, keepNumInput, money } from '../lib/units';
-import { colors } from '../styles/tokens';
+import { colors, radii } from '../styles/tokens';
 import { useStore } from '../store';
 
 export function PriceDialog() {
@@ -41,7 +41,7 @@ export function PriceDialog() {
 
   const save = async () => {
     if (!pfB || !pfS) {
-      window.alert('ဝယ်စျေး / ရောင်းစျေး ထည့်ပါ');
+      window.alert('ရောင်းစျေး / ဝယ်စျေး ထည့်ပါ');
       return;
     }
     setSaving(true);
@@ -84,19 +84,6 @@ export function PriceDialog() {
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 12 }}>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <span style={dialogLabel}>ဝယ်စျေး</span>
-          <input
-            type="text"
-            inputMode="decimal"
-            className="num"
-            value={buyStr}
-            placeholder={String(cur.buy || '')}
-            onChange={(e) => setBuyStr(keepNumInput(e.target.value))}
-            style={{ ...dialogField, textAlign: 'right' }}
-            autoFocus
-          />
-        </label>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <span style={dialogLabel}>ရောင်းစျေး</span>
           <input
             type="text"
@@ -105,6 +92,19 @@ export function PriceDialog() {
             value={sellStr}
             placeholder={String(cur.sell || '')}
             onChange={(e) => setSellStr(keepNumInput(e.target.value))}
+            style={{ ...dialogField, textAlign: 'right' }}
+            autoFocus
+          />
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <span style={dialogLabel}>ဝယ်စျေး</span>
+          <input
+            type="text"
+            inputMode="decimal"
+            className="num"
+            value={buyStr}
+            placeholder={String(cur.buy || '')}
+            onChange={(e) => setBuyStr(keepNumInput(e.target.value))}
             style={{ ...dialogField, textAlign: 'right' }}
           />
         </label>
@@ -116,7 +116,7 @@ export function PriceDialog() {
             justifyContent: 'space-between',
             gap: 12,
             padding: '14px 16px',
-            borderRadius: 10,
+            borderRadius: radii.sm,
             background: spread >= 0 ? 'rgba(31,122,77,.06)' : 'rgba(178,58,42,.06)',
             border: `1px solid ${spread >= 0 ? 'rgba(31,122,77,.18)' : 'rgba(178,58,42,.18)'}`,
           }}

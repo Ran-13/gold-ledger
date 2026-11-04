@@ -1,4 +1,4 @@
-import { colors } from './styles/tokens';
+import { colors, radii } from './styles/tokens';
 import { LoginScreen } from './components/LoginScreen';
 import { Nav } from './components/Nav';
 import { PriceStrip } from './components/PriceStrip';
@@ -80,7 +80,7 @@ export default function App() {
               style={{
                 marginBottom: 16,
                 padding: '12px 16px',
-                borderRadius: 8,
+                borderRadius: radii.sm,
                 background: colors.white,
                 border: `1.5px solid ${colors.buy}`,
                 color: colors.buy,

@@ -1,7 +1,16 @@
 import { Card } from '../components/Card';
-import { MiniFact, StatStrip, clearPrimaryBtn, tableTd, tableTh } from '../components/ClearUI';
+import {
+  CellMeta,
+  CellPrimary,
+  MiniFact,
+  StatStrip,
+  clearPrimaryBtn,
+  tableTd,
+  tableTh,
+  ty,
+} from '../components/ClearUI';
 import { PaginationBar, usePagination } from '../components/Pagination';
-import { D, money } from '../lib/units';
+import { formatDate, formatTimeAmPm, money } from '../lib/units';
 import { colors } from '../styles/tokens';
 import { useStore } from '../store';
 
@@ -26,8 +35,8 @@ export function Prices() {
         ch === 0 ? '—' : `${ch > 0 ? '+' : '−'}${money(Math.abs(ch), digits)}`;
       return {
         key: p.id,
-        date: D(p.date, digits),
-        time: D(p.time.slice(0, 5), digits),
+        date: formatDate(p.date, digits),
+        time: formatTimeAmPm(p.time),
         buy: money(p.buy, digits),
         sell: money(p.sell, digits),
         chBuy: fmtCh(chBuy),
@@ -55,16 +64,16 @@ export function Prices() {
       {latest ? (
         <StatStrip>
           <MiniFact
-            label="ယခု အဝယ်စျေး"
-            value={money(latest.buy, digits)}
-            tone="buy"
-            sub={`${D(latest.date, digits)} · ${D(latest.time.slice(0, 5), digits)}`}
-          />
-          <MiniFact
             label="ယခု အရောင်းစျေး"
             value={money(latest.sell, digits)}
             tone="sell"
-            sub={`${D(latest.date, digits)} · ${D(latest.time.slice(0, 5), digits)}`}
+            sub={`${formatDate(latest.date, digits)} · ${formatTimeAmPm(latest.time)}`}
+          />
+          <MiniFact
+            label="ယခု အဝယ်စျေး"
+            value={money(latest.buy, digits)}
+            tone="buy"
+            sub={`${formatDate(latest.date, digits)} · ${formatTimeAmPm(latest.time)}`}
           />
         </StatStrip>
       ) : null}
@@ -74,8 +83,7 @@ export function Prices() {
           style={{
             padding: '13px 16px',
             borderBottom: `1px solid ${colors.rowDivider}`,
-            fontSize: 16,
-            fontWeight: 700,
+            ...ty.section,
           }}
         >
           မှတ်တမ်း
@@ -85,10 +93,10 @@ export function Prices() {
             <tr>
               <th style={{ ...tableTh, paddingLeft: 16 }}>ရက်စွဲ</th>
               <th style={tableTh}>အချိန်</th>
-              <th style={{ ...tableTh, textAlign: 'right' }}>အဝယ်</th>
               <th style={{ ...tableTh, textAlign: 'right' }}>အရောင်း</th>
-              <th style={{ ...tableTh, textAlign: 'right' }}>ဝယ် ±</th>
-              <th style={{ ...tableTh, paddingRight: 16, textAlign: 'right' }}>ရောင်း ±</th>
+              <th style={{ ...tableTh, textAlign: 'right' }}>အဝယ်</th>
+              <th style={{ ...tableTh, textAlign: 'right' }}>ရောင်း ±</th>
+              <th style={{ ...tableTh, paddingRight: 16, textAlign: 'right' }}>ဝယ် ±</th>
             </tr>
           </thead>
           <tbody>
@@ -104,28 +112,21 @@ export function Prices() {
             )}
             {page.slice.map((p) => (
               <tr key={p.key}>
-                <td style={{ ...tableTd, paddingLeft: 16, whiteSpace: 'nowrap' }}>{p.date}</td>
+                <td style={{ ...tableTd, paddingLeft: 16, whiteSpace: 'nowrap' }}>
+                  <CellPrimary className="num">{p.date}</CellPrimary>
+                </td>
                 <td className="num" style={{ ...tableTd, whiteSpace: 'nowrap' }}>
-                  {p.time}
+                  <CellMeta className="num" style={{ marginTop: 0 }}>
+                    {p.time}
+                  </CellMeta>
                 </td>
-                <td className="num" style={{ ...tableTd, textAlign: 'right' }}>
-                  {p.buy}
-                </td>
-                <td className="num" style={{ ...tableTd, textAlign: 'right', fontWeight: 600 }}>
+                <td className="num" style={{ ...tableTd, textAlign: 'right', fontWeight: 700 }}>
                   {p.sell}
                 </td>
-                <td style={{ ...tableTd, textAlign: 'right' }}>
-                  <span
-                    className="num"
-                    style={{
-                      color: p.chBuyPos ? colors.sell : p.chBuyNeg ? colors.buy : colors.muted2,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {p.chBuy}
-                  </span>
+                <td className="num" style={{ ...tableTd, textAlign: 'right', fontWeight: 700 }}>
+                  {p.buy}
                 </td>
-                <td style={{ ...tableTd, paddingRight: 16, textAlign: 'right' }}>
+                <td style={{ ...tableTd, textAlign: 'right' }}>
                   <span
                     className="num"
                     style={{
@@ -134,6 +135,17 @@ export function Prices() {
                     }}
                   >
                     {p.chSell}
+                  </span>
+                </td>
+                <td style={{ ...tableTd, paddingRight: 16, textAlign: 'right' }}>
+                  <span
+                    className="num"
+                    style={{
+                      color: p.chBuyPos ? colors.sell : p.chBuyNeg ? colors.buy : colors.muted2,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {p.chBuy}
                   </span>
                 </td>
               </tr>

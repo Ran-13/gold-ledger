@@ -1,7 +1,18 @@
 import { useEffect, useMemo, type CSSProperties } from 'react';
 import * as XLSX from 'xlsx';
 import { Card } from '../components/Card';
-import { clearOutlineBtn, tableHover, tableTd, tableTh } from '../components/ClearUI';
+import {
+  CellChannel,
+  CellMeta,
+  CellPrimary,
+  CellTone,
+  btnTableAction,
+  clearOutlineBtn,
+  tableHover,
+  tableTd,
+  tableTh,
+  ty,
+} from '../components/ClearUI';
 import { IconPrint, IconSearch } from '../components/Icons';
 import { PaginationBar, usePagination } from '../components/Pagination';
 import { Segmented } from '../components/Segmented';
@@ -12,8 +23,18 @@ import {
   isCardDenom,
   type CardDenom,
 } from '../lib/cards';
-import { D, W, isoDate, money, toLatinDigits, voucherNo } from '../lib/units';
-import { colors } from '../styles/tokens';
+import {
+  D,
+  W,
+  formatDate,
+  formatDateTime,
+  formatTimeAmPm,
+  isoDate,
+  money,
+  toLatinDigits,
+  voucherNo,
+} from '../lib/units';
+import { colors, radii } from '../styles/tokens';
 import { useStore } from '../store';
 
 export function Ledger() {
@@ -101,8 +122,8 @@ export function Ledger() {
       const cards = cardsByTxn.get(t.id);
       return [
         voucherNo(t.voucher_no, 'latin'),
-        t.date,
-        t.time,
+        formatDate(t.date, 'latin'),
+        formatTimeAmPm(t.time),
         t.type === 'sell' ? 'အရောင်း' : 'အဝယ်',
         t.channel === 'card' ? 'အကယ်ဒမီအခေါက်ရွှေ' : 'မီးလင်းဖြတ်စ',
         customerName(t.customer_id, custMap),
@@ -155,13 +176,13 @@ export function Ledger() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-              <div style={{ fontSize: 19, fontWeight: 700 }}>ဘောင်ချာစာရင်း</div>
+              <div style={ty.section}>ဘောင်ချာစာရင်း</div>
               <div style={{ fontSize: 16, color: colors.muted }}>
                 {D(rows.length, digits)} စောင်
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <div style={{ display: 'inline-flex', gap: 4, padding: 3, border: `1px solid ${colors.cardBorder}`, borderRadius: 8, background: colors.white }}>
+              <div style={{ display: 'inline-flex', gap: 4, padding: 3, border: `1px solid ${colors.cardBorder}`, borderRadius: radii.sm, background: colors.white }}>
                 <PresetChip
                   label="ယနေ့"
                   active={flt.from === today && flt.to === today}
@@ -212,7 +233,7 @@ export function Ledger() {
                 height: 44,
                 paddingLeft: 42,
                 fontSize: 16,
-                borderRadius: 8,
+                borderRadius: radii.input,
                 background: colors.white,
               }}
             />
@@ -285,7 +306,7 @@ export function Ledger() {
             <thead>
               <tr>
                 <th style={{ ...tableTh, paddingLeft: 16 }}>ဘောင်ချာ</th>
-                <th style={tableTh}>အမျိုး</th>
+                <th style={tableTh}>အမျိုးအစား</th>
                 <th style={tableTh}>ဖောက်သည်</th>
                 <th style={{ ...tableTh, textAlign: 'right' }}>အလေးချိန်</th>
                 <th style={{ ...tableTh, textAlign: 'right' }}>စျေး</th>
@@ -328,67 +349,27 @@ export function Ledger() {
                     }}
                   >
                     <td style={{ ...tableTd, paddingLeft: 16, whiteSpace: 'nowrap' }}>
-                      <div className="num" style={{ fontWeight: 700, fontSize: 16, color: colors.ink }}>
-                        {voucherNo(t.voucher_no, digits)}
-                      </div>
-                      <div className="num" style={{ fontSize: 14, color: colors.muted2, marginTop: 2 }}>
-                        {D(t.date, digits)}
-                        {t.time ? ` · ${D(t.time.slice(0, 5), digits)}` : ''}
-                      </div>
+                      <CellPrimary className="num">{voucherNo(t.voucher_no, digits)}</CellPrimary>
+                      <CellMeta className="num">{formatDateTime(t.date, t.time, digits)}</CellMeta>
                     </td>
                     <td style={tableTd}>
-                      <div
-                        style={{
-                          fontSize: 15,
-                          fontWeight: 700,
-                          lineHeight: 1.35,
-                          color: sell ? colors.sell : colors.buy,
-                        }}
-                      >
-                        {typeLabel(t.type)}
-                      </div>
-                      <div style={{ fontSize: 14, color: colors.muted2, marginTop: 3 }}>
+                      <CellTone sell={sell}>{typeLabel(t.type)}</CellTone>
+                      <CellChannel>
                         {t.channel === 'card' ? 'အကယ်ဒမီအခေါက်ရွှေ' : 'မီးလင်းဖြတ်စ'}
-                      </div>
+                      </CellChannel>
                     </td>
                     <td style={{ ...tableTd, maxWidth: 220 }}>
-                      <div
-                        style={{
-                          fontWeight: 600,
-                          fontSize: 16,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
+                      <CellPrimary
+                        style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                       >
                         {customerName(t.customer_id, custMap)}
-                      </div>
-                      {t.channel === 'card' && cardsByTxn.get(t.id)?.length ? (
-                        <div
-                          style={{
-                            fontSize: 14,
-                            color: colors.muted2,
-                            marginTop: 2,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {formatCardLines(cardsByTxn.get(t.id)!, digits)}
-                        </div>
-                      ) : t.note ? (
-                        <div
-                          style={{
-                            fontSize: 14,
-                            color: colors.muted2,
-                            marginTop: 2,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
+                      </CellPrimary>
+                      {t.note ? (
+                        <CellMeta
+                          style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                         >
                           {t.note}
-                        </div>
+                        </CellMeta>
                       ) : null}
                     </td>
                     <td
@@ -400,7 +381,10 @@ export function Ledger() {
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {W(t.yway, digits)}
+                      <div>{W(t.yway, digits)}</div>
+                      {t.channel === 'card' && cardsByTxn.get(t.id)?.length ? (
+                        <div style={ty.weightMeta}>{formatCardLines(cardsByTxn.get(t.id)!, digits)}</div>
+                      ) : null}
                     </td>
                     <td
                       className="num"
@@ -432,7 +416,7 @@ export function Ledger() {
                       <button
                         type="button"
                         onClick={() => openVoucher(t.id)}
-                        style={btnVoucher}
+                        style={btnTableAction}
                       >
                         <IconPrint size={14} />
                         ဘောင်ချာ
@@ -475,7 +459,7 @@ function PresetChip({
       style={{
         height: 32,
         padding: '0 12px',
-        borderRadius: 6,
+        borderRadius: radii.xs,
         border: 'none',
         background: active ? colors.ink : 'transparent',
         color: active ? colors.white : colors.muted,
@@ -506,7 +490,7 @@ const btnClear: CSSProperties = {
   height: 38,
   padding: '0 14px',
   border: `1px solid ${colors.cardBorder}`,
-  borderRadius: 8,
+  borderRadius: radii.button,
   background: colors.white,
   color: colors.ink,
   fontSize: 16,
@@ -514,17 +498,3 @@ const btnClear: CSSProperties = {
   cursor: 'pointer',
 };
 
-const btnVoucher: CSSProperties = {
-  height: 32,
-  padding: '0 12px',
-  border: 'none',
-  borderRadius: 7,
-  background: colors.ink,
-  color: colors.white,
-  fontSize: 15,
-  fontWeight: 700,
-  cursor: 'pointer',
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 6,
-};

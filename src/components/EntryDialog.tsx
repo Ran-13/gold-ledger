@@ -24,10 +24,12 @@ import {
   W,
   amount,
   dateTimeKey,
+  formatDate,
   isoDate,
   keepNumInput,
   money,
   stockFromParts,
+  nextVoucherInt,
   toYway,
   voucherNo,
 } from '../lib/units';
@@ -161,7 +163,7 @@ export function EntryDialog() {
     channel === 'loose' && form.type === 'sell' && looseYway > 0 && looseYway > looseStockY;
   const blocked = cardOverdraw || looseOverdraw;
 
-  const nextNo = Math.max(0, ...txns.map((t) => t.voucher_no)) + 1;
+  const nextNo = nextVoucherInt(txns.map((t) => t.voucher_no));
   const ql = form.query.trim().toLowerCase();
   const isNew = !!ql && !customers.find((c) => c.id === form.customerId);
 
@@ -292,10 +294,10 @@ export function EntryDialog() {
   return (
     <Dialog
       open={open}
-      title="စာရင်းသွင်းခြင်း"
+      title="အရောင်း/အဝယ်"
       subtitle={
         <span className="num">
-          {voucherNo(nextNo, digits)} · {D(today, digits)}
+          {voucherNo(nextNo)} · {formatDate(today, digits)}
         </span>
       }
       onClose={close}

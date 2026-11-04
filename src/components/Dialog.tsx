@@ -69,9 +69,9 @@ export function Dialog({
           flexDirection: 'column',
           background: colors.white,
           color: colors.ink,
-          borderRadius: 16,
+          borderRadius: radii.dialog,
           boxShadow: '0 24px 64px rgba(15,23,36,.22), 0 2px 8px rgba(15,23,36,.08)',
-          border: `1px solid ${colors.cardBorder}`,
+          border: `1.5px solid ${colors.cardBorder}`,
           overflow: 'hidden',
         }}
       >
@@ -90,7 +90,7 @@ export function Dialog({
             <h2
               style={{
                 margin: 0,
-                fontSize: compact ? 22 : 26,
+                fontSize: compact ? 24 : 28,
                 fontWeight: 700,
                 lineHeight: 1.4,
                 letterSpacing: '0.015em',
@@ -102,8 +102,8 @@ export function Dialog({
                 <span
                   style={{
                     marginLeft: 12,
-                    fontSize: 15,
-                    fontWeight: 600,
+                    fontSize: 17,
+                    fontWeight: 700,
                     color: colors.muted,
                   }}
                 >
@@ -115,10 +115,10 @@ export function Dialog({
               <div
                 style={{
                   marginTop: 8,
-                  fontSize: 16,
+                  fontSize: 18,
                   color: colors.muted,
                   lineHeight: 1.5,
-                  fontWeight: 500,
+                  fontWeight: 600,
                 }}
               >
                 {subtitle}
@@ -176,7 +176,7 @@ export function Dialog({
           <div
             style={{
               padding: compact ? '12px 20px 14px' : '16px 24px 20px',
-              borderTop: `1px solid ${colors.rowDivider}`,
+              borderTop: `1.5px solid ${colors.rowDivider}`,
               background: '#FAFBFC',
               flexShrink: 0,
             }}
@@ -191,46 +191,46 @@ export function Dialog({
 
 /** Shared dialog footer buttons */
 export const dialogBtnGhost: CSSProperties = {
-  height: 46,
+  height: 48,
   padding: '0 18px',
   border: `1.5px solid ${colors.inputBorder}`,
   borderRadius: radii.button,
   background: colors.white,
   color: colors.muted,
-  fontSize: 16,
+  fontSize: 18,
   fontWeight: 700,
   cursor: 'pointer',
   lineHeight: 1.4,
 };
 
 export const dialogBtnPrimary: CSSProperties = {
-  height: 46,
+  height: 48,
   padding: '0 20px',
   border: 'none',
   borderRadius: radii.button,
   background: colors.ink,
   color: colors.white,
-  fontSize: 16,
+  fontSize: 18,
   fontWeight: 700,
   cursor: 'pointer',
   lineHeight: 1.4,
 };
 
 export const dialogField: CSSProperties = {
-  height: 48,
+  height: 52,
   width: '100%',
   boxSizing: 'border-box',
   border: `1.5px solid ${colors.inputBorder}`,
   borderRadius: radii.input,
   padding: '0 14px',
-  fontSize: 18,
+  fontSize: 20,
   fontWeight: 700,
   background: colors.white,
   color: colors.ink,
 };
 
 export const dialogLabel: CSSProperties = {
-  fontSize: 15,
+  fontSize: 17,
   fontWeight: 700,
   color: colors.muted,
   letterSpacing: '0.015em',

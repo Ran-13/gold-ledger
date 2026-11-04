@@ -30,8 +30,8 @@ export function PriceStrip() {
         flexShrink: 0,
       }}
     >
-      <PriceBox label="အဝယ်စျေး" value={money(cur.buy, digits)} />
       <PriceBox label="အရောင်းစျေး" value={money(cur.sell, digits)} />
+      <PriceBox label="အဝယ်စျေး" value={money(cur.buy, digits)} />
 
       <div style={{ flex: 1 }} />
 
@@ -39,13 +39,13 @@ export function PriceStrip() {
         type="button"
         onClick={openPriceDialog}
         style={{
-          height: 46,
+          height: 48,
           padding: '0 16px',
-          border: `1px solid ${colors.cardBorder}`,
+          border: `1.5px solid ${colors.cardBorder}`,
           borderRadius: radii.button,
           background: colors.white,
           color: colors.ink,
-          fontSize: 17,
+          fontSize: 18,
           fontWeight: 700,
           cursor: 'pointer',
           display: 'inline-flex',
@@ -62,13 +62,13 @@ export function PriceStrip() {
         type="button"
         onClick={openEntryDialog}
         style={{
-          height: 46,
+          height: 48,
           padding: '0 18px',
           border: 'none',
           borderRadius: radii.button,
           background: colors.ink,
           color: colors.white,
-          fontSize: 17,
+          fontSize: 18,
           fontWeight: 700,
           lineHeight: 1.4,
           cursor: 'pointer',
@@ -78,7 +78,7 @@ export function PriceStrip() {
         }}
       >
         <IconPlus size={17} />
-        စာရင်းသွင်းခြင်း
+        အရောင်း/အဝယ်
       </button>
     </div>
   );
@@ -93,18 +93,18 @@ function PriceBox({ label, value }: { label: string; value: string }) {
         gap: 10,
         padding: '12px 16px',
         background: colors.white,
-        border: `1px solid ${colors.cardBorder}`,
+        border: `1.5px solid ${colors.cardBorder}`,
         boxShadow: cardShadow,
         borderRadius: radii.button,
         minWidth: 168,
       }}
     >
       <IconPrice size={15} style={{ color: colors.muted }} />
-      <span style={{ fontSize: 16, fontWeight: 700, color: colors.muted, lineHeight: 1.45 }}>{label}</span>
+      <span style={{ fontSize: 17, fontWeight: 700, color: colors.muted, lineHeight: 1.45 }}>{label}</span>
       <span
         className="num"
         style={{
-          fontSize: 22,
+          fontSize: 24,
           fontWeight: 700,
           color: colors.ink,
           lineHeight: 1.3,

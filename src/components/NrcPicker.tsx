@@ -176,7 +176,15 @@ export function NrcPicker({
         value={stateEn}
         onChange={(e) => {
           const next = e.target.value;
-          const preferred = defaultTownshipForState(next);
+          if (!next) {
+            setStateEn('');
+            setTownshipId('');
+            lastEmitted.current = '';
+            onChange('');
+            return;
+          }
+          const preferred =
+            defaultTownshipForState(next) ?? townshipsForState(next)[0] ?? null;
           setStateEn(next);
           setTownshipId(preferred?.id ?? '');
           emit(next, preferred, typeMm, serial);

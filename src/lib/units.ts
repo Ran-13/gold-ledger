@@ -187,8 +187,39 @@ export function money(n: number | bigint, digits: DigitsMode = 'latin'): string 
   return `${D(`${neg ? '-' : ''}${grouped}`, digits)} ကျပ်`;
 }
 
-export function voucherNo(n: number, digits: DigitsMode = 'latin'): string {
-  return D('#' + String(n).padStart(4, '0'), digits);
+/** Numbers per letter prefix: A-0000 … A-9999, then B-0000, … Z-9999, then AA-0000 … */
+export const VOUCHER_SERIES_SIZE = 10_000;
+
+/** 0→A, 25→Z, 26→AA, 27→AB (Excel-style column names). */
+export function voucherPrefix(seriesIndex: number): string {
+  let i = Math.max(0, Math.floor(seriesIndex));
+  let s = '';
+  while (i >= 0) {
+    s = String.fromCharCode(65 + (i % 26)) + s;
+    i = Math.floor(i / 26) - 1;
+  }
+  return s;
+}
+
+/**
+ * Display voucher id: A-0000 → A-9999 → B-0000 → … → Z-9999 → AA-0000 …
+ * Storage stays a sequential integer (0, 1, 2, …).
+ * Letters + Latin digits only (never Myanmar digits).
+ */
+export function voucherNo(n: number, _digits?: DigitsMode): string {
+  const safe = Math.max(0, Math.floor(Number(n) || 0));
+  const series = Math.floor(safe / VOUCHER_SERIES_SIZE);
+  const num = safe % VOUCHER_SERIES_SIZE;
+  return `${voucherPrefix(series)}-${String(num).padStart(4, '0')}`;
+}
+
+/** Next sequential voucher integer. Empty ledger starts at 0 → A-0000. */
+export function nextVoucherInt(voucherNos: Iterable<number>): number {
+  let max = -1;
+  for (const n of voucherNos) {
+    if (Number.isFinite(n) && n > max) max = n;
+  }
+  return max + 1;
 }
 
 export function isoDate(d: Date = new Date()): string {
@@ -219,6 +250,18 @@ export function formatTimeAmPm(time: string, _digits?: DigitsMode): string {
   const am = h24 < 12;
   const h12 = h24 % 12 || 12;
   return `${h12}:${min} ${am ? 'AM' : 'PM'}`;
+}
+
+/** Site-wide display: `4-11-2026 · 2:46 PM` */
+export function formatDateTime(
+  date: string,
+  time?: string | null,
+  digits: DigitsMode = 'latin',
+): string {
+  const d = formatDate(date, digits);
+  const t = (time || '').trim();
+  if (!t) return d;
+  return `${d} · ${formatTimeAmPm(t)}`;
 }
 
 /** Sort key for price logs / txns: date then time */

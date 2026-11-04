@@ -1,12 +1,12 @@
 import { NavIcon, IconSettings } from './Icons';
 import { NAV, Screen, useStore } from '../store';
-import { TOP_BAR_HEIGHT } from '../styles/tokens';
+import { TOP_BAR_HEIGHT, colors, radii } from '../styles/tokens';
 
 const WHITE = '#FFFFFF';
-const BLACK = '#111111';
-const MUTED = '#6B6B6B';
-const LINE = '#D0D5DC';
-const SELECT_BG = '#F4F4F4';
+const BLACK = colors.ink;
+const MUTED = colors.muted2;
+const LINE = colors.cardBorder;
+const SELECT_BG = '#F1F3F6';
 
 function navItemStyle(on: boolean) {
   return {
@@ -15,16 +15,16 @@ function navItemStyle(on: boolean) {
     alignItems: 'center',
     gap: 12,
     width: 'calc(100% - 16px)',
-    height: 48,
+    height: 52,
     margin: '0 8px',
     padding: on ? '0 14px 0 16px' : '0 14px 0 18px',
     boxSizing: 'border-box' as const,
     border: 'none',
-    borderRadius: 10,
+    borderRadius: radii.sm,
     background: on ? SELECT_BG : 'transparent',
     color: on ? BLACK : MUTED,
-    fontWeight: on ? 700 : 600,
-    fontSize: 18,
+    fontWeight: on ? 700 : 700,
+    fontSize: 19,
     letterSpacing: 0.02,
     lineHeight: 1.5,
     cursor: 'pointer',
@@ -45,13 +45,13 @@ export function Nav() {
     <aside
       data-noprint="1"
       style={{
-        width: 240,
+        width: 268,
         flexShrink: 0,
         height: '100%',
         background: WHITE,
         display: 'flex',
         flexDirection: 'column',
-        borderRight: `1px solid ${LINE}`,
+        borderRight: `1.5px solid ${LINE}`,
       }}
     >
       <div
@@ -62,7 +62,7 @@ export function Nav() {
           height: TOP_BAR_HEIGHT,
           boxSizing: 'border-box',
           padding: '0 16px',
-          borderBottom: `1px solid ${LINE}`,
+          borderBottom: `1.5px solid ${LINE}`,
           flexShrink: 0,
         }}
       >
@@ -87,7 +87,7 @@ export function Nav() {
         <div style={{ minWidth: 0 }}>
           <div
             style={{
-              fontSize: 22,
+              fontSize: 24,
               fontWeight: 700,
               color: BLACK,
               lineHeight: 1.4,
@@ -100,7 +100,7 @@ export function Nav() {
           </div>
           <div
             style={{
-              fontSize: 16,
+              fontSize: 17,
               color: MUTED,
               lineHeight: 1.5,
               marginTop: 4,
@@ -142,20 +142,20 @@ export function Nav() {
                     left: 0,
                     top: 12,
                     bottom: 12,
-                    width: 3,
+                    width: 4,
                     borderRadius: 2,
                     background: BLACK,
                   }}
                 />
               )}
-              <NavIcon screen={n.key} size={20} stroke={on ? 2 : 1.7} />
+              <NavIcon screen={n.key} size={22} stroke={on ? 2.2 : 2} />
               {n.label}
             </button>
           );
         })}
       </nav>
 
-      <div style={{ padding: '14px 0 18px', borderTop: `1px solid ${LINE}` }}>
+      <div style={{ padding: '14px 0 18px', borderTop: `1.5px solid ${LINE}` }}>
         <button
           type="button"
           title="ဆက်တင်"
@@ -170,13 +170,13 @@ export function Nav() {
                 left: 0,
                 top: 12,
                 bottom: 12,
-                width: 3,
+                width: 4,
                 borderRadius: 2,
                 background: BLACK,
               }}
             />
           )}
-          <IconSettings size={20} stroke={screen === 'settings' ? 2 : 1.7} />
+          <IconSettings size={22} stroke={screen === 'settings' ? 2.2 : 2} />
           ဆက်တင်
         </button>
         <button

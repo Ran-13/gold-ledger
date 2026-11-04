@@ -15,6 +15,7 @@ import {
   assertStockNonNegative,
   isoDate,
   isoTime,
+  nextVoucherInt,
   stockFromParts,
   toYway,
 } from '../lib/units'
@@ -351,7 +352,7 @@ export async function browserSaveTxn(input: SaveTxnInput): Promise<number> {
   } else if (customerId == null) {
     throw new Error('ဝယ်သူ ရွေးပါ သို့မဟုတ် အသစ်ထည့်ပါ')
   }
-  const voucher_no = d.txns.reduce((m, t) => Math.max(m, t.voucher_no), 0) + 1
+  const voucher_no = nextVoucherInt(d.txns.map((t) => t.voucher_no))
   const id = d.nextTxnId++
   d.txns.push({
     id,

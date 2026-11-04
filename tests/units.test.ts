@@ -9,7 +9,10 @@ import {
   N,
   fromYway,
   keepNumInput,
+  nextVoucherInt,
   toLatinDigits,
+  voucherNo,
+  voucherPrefix,
 } from '../src/lib/units';
 import { bucketDates, enumerateDates, marginOf } from '../src/lib/reports';
 
@@ -124,5 +127,29 @@ describe('report bucketing', () => {
       buyByDate,
     );
     expect(m).toBe(100000);
+  });
+});
+
+describe('voucherNo letter series', () => {
+  it('formats A-0000 … A-9999 → B-0000 → Z-9999 → AA-0000', () => {
+    expect(voucherNo(0)).toBe('A-0000');
+    expect(voucherNo(1)).toBe('A-0001');
+    expect(voucherNo(9999)).toBe('A-9999');
+    expect(voucherNo(10_000)).toBe('B-0000');
+    expect(voucherNo(25 * 10_000 + 9999)).toBe('Z-9999');
+    expect(voucherNo(26 * 10_000)).toBe('AA-0000');
+    expect(voucherNo(26 * 10_000 + 1)).toBe('AA-0001');
+  });
+
+  it('builds Excel-style prefixes', () => {
+    expect(voucherPrefix(0)).toBe('A');
+    expect(voucherPrefix(25)).toBe('Z');
+    expect(voucherPrefix(26)).toBe('AA');
+    expect(voucherPrefix(27)).toBe('AB');
+  });
+
+  it('nextVoucherInt starts at 0 when empty', () => {
+    expect(nextVoucherInt([])).toBe(0);
+    expect(nextVoucherInt([0, 3, 2])).toBe(4);
   });
 });

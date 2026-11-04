@@ -1,7 +1,15 @@
 
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { Card } from '../components/Card';
-import { MiniFact, StatStrip, tableTd, tableTh } from '../components/ClearUI';
+import {
+  CellMeta,
+  CellTone,
+  MiniFact,
+  StatStrip,
+  tableTd,
+  tableTh,
+  ty,
+} from '../components/ClearUI';
 import { IconMinus, IconPlus } from '../components/Icons';
 import { PaginationBar, usePagination } from '../components/Pagination';
 import {
@@ -23,6 +31,7 @@ import {
   D,
   W,
   YWAY_PER_KYAT,
+  formatDateTime,
   money,
   stock as stockCalc,
 } from '../lib/units';
@@ -436,22 +445,19 @@ export function Stock() {
               return (
                 <tr key={m.key}>
                   <td style={{ ...tableTd, paddingLeft: 16 }}>
-                    <div
-                      style={{
-                        fontSize: 15,
-                        fontWeight: 700,
-                        color: isIn ? colors.sell : colors.buy,
-                        lineHeight: 1.35,
-                      }}
-                    >
-                      {m.label}
-                    </div>
-                    <div className="num" style={{ fontSize: 14, color: colors.muted2, marginTop: 3 }}>
-                      {D(m.date, digits)} · {D(m.time, digits)}
-                    </div>
+                    <CellTone sell={isIn}>{m.label}</CellTone>
+                    <CellMeta className="num">{formatDateTime(m.date, m.time, digits)}</CellMeta>
                   </td>
                   <td style={{ ...tableTd, maxWidth: 280 }}>
-                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 15 }}>
+                    <div
+                      style={{
+                        ...ty.tone,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        color: colors.ink,
+                      }}
+                    >
                       {m.detail}
                     </div>
                   </td>
@@ -497,14 +503,14 @@ export function Stock() {
                           void removeAdj(m);
                         }}
                         style={{
-                          height: 30,
-                          padding: '0 12px',
-                          border: `1px solid ${colors.cardBorder}`,
-                          borderRadius: 7,
+                          height: 36,
+                          padding: '0 14px',
+                          border: `1.5px solid ${colors.cardBorder}`,
+                          borderRadius: radii.sm,
                           background: colors.white,
                           color: colors.buy,
-                          fontSize: 14,
-                          fontWeight: 600,
+                          fontSize: 17,
+                          fontWeight: 700,
                           cursor: 'pointer',
                         }}
                       >

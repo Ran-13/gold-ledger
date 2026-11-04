@@ -1,8 +1,15 @@
 import { Card } from '../components/Card';
-import { clearPrimaryBtn, tableTd, tableTh } from '../components/ClearUI';
+import {
+  CellMeta,
+  CellPrimary,
+  btnTableAction,
+  clearPrimaryBtn,
+  tableTd,
+  tableTh,
+} from '../components/ClearUI';
 import { PaginationBar, usePagination } from '../components/Pagination';
 import { D, W } from '../lib/units';
-import { colors, radii } from '../styles/tokens';
+import { colors } from '../styles/tokens';
 import { useStore } from '../store';
 
 export function Customers() {
@@ -74,10 +81,8 @@ export function Customers() {
             {page.slice.map((c) => (
               <tr key={c.id}>
                 <td style={{ ...tableTd, paddingLeft: 16 }}>
-                  <div style={{ fontWeight: 600, fontSize: 16, lineHeight: 1.4 }}>{c.name}</div>
-                  <div className="num" style={{ fontSize: 14, color: colors.muted2, marginTop: 2 }}>
-                    {c.phone}
-                  </div>
+                  <CellPrimary>{c.name}</CellPrimary>
+                  <CellMeta className="num">{c.phone}</CellMeta>
                 </td>
                 <td
                   className="num"
@@ -89,32 +94,15 @@ export function Customers() {
                 >
                   {c.nrc}
                 </td>
-                <td className="num" style={tableTd}>
+                <td className="num" style={{ ...tableTd, fontWeight: 700 }}>
                   {c.count}
                 </td>
                 <td style={{ ...tableTd, whiteSpace: 'nowrap' }}>
-                  <div style={{ fontWeight: 700, color: colors.sell, fontSize: 15 }}>{c.soldW}</div>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: colors.buy, marginTop: 2 }}>
-                    {c.boughtW}
-                  </div>
+                  <CellPrimary style={{ color: colors.sell }}>{c.soldW}</CellPrimary>
+                  <CellPrimary style={{ color: colors.buy, marginTop: 2 }}>{c.boughtW}</CellPrimary>
                 </td>
                 <td style={{ ...tableTd, paddingRight: 16, textAlign: 'right' }}>
-                  <button
-                    type="button"
-                    onClick={() => openLedger(c.name)}
-                    style={{
-                      height: 32,
-                      border: 'none',
-                      background: colors.ink,
-                      color: colors.white,
-                      borderRadius: radii.button,
-                      padding: '0 12px',
-                      fontSize: 15,
-                      fontWeight: 700,
-                      whiteSpace: 'nowrap',
-                      cursor: 'pointer',
-                    }}
-                  >
+                  <button type="button" onClick={() => openLedger(c.name)} style={btnTableAction}>
                     မှတ်တမ်းကြည့်မည်
                   </button>
                 </td>

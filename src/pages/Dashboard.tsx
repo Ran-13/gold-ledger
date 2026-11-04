@@ -1,8 +1,20 @@
 import { useMemo } from 'react';
 import { Card } from '../components/Card';
-import { MiniFact, StatStrip, TextBtn } from '../components/ClearUI';
-import { Pill } from '../components/Pill';
-import { customerName } from '../lib/format';
+import {
+  CellChannel,
+  CellMeta,
+  CellPrimary,
+  CellTone,
+  MiniFact,
+  StatStrip,
+  TextBtn,
+  tableHover,
+  tableTd,
+  tableTh,
+  ty,
+} from '../components/ClearUI';
+import { IconCalendar } from '../components/Icons';
+import { customerName, typeLabel } from '../lib/format';
 import {
   cardStockTotalYway,
   computeCardStock,
@@ -10,8 +22,18 @@ import {
   isCardDenom,
   type CardDenom,
 } from '../lib/cards';
-import { D, W, money, isoDate, stock as stockCalc, sumMoney, voucherNo } from '../lib/units';
-import { colors } from '../styles/tokens';
+import {
+  D,
+  W,
+  formatDate,
+  formatDateTime,
+  money,
+  isoDate,
+  stock as stockCalc,
+  sumMoney,
+  voucherNo,
+} from '../lib/units';
+import { colors, radii } from '../styles/tokens';
 import { useStore } from '../store';
 
 export function Dashboard() {
@@ -83,111 +105,182 @@ export function Dashboard() {
           gap: 12,
         }}
       >
-        <div style={{ fontSize: 16, fontWeight: 600, color: colors.muted }}>{D(today, digits)}</div>
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '8px 14px',
+            borderRadius: radii.button,
+            background: colors.white,
+            border: `1.5px solid ${colors.cardBorder}`,
+            color: colors.ink,
+          }}
+        >
+          <span
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 32,
+              height: 32,
+              borderRadius: radii.md,
+              background: '#EEF2F7',
+              color: colors.ink,
+              flexShrink: 0,
+            }}
+          >
+            <IconCalendar size={17} />
+          </span>
+          <span className="num" style={{ fontSize: 20, fontWeight: 700, letterSpacing: 0.3, lineHeight: 1.2 }}>
+            {formatDate(today, digits)}
+          </span>
+        </div>
         <TextBtn onClick={() => setScreen('stock')}>လက်ကျန် ကြည့်ရန် →</TextBtn>
       </div>
 
-      <StatStrip>
-        <MiniFact
-          label="ငွေ(အရောင်း)"
-          value={money(sellAmt, digits)}
-          tone="sell"
-          sub={`${D(tS.length, digits)} စောင်`}
-        />
-        <MiniFact
-          label="ငွေ(အဝယ်)"
-          value={money(buyAmt, digits)}
-          tone="buy"
-          sub={`${D(tB.length, digits)} စောင်`}
-        />
-        <MiniFact label="ရွှေ(အရောင်း)" value={W(sellGold, digits)} tone="sell" />
-        <MiniFact label="ရွှေ(အဝယ်)" value={W(buyGold, digits)} tone="buy" />
-        <MiniFact label="လက်ကျန်(အကယ်ဒမီအခေါက်ရွှေ)" value={W(cardY, digits)} />
-        <MiniFact label="လက်ကျန်(မီးလင်းဖြတ်စ)" value={W(looseY, digits)} />
-      </StatStrip>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <StatStrip>
+          <MiniFact
+            label="ငွေ(အရောင်း)"
+            value={money(sellAmt, digits)}
+            tone="sell"
+            sub={`${D(tS.length, digits)} စောင်`}
+          />
+          <MiniFact
+            label="ငွေ(အဝယ်)"
+            value={money(buyAmt, digits)}
+            tone="buy"
+            sub={`${D(tB.length, digits)} စောင်`}
+          />
+          <MiniFact label="ရွှေ(အရောင်း)" value={W(sellGold, digits)} tone="sell" />
+          <MiniFact label="ရွှေ(အဝယ်)" value={W(buyGold, digits)} tone="buy" />
+        </StatStrip>
+        <StatStrip>
+          <MiniFact label="လက်ကျန်(အကယ်ဒမီအခေါက်ရွှေ)" value={W(cardY, digits)} />
+          <MiniFact label="လက်ကျန်(မီးလင်းဖြတ်စ)" value={W(looseY, digits)} />
+        </StatStrip>
+      </div>
 
       <Card padding={0} style={{ overflow: 'hidden' }}>
         <div
           style={{
-            padding: '14px 16px',
+            padding: '16px 16px',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            borderBottom: `1px solid ${colors.rowDivider}`,
+            borderBottom: `1.5px solid ${colors.rowDivider}`,
           }}
         >
-          <div style={{ fontSize: 16, fontWeight: 700 }}>နောက်ဆုံး စာရင်း</div>
+          <div style={ty.section}>နောက်ဆုံး စာရင်း</div>
           <TextBtn onClick={() => setScreen('ledger')}>အားလုံး →</TextBtn>
         </div>
 
-        {recent.length === 0 ? (
-          <div style={{ padding: '36px 20px', textAlign: 'center', color: colors.muted2, fontSize: 16 }}>
-            ယနေ့ / မကြာသေးမီ စာရင်း မရှိသေးပါ
-          </div>
-        ) : (
-          recent.map((t, i) => {
-            const sell = t.type === 'sell';
-            return (
-              <div
-                key={t.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => openVoucher(t.id)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') openVoucher(t.id);
-                }}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'auto minmax(0, 1fr) auto',
-                  gap: 14,
-                  alignItems: 'center',
-                  padding: '13px 16px',
-                  borderTop: i === 0 ? 'none' : `1px solid ${colors.rowDivider}`,
-                  cursor: 'pointer',
-                }}
-              >
-                <Pill type={t.type} />
-                <div style={{ minWidth: 0 }}>
-                  <div
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 860 }}>
+            <thead>
+              <tr>
+                <th style={{ ...tableTh, paddingLeft: 16 }}>ဘောင်ချာ</th>
+                <th style={tableTh}>အမျိုးအစား</th>
+                <th style={tableTh}>ဖောက်သည်</th>
+                <th style={{ ...tableTh, textAlign: 'right' }}>အလေးချိန်</th>
+                <th style={{ ...tableTh, textAlign: 'right' }}>စျေး</th>
+                <th style={{ ...tableTh, paddingRight: 16, textAlign: 'right' }}>ငွေ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recent.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={6}
                     style={{
-                      fontSize: 16,
-                      fontWeight: 600,
-                      lineHeight: 1.35,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
+                      ...tableTd,
+                      padding: '36px 16px',
+                      textAlign: 'center',
+                      color: colors.muted2,
+                      borderBottom: 'none',
                     }}
                   >
-                    {customerName(t.customer_id, custMap)}
-                  </div>
-                  <div style={{ fontSize: 14, color: colors.muted2, marginTop: 3, lineHeight: 1.4 }}>
-                    {voucherNo(t.voucher_no, digits)} · {D(t.date, digits)} ·{' '}
-                    {t.channel === 'card' ? 'အကယ်ဒမီအခေါက်ရွှေ' : 'မီးလင်းဖြတ်စ'}
-                    {t.channel === 'card' && cardsByTxn.get(t.id)?.length
-                      ? ` · ${formatCardLines(cardsByTxn.get(t.id)!, digits)}`
-                      : ''}
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div
-                    className="num"
-                    style={{
-                      fontSize: 16,
-                      fontWeight: 700,
-                      color: sell ? colors.sell : colors.buy,
-                      lineHeight: 1.25,
+                    ယနေ့ / မကြာသေးမီ စာရင်း မရှိသေးပါ
+                  </td>
+                </tr>
+              )}
+              {recent.map((t) => {
+                const sell = t.type === 'sell';
+                return (
+                  <tr
+                    key={t.id}
+                    onClick={() => openVoucher(t.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') openVoucher(t.id);
+                    }}
+                    tabIndex={0}
+                    style={{ cursor: 'pointer' }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = tableHover;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = colors.white;
                     }}
                   >
-                    {money(t.amount, digits)}
-                  </div>
-                  <div className="num" style={{ fontSize: 14, color: colors.muted2, marginTop: 2 }}>
-                    {W(t.yway, digits)}
-                  </div>
-                </div>
-              </div>
-            );
-          })
-        )}
+                    <td style={{ ...tableTd, paddingLeft: 16, whiteSpace: 'nowrap' }}>
+                      <CellPrimary className="num">{voucherNo(t.voucher_no, digits)}</CellPrimary>
+                      <CellMeta className="num">{formatDateTime(t.date, t.time, digits)}</CellMeta>
+                    </td>
+                    <td style={tableTd}>
+                      <CellTone sell={sell}>{typeLabel(t.type)}</CellTone>
+                      <CellChannel>
+                        {t.channel === 'card' ? 'အကယ်ဒမီအခေါက်ရွှေ' : 'မီးလင်းဖြတ်စ'}
+                      </CellChannel>
+                    </td>
+                    <td style={{ ...tableTd, maxWidth: 240 }}>
+                      <CellPrimary
+                        style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      >
+                        {customerName(t.customer_id, custMap)}
+                      </CellPrimary>
+                      {t.note ? (
+                        <CellMeta
+                          style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                        >
+                          {t.note}
+                        </CellMeta>
+                      ) : null}
+                    </td>
+                    <td
+                      className="num"
+                      style={{ ...tableTd, textAlign: 'right', fontWeight: 700, whiteSpace: 'nowrap' }}
+                    >
+                      <div>{W(t.yway, digits)}</div>
+                      {t.channel === 'card' && cardsByTxn.get(t.id)?.length ? (
+                        <div style={ty.weightMeta}>{formatCardLines(cardsByTxn.get(t.id)!, digits)}</div>
+                      ) : null}
+                    </td>
+                    <td
+                      className="num"
+                      style={{ ...tableTd, textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}
+                    >
+                      {money(t.price, digits)}
+                    </td>
+                    <td
+                      className="num"
+                      style={{
+                        ...tableTd,
+                        paddingRight: 16,
+                        textAlign: 'right',
+                        fontWeight: 700,
+                        whiteSpace: 'nowrap',
+                        color: sell ? colors.sell : colors.buy,
+                      }}
+                    >
+                      {money(t.amount, digits)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </Card>
     </div>
   );

@@ -6,14 +6,15 @@ import type { Customer, TxnType } from '../db/types';
 import { saveTxn, upsertPrice } from '../db/queries';
 import { DEFAULT_NRC, isNrcComplete } from '../lib/nrc';
 import {
-  D,
   N,
   W,
   amount,
+  formatDate,
   isoDate,
   keepNumInput,
   money,
   stockFromParts,
+  nextVoucherInt,
   toYway,
   voucherNo,
 } from '../lib/units';
@@ -91,7 +92,7 @@ export function Entry() {
   const overdraw = form.type === 'sell' && yway > 0 && yway > stockY;
   const price = form.type === 'sell' ? N(sellStr) || curSell : N(buyStr) || curBuy;
   const amt = amount(yway, price);
-  const nextNo = Math.max(0, ...txns.map((t) => t.voucher_no)) + 1;
+  const nextNo = nextVoucherInt(txns.map((t) => t.voucher_no));
 
   const ql = form.query.trim().toLowerCase();
   const sel = customers.find((c) => c.id === form.customerId) ?? null;
@@ -196,7 +197,7 @@ export function Entry() {
 
   const noteText = hasToday
     ? 'ပြင်ရင် ယနေ့ဈေးအဖြစ် သိမ်းပါမယ်'
-    : `ယနေ့ဈေး မသတ်မှတ်ရသေး · ${D(latest.date, digits)} ဈေးကို ပြထားသည်`;
+    : `ယနေ့ဈေး မသတ်မှတ်ရသေး · ${formatDate(latest.date, digits)} ဈေးကို ပြထားသည်`;
 
   return (
     <div
@@ -372,38 +373,6 @@ export function Entry() {
                 </span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                <label style={priceBox(form.type === 'buy')}>
-                  <span
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      fontSize: 17,
-                      color: colors.muted,
-                    }}
-                  >
-                    <span>ဝယ်ဈေး</span>
-                    <span style={{ color: colors.goldDark, fontWeight: 600 }}>
-                      {form.type === 'buy' ? 'ဒီစာရင်းအတွက်' : ''}
-                    </span>
-                  </span>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    className="num"
-                    value={buyStr}
-                    onChange={(e) => onBuyChange(e.target.value)}
-                    style={{
-                      border: 'none',
-                      outline: 'none',
-                      background: 'none',
-                      fontSize: 26,
-                      fontWeight: 700,
-                      width: '100%',
-                      padding: 0,
-                      color: colors.ink,
-                    }}
-                  />
-                </label>
                 <label style={priceBox(form.type === 'sell')}>
                   <span
                     style={{
@@ -424,6 +393,38 @@ export function Entry() {
                     className="num"
                     value={sellStr}
                     onChange={(e) => onSellChange(e.target.value)}
+                    style={{
+                      border: 'none',
+                      outline: 'none',
+                      background: 'none',
+                      fontSize: 26,
+                      fontWeight: 700,
+                      width: '100%',
+                      padding: 0,
+                      color: colors.ink,
+                    }}
+                  />
+                </label>
+                <label style={priceBox(form.type === 'buy')}>
+                  <span
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: 17,
+                      color: colors.muted,
+                    }}
+                  >
+                    <span>ဝယ်ဈေး</span>
+                    <span style={{ color: colors.goldDark, fontWeight: 600 }}>
+                      {form.type === 'buy' ? 'ဒီစာရင်းအတွက်' : ''}
+                    </span>
+                  </span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    className="num"
+                    value={buyStr}
+                    onChange={(e) => onBuyChange(e.target.value)}
                     style={{
                       border: 'none',
                       outline: 'none',

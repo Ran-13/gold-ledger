@@ -65,11 +65,12 @@ html, body, #root {
   margin: 0;
   height: 100%;
   background: #FFFFFF;
-  color: #1B2A41;
+  color: #0F1A2B;
   /* Myanmar first so diacritics render correctly; Plex for Latin/numbers */
   font-family: 'Pyidaungsu', 'IBM Plex Sans', sans-serif;
-  font-size: 19px;
-  line-height: 1.65;
+  /* Larger base for low-vision shop users */
+  font-size: 21px;
+  line-height: 1.7;
   letter-spacing: 0.02em;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -104,7 +105,7 @@ input, select, button, textarea {
 }
 
 input:focus, select:focus, textarea:focus {
-  outline: 2px solid #1B2A41;
+  outline: 3px solid #0F1A2B;
   outline-offset: -1px;
 }
 

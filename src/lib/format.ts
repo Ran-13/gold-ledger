@@ -1,12 +1,12 @@
 import type { CSSProperties } from 'react';
 import type { DigitsMode } from './units';
-import { colors } from '../styles/tokens';
+import { colors, radii } from '../styles/tokens';
 
 export function pillStyle(type: 'sell' | 'buy'): CSSProperties {
   return {
     display: 'inline-block',
     padding: '3px 14px',
-    borderRadius: 6,
+    borderRadius: radii.pill,
     fontSize: 17,
     fontWeight: 600,
     whiteSpace: 'nowrap',

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { D, DigitsMode } from '../lib/units';
-import { colors } from '../styles/tokens';
+import { colors, radii } from '../styles/tokens';
 
 export const PAGE_SIZE = 25;
 
@@ -67,7 +67,7 @@ export function PaginationBar({
         minWidth: 40,
         padding: '0 14px',
         border: `1px solid ${colors.cardBorder}`,
-        borderRadius: 8,
+        borderRadius: radii.sm,
         background: colors.white,
         color: disabled ? colors.muted2 : colors.ink,
         fontSize: 17,

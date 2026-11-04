@@ -1,10 +1,32 @@
-import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Card } from '../components/Card';
-import { MiniFact, StatStrip, tableHover, tableTd, tableTh } from '../components/ClearUI';
+import {
+  CellChannel,
+  CellMeta,
+  CellPrimary,
+  CellTone,
+  MiniFact,
+  StatStrip,
+  btnTableAction,
+  tableHover,
+  tableTd,
+  tableTh,
+  ty,
+} from '../components/ClearUI';
 import { PaginationBar, usePagination } from '../components/Pagination';
 import { customerName, typeLabel } from '../lib/format';
 import { formatCardLines, isCardDenom, type CardDenom } from '../lib/cards';
-import { D, W, addDays, isoDate, money, sumMoney, voucherNo } from '../lib/units';
+import {
+  D,
+  W,
+  addDays,
+  formatDate,
+  formatTimeAmPm,
+  isoDate,
+  money,
+  sumMoney,
+  voucherNo,
+} from '../lib/units';
 import type { DigitsMode } from '../lib/units';
 import { MONTHS_MY, colors, radii } from '../styles/tokens';
 import { useStore } from '../store';
@@ -75,7 +97,7 @@ export function Reports() {
     if (view === 'today') {
       from = today;
       to = today;
-      title = `ယနေ့ · ${D(today, digits)}`;
+      title = `ယနေ့ · ${formatDate(today, digits)}`;
     } else if (view === '7') {
       from = isoDate(addDays(new Date(), -6));
       title = `နောက်ဆုံး ၇ ရက်`;
@@ -135,8 +157,8 @@ export function Reports() {
       return {
         id: t.id,
         no: voucherNo(t.voucher_no, digits),
-        date: D(t.date, digits),
-        time: t.time ? D(t.time.slice(0, 5), digits) : '',
+        date: formatDate(t.date, digits),
+        time: t.time ? formatTimeAmPm(t.time) : '',
         name: customerName(t.customer_id, custMap),
         typeLabel: typeLabel(t.type),
         channel: t.channel === 'card' ? 'အကယ်ဒမီအခေါက်ရွှေ' : 'မီးလင်းဖြတ်စ',
@@ -158,20 +180,35 @@ export function Reports() {
         const b = day.filter((t) => t.type === 'buy');
         return {
           date: d,
-          label: D(d, digits),
+          label: formatDate(d, digits),
           sellAmt: sumMoney(s, (t) => t.amount),
           buyAmt: sumMoney(b, (t) => t.amount),
+          sellGoldAmt: sumMoney(s, (t) => BigInt(Math.round(t.amount)) - feeOf(t)),
+          buyGoldAmt: sumMoney(b, (t) => BigInt(Math.round(t.amount)) - feeOf(t)),
+          sellFee: sumMoney(s, feeOf),
+          buyFee: sumMoney(b, feeOf),
           sellY: sum(s, (t) => t.yway),
           buyY: sum(b, (t) => t.yway),
+          sellN: s.length,
+          buyN: b.length,
           n: day.length,
         };
       });
+
+    /** `YYYY-M-D` / `YYYY-MM-DD` → `YYYY-MM` */
+    const yearMonth = (date: string): string => {
+      const m = String(date || '')
+        .trim()
+        .match(/^(\d{4})-(\d{1,2})/);
+      if (!m) return '';
+      return `${m[1]}-${String(Number(m[2])).padStart(2, '0')}`;
+    };
 
     const months =
       view === 'year'
         ? Array.from({ length: 12 }, (_, i) => {
             const k = `${repYear}-${String(i + 1).padStart(2, '0')}`;
-            const mList = list.filter((t) => t.date.startsWith(k));
+            const mList = list.filter((t) => yearMonth(t.date) === k);
             const s = mList.filter((t) => t.type === 'sell');
             const b = mList.filter((t) => t.type === 'buy');
             return {
@@ -179,6 +216,10 @@ export function Reports() {
               name: MONTHS_MY[i]!,
               sellAmt: sumMoney(s, (t) => t.amount),
               buyAmt: sumMoney(b, (t) => t.amount),
+              sellY: sum(s, (t) => t.yway),
+              buyY: sum(b, (t) => t.yway),
+              sellN: s.length,
+              buyN: b.length,
               n: mList.length,
               empty: mList.length === 0,
             };
@@ -259,7 +300,7 @@ export function Reports() {
               {view !== 'today' && (
                 <span style={{ color: colors.muted, fontWeight: 500 }}>
                   {' '}
-                  · {D(period.from, digits)} – {D(period.to, digits)}
+                  · {formatDate(period.from, digits)} – {formatDate(period.to, digits)}
                 </span>
               )}
             </div>
@@ -369,6 +410,9 @@ export function Reports() {
           {view === 'year' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ fontSize: 18, fontWeight: 700 }}>လအလိုက်</div>
+              <div style={{ fontSize: 14, color: colors.muted, lineHeight: 1.45 }}>
+                စာရင်းရှိသောလကို နှိပ်ပြီး အသေးစိတ်ကြည့်နိုင်သည်
+              </div>
               <div
                 style={{
                   display: 'grid',
@@ -376,7 +420,7 @@ export function Reports() {
                   gap: 10,
                 }}
               >
-                {period.months.map((m) => (
+                {[...period.months].sort((a, b) => Number(a.empty) - Number(b.empty)).map((m) => (
                   <button
                     key={m.key}
                     type="button"
@@ -386,7 +430,7 @@ export function Reports() {
                       textAlign: 'left',
                       padding: '14px 16px',
                       borderRadius: radii.card,
-                      border: `1px solid ${colors.cardBorder}`,
+                      border: `1px solid ${m.empty ? colors.cardBorder : colors.ink}`,
                       background: m.empty ? '#FAFBFC' : colors.white,
                       cursor: m.empty ? 'default' : 'pointer',
                       opacity: m.empty ? 0.55 : 1,
@@ -396,17 +440,36 @@ export function Reports() {
                     {m.empty ? (
                       <div style={{ fontSize: 15, color: colors.muted2, marginTop: 6 }}>မရှိ</div>
                     ) : (
-                      <>
-                        <div
-                          className="num"
-                          style={{ fontSize: 18, fontWeight: 700, color: colors.sell, marginTop: 8 }}
-                        >
-                          {money(m.sellAmt, digits)}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: colors.sell }}>
+                            အရောင်း · {D(m.sellN, digits)} စောင်
+                          </div>
+                          <div
+                            className="num"
+                            style={{ fontSize: 17, fontWeight: 700, color: colors.sell, marginTop: 2 }}
+                          >
+                            {money(m.sellAmt, digits)}
+                          </div>
+                          <div style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>
+                            {W(m.sellY, digits)}
+                          </div>
                         </div>
-                        <div style={{ fontSize: 14, color: colors.muted, marginTop: 4 }}>
-                          ရောင်း · {D(m.n, digits)} စောင်
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: colors.buy }}>
+                            အဝယ် · {D(m.buyN, digits)} စောင်
+                          </div>
+                          <div
+                            className="num"
+                            style={{ fontSize: 17, fontWeight: 700, color: colors.buy, marginTop: 2 }}
+                          >
+                            {money(m.buyAmt, digits)}
+                          </div>
+                          <div style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>
+                            {W(m.buyY, digits)}
+                          </div>
                         </div>
-                      </>
+                      </div>
                     )}
                   </button>
                 ))}
@@ -462,15 +525,27 @@ export function Reports() {
                               </div>
                             </div>
                             <div>
-                              <div style={{ fontSize: 14, color: colors.sell, fontWeight: 600 }}>ရောင်း</div>
+                              <div style={{ fontSize: 14, color: colors.sell, fontWeight: 600 }}>
+                                ရောင်း · {D(d.sellN, digits)}
+                              </div>
                               <div className="num" style={{ fontSize: 17, fontWeight: 700, color: colors.sell }}>
                                 {d.sellAmt ? money(d.sellAmt, digits) : '—'}
                               </div>
+                              <div style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>
+                                {d.sellY ? W(d.sellY, digits) : '—'}
+                                {d.sellFee > 0n ? ` · ကဒ် ${money(d.sellFee, digits)}` : ''}
+                              </div>
                             </div>
                             <div>
-                              <div style={{ fontSize: 14, color: colors.buy, fontWeight: 600 }}>ဝယ်</div>
+                              <div style={{ fontSize: 14, color: colors.buy, fontWeight: 600 }}>
+                                ဝယ် · {D(d.buyN, digits)}
+                              </div>
                               <div className="num" style={{ fontSize: 17, fontWeight: 700, color: colors.buy }}>
                                 {d.buyAmt ? money(d.buyAmt, digits) : '—'}
+                              </div>
+                              <div style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>
+                                {d.buyY ? W(d.buyY, digits) : '—'}
+                                {d.buyFee > 0n ? ` · ကဒ် ${money(d.buyFee, digits)}` : ''}
                               </div>
                             </div>
                           </div>
@@ -586,8 +661,8 @@ function TxnTable({
           borderBottom: `1px solid ${colors.rowDivider}`,
         }}
       >
-        <div style={{ fontSize: 16, fontWeight: 700, color }}>{title}</div>
-        <div style={{ fontSize: 14, color: colors.muted, fontWeight: 600 }}>
+        <div style={{ ...ty.section, color }}>{title}</div>
+        <div style={{ fontSize: 17, color: colors.muted, fontWeight: 700 }}>
           {D(rows.length, digits)} စောင်
         </div>
       </div>
@@ -596,7 +671,7 @@ function TxnTable({
           <thead>
             <tr>
               <th style={{ ...tableTh, paddingLeft: 16 }}>ဘောင်ချာ</th>
-              <th style={tableTh}>အမျိုး</th>
+              <th style={tableTh}>အမျိုးအစား</th>
               <th style={tableTh}>ဖောက်သည်</th>
               <th style={{ ...tableTh, textAlign: 'right' }}>အလေးချိန်</th>
               <th style={{ ...tableTh, textAlign: 'right' }}>စျေး</th>
@@ -632,60 +707,33 @@ function TxnTable({
                 }}
               >
                 <td style={{ ...tableTd, paddingLeft: 16, whiteSpace: 'nowrap' }}>
-                  <div className="num" style={{ fontWeight: 700, color: colors.ink, fontSize: 16 }}>
-                    {r.no}
-                  </div>
-                  <div className="num" style={{ fontSize: 14, color: colors.muted2, marginTop: 2 }}>
+                  <CellPrimary className="num">{r.no}</CellPrimary>
+                  <CellMeta className="num">
                     {r.date}
                     {r.time ? ` · ${r.time}` : ''}
-                  </div>
+                  </CellMeta>
                 </td>
                 <td style={tableTd}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color, lineHeight: 1.35 }}>{r.typeLabel}</div>
-                  <div style={{ fontSize: 14, color: colors.muted2, marginTop: 3 }}>{r.channel}</div>
+                  <CellTone sell={r.sell}>{r.typeLabel}</CellTone>
+                  <CellChannel>{r.channel}</CellChannel>
                 </td>
                 <td style={{ ...tableTd, maxWidth: 240 }}>
-                  <div
-                    style={{
-                      fontWeight: 600,
-                      fontSize: 16,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
+                  <CellPrimary
+                    style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                   >
                     {r.name}
-                  </div>
-                  {r.cards ? (
-                    <div
-                      style={{
-                        fontSize: 14,
-                        color: colors.muted2,
-                        marginTop: 2,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {r.cards}
-                    </div>
-                  ) : r.note ? (
-                    <div
-                      style={{
-                        fontSize: 14,
-                        color: colors.muted2,
-                        marginTop: 2,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
+                  </CellPrimary>
+                  {r.note ? (
+                    <CellMeta
+                      style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                     >
                       {r.note}
-                    </div>
+                    </CellMeta>
                   ) : null}
                 </td>
                 <td className="num" style={{ ...tableTd, textAlign: 'right', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                  {r.weight}
+                  <div>{r.weight}</div>
+                  {r.cards ? <div style={ty.weightMeta}>{r.cards}</div> : null}
                 </td>
                 <td className="num" style={{ ...tableTd, textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>
                   {r.price}
@@ -700,7 +748,7 @@ function TxnTable({
                   style={{ ...tableTd, paddingRight: 16, textAlign: 'right', whiteSpace: 'nowrap' }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <button type="button" onClick={() => onOpen(r.id)} style={btnRow}>
+                  <button type="button" onClick={() => onOpen(r.id)} style={btnTableAction}>
                     ဘောင်ချာ
                   </button>
                 </td>
@@ -721,15 +769,3 @@ function TxnTable({
     </Card>
   );
 }
-
-const btnRow: CSSProperties = {
-  height: 32,
-  padding: '0 12px',
-  border: `1px solid ${colors.cardBorder}`,
-  borderRadius: 7,
-  background: colors.white,
-  color: colors.ink,
-  fontSize: 15,
-  fontWeight: 600,
-  cursor: 'pointer',
-};

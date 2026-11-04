@@ -17,7 +17,7 @@ export function Card({
       style={{
         background: navy ? colors.ink : colors.white,
         color: navy ? colors.white : colors.ink,
-        border: navy ? `1px solid ${colors.navyBorder}` : `1px solid ${colors.cardBorder}`,
+        border: navy ? `1.5px solid ${colors.navyBorder}` : `1.5px solid ${colors.cardBorder}`,
         borderRadius: radii.card,
         boxShadow: navy ? 'none' : cardShadow,
         padding,
@@ -34,7 +34,7 @@ export function CardLabel({ children, muted }: { children: ReactNode; muted?: bo
   return (
     <div
       style={{
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: 700,
         lineHeight: 1.55,
         letterSpacing: '0.015em',
@@ -75,7 +75,7 @@ export function WeightFigure({
 /** Secondary money line */
 export function MoneyLine({ children }: { children: ReactNode }) {
   return (
-    <div className="num" style={{ fontSize: 16, fontWeight: 600, color: colors.muted, lineHeight: 1.5 }}>
+    <div className="num" style={{ fontSize: 18, fontWeight: 700, color: colors.muted, lineHeight: 1.5 }}>
       {children}
     </div>
   );

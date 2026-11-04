@@ -1,4 +1,5 @@
-import { create } from 'zustand';
+import { create } from 'zustand'
+import * as db from './db/queries'
 import type {
   CardAdjustment,
   CardOpening,
@@ -8,12 +9,11 @@ import type {
   StockAdjustment,
   Txn,
   TxnCard,
-} from './db/types';
-import * as db from './db/queries';
-import { scheduleDailyBackup } from './lib/autoBackup';
-import { verifyLogin } from './lib/auth';
-import { DEFAULT_CARD_FEE, type CardDenom } from './lib/cards';
-import { isoDate } from './lib/units';
+} from './db/types'
+import { verifyLogin } from './lib/auth'
+import { scheduleDailyBackup } from './lib/autoBackup'
+import { DEFAULT_CARD_FEE, type CardDenom } from './lib/cards'
+import { isoDate } from './lib/units'
 
 export type Screen =
   | 'dash'
@@ -24,89 +24,89 @@ export type Screen =
   | 'customers'
   | 'stock'
   | 'prices'
-  | 'settings';
+  | 'settings'
 
-export type RepMode = 'day' | 'month' | 'year';
-export type RepMetric = 'w' | 'm';
-export type RangeKey = '7' | '30' | '90' | 'all';
+export type RepMode = 'day' | 'month' | 'year'
+export type RepMetric = 'w' | 'm'
+export type RangeKey = '7' | '30' | '90' | 'all'
 
 interface LedgerFilter {
-  type: 'all' | 'sell' | 'buy';
-  channel: 'all' | 'card' | 'loose';
-  q: string;
-  from: string;
-  to: string;
+  type: 'all' | 'sell' | 'buy'
+  channel: 'all' | 'card' | 'loose'
+  q: string
+  from: string
+  to: string
 }
 
 interface AppState {
-  ready: boolean;
-  screen: Screen;
-  customers: Customer[];
-  prices: Price[];
-  txns: Txn[];
-  stockAdjustments: StockAdjustment[];
-  cardOpenings: CardOpening[];
-  cardAdjustments: CardAdjustment[];
-  txnCards: TxnCard[];
-  settings: Settings;
-  voucherId: number | null;
-  flt: LedgerFilter;
-  range: RangeKey;
-  repMode: RepMode;
-  repMetric: RepMetric;
-  repMonth: string;
-  repYear: number;
-  error: string | null;
-  entryDialogOpen: boolean;
-  customerDialogOpen: boolean;
-  priceDialogOpen: boolean;
-  openingStockDialogOpen: boolean;
-  stockAdjustDialogOpen: boolean;
-  stockAdjustKind: 'in' | 'out';
-  cardOpeningDialogOpen: boolean;
-  cardAdjustDialogOpen: boolean;
-  cardAdjustKind: 'in' | 'out';
-  cardAdjustDenom: CardDenom | null;
+  ready: boolean
+  screen: Screen
+  customers: Customer[]
+  prices: Price[]
+  txns: Txn[]
+  stockAdjustments: StockAdjustment[]
+  cardOpenings: CardOpening[]
+  cardAdjustments: CardAdjustment[]
+  txnCards: TxnCard[]
+  settings: Settings
+  voucherId: number | null
+  flt: LedgerFilter
+  range: RangeKey
+  repMode: RepMode
+  repMetric: RepMetric
+  repMonth: string
+  repYear: number
+  error: string | null
+  entryDialogOpen: boolean
+  customerDialogOpen: boolean
+  priceDialogOpen: boolean
+  openingStockDialogOpen: boolean
+  stockAdjustDialogOpen: boolean
+  stockAdjustKind: 'in' | 'out'
+  cardOpeningDialogOpen: boolean
+  cardAdjustDialogOpen: boolean
+  cardAdjustKind: 'in' | 'out'
+  cardAdjustDenom: CardDenom | null
   /** After save → open voucher and print once */
-  printAfterOpen: boolean;
-  voucherDialogOpen: boolean;
+  printAfterOpen: boolean
+  voucherDialogOpen: boolean
   /** Session auth — reset on each app launch */
-  authenticated: boolean;
+  authenticated: boolean
 
-  setScreen: (s: Screen) => void;
-  login: (username: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  setVoucherId: (id: number | null) => void;
-  setPrintAfterOpen: (v: boolean) => void;
-  openVoucher: (id: number, opts?: { print?: boolean }) => void;
-  closeVoucherDialog: () => void;
-  setFlt: (partial: Partial<LedgerFilter>) => void;
-  clearFlt: () => void;
-  setRange: (r: RangeKey) => void;
-  setRepMode: (m: RepMode) => void;
-  setRepMetric: (m: RepMetric) => void;
-  setRepMonth: (ym: string) => void;
-  setRepYear: (y: number) => void;
-  openEntryDialog: () => void;
-  closeEntryDialog: () => void;
-  openCustomerDialog: () => void;
-  closeCustomerDialog: () => void;
-  openPriceDialog: () => void;
-  closePriceDialog: () => void;
-  openOpeningStockDialog: () => void;
-  closeOpeningStockDialog: () => void;
-  openStockAdjustDialog: (kind: 'in' | 'out') => void;
-  closeStockAdjustDialog: () => void;
-  openCardOpeningDialog: () => void;
-  closeCardOpeningDialog: () => void;
-  openCardAdjustDialog: (kind: 'in' | 'out', denom: CardDenom) => void;
-  closeCardAdjustDialog: () => void;
-  bootstrap: () => Promise<void>;
-  refresh: () => Promise<void>;
-  refreshSettings: () => Promise<void>;
+  setScreen: (s: Screen) => void
+  login: (username: string, password: string) => Promise<boolean>
+  logout: () => void
+  setVoucherId: (id: number | null) => void
+  setPrintAfterOpen: (v: boolean) => void
+  openVoucher: (id: number, opts?: { print?: boolean }) => void
+  closeVoucherDialog: () => void
+  setFlt: (partial: Partial<LedgerFilter>) => void
+  clearFlt: () => void
+  setRange: (r: RangeKey) => void
+  setRepMode: (m: RepMode) => void
+  setRepMetric: (m: RepMetric) => void
+  setRepMonth: (ym: string) => void
+  setRepYear: (y: number) => void
+  openEntryDialog: () => void
+  closeEntryDialog: () => void
+  openCustomerDialog: () => void
+  closeCustomerDialog: () => void
+  openPriceDialog: () => void
+  closePriceDialog: () => void
+  openOpeningStockDialog: () => void
+  closeOpeningStockDialog: () => void
+  openStockAdjustDialog: (kind: 'in' | 'out') => void
+  closeStockAdjustDialog: () => void
+  openCardOpeningDialog: () => void
+  closeCardOpeningDialog: () => void
+  openCardAdjustDialog: (kind: 'in' | 'out', denom: CardDenom) => void
+  closeCardAdjustDialog: () => void
+  bootstrap: () => Promise<void>
+  refresh: () => Promise<void>
+  refreshSettings: () => Promise<void>
 }
 
-const today = isoDate();
+const today = isoDate()
 
 export const useStore = create<AppState>((set, get) => ({
   ready: false,
@@ -127,8 +127,7 @@ export const useStore = create<AppState>((set, get) => ({
     card_fee: DEFAULT_CARD_FEE,
     print_size: 'M',
     auth_username: 'admin',
-    auth_password_hash:
-      '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
+    auth_password_hash: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
   },
   voucherId: null,
   authenticated: false,
@@ -154,15 +153,15 @@ export const useStore = create<AppState>((set, get) => ({
 
   setScreen: (screen) => {
     if (screen === 'entry') {
-      set({ entryDialogOpen: true });
-      return;
+      set({ entryDialogOpen: true })
+      return
     }
     // ဘောင်ချာ = မှတ်တမ်း ထဲက dialog — separate screen မလို
     if (screen === 'voucher') {
-      set({ voucherDialogOpen: true, screen: get().screen === 'voucher' ? 'ledger' : get().screen });
-      return;
+      set({ voucherDialogOpen: true, screen: get().screen === 'voucher' ? 'ledger' : get().screen })
+      return
     }
-    set({ screen });
+    set({ screen })
   },
   setVoucherId: (voucherId) => set({ voucherId }),
   setPrintAfterOpen: (printAfterOpen) => set({ printAfterOpen }),
@@ -174,15 +173,15 @@ export const useStore = create<AppState>((set, get) => ({
     }),
   closeVoucherDialog: () => set({ voucherDialogOpen: false, printAfterOpen: false }),
   login: async (username, password) => {
-    const ok = await verifyLogin(username, password, get().settings);
-    if (ok) set({ authenticated: true });
-    return ok;
+    const ok = await verifyLogin(username, password, get().settings)
+    if (ok) set({ authenticated: true })
+    return ok
   },
   logout: () => set({ authenticated: false }),
   setFlt: (partial) => set({ flt: { ...get().flt, ...partial } }),
   clearFlt: () => {
-    const d = isoDate();
-    set({ flt: { type: 'all', channel: 'all', q: '', from: d, to: d } });
+    const d = isoDate()
+    set({ flt: { type: 'all', channel: 'all', q: '', from: d, to: d } })
   },
   setRange: (range) => set({ range }),
   setRepMode: (repMode) => set({ repMode }),
@@ -207,15 +206,15 @@ export const useStore = create<AppState>((set, get) => ({
 
   bootstrap: async () => {
     try {
-      await get().refresh();
-      set({ ready: true, error: null });
+      await get().refresh()
+      set({ ready: true, error: null })
       // Daily snapshot once per calendar day (idempotent)
-      scheduleDailyBackup();
+      scheduleDailyBackup()
     } catch (e) {
       set({
         ready: true,
         error: e instanceof Error ? e.message : String(e),
-      });
+      })
     }
   },
 
@@ -238,7 +237,7 @@ export const useStore = create<AppState>((set, get) => ({
       db.listCardOpenings(),
       db.listCardAdjustments(),
       db.listAllTxnCards(),
-    ]);
+    ])
     set({
       customers,
       prices,
@@ -248,20 +247,20 @@ export const useStore = create<AppState>((set, get) => ({
       cardOpenings,
       cardAdjustments,
       txnCards,
-    });
+    })
   },
 
   refreshSettings: async () => {
-    const settings = await db.getSettings();
-    set({ settings });
+    const settings = await db.getSettings()
+    set({ settings })
   },
-}));
+}))
 
 export const NAV: { key: Screen; label: string; title: string }[] = [
   { key: 'dash', label: 'ပင်မ', title: 'ပင်မ' },
   { key: 'ledger', label: 'မှတ်တမ်း', title: 'မှတ်တမ်း' },
-  { key: 'reports', label: 'စာရင်းအင်း', title: 'စာရင်းအင်း' },
+  { key: 'reports', label: 'စာရင်းချုပ်', title: 'စာရင်းချုပ်' },
   { key: 'customers', label: 'ဝယ်သူ', title: 'ဝယ်သူများ' },
-  { key: 'stock', label: 'လက်ကျန်', title: 'လက်ကျန်' },
+  { key: 'stock', label: 'လက်ကျန်စာရင်းသွင်း', title: 'လက်ကျန်စာရင်းသွင်း' },
   { key: 'prices', label: 'စျေးနှုန်း', title: 'စျေးနှုန်း' },
-];
+]

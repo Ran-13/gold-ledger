@@ -1,38 +1,39 @@
 export const colors = {
-  ink: '#1B2A41',
-  navyBorder: '#34486B',
-  navyInput: '#24365A',
+  ink: '#0F1A2B',
+  navyBorder: '#243552',
+  navyInput: '#1A2B48',
   /** Light text on navy — white, not grey */
   mutedOnNavy: '#FFFFFF',
-  gold: '#D9A93A',
-  goldHover: '#E6BA55',
-  goldNav: '#E0AA3E',
+  gold: '#C9921E',
+  goldHover: '#D9A93A',
+  goldNav: '#D4A020',
   goldOnNavy: '#F0C35A',
-  goldDark: '#9A6B12',
+  goldDark: '#7A5208',
   goldLight: '#FFFFFF',
   goldWash: '#FFFFFF',
   white: '#FFFFFF',
-  /** Body / label text — black only (no grey fonts) */
-  muted: '#1B2A41',
+  /** Body / label text — near-black for contrast */
+  muted: '#0F1A2B',
   muted2: '#1B2A41',
-  cardBorder: '#D0D5DC',
+  /** Borders — soft cool grey (clean on white, not muddy) */
+  cardBorder: '#D2D7DE',
   rowDivider: '#E8EBEF',
-  inputBorder: '#D5DAE1',
+  inputBorder: '#C5CCD6',
   segmentTrack: '#EEF0F3',
   buyBar: '#9AA6B8',
   buyBarSoft: '#C9CFDA',
-  sell: '#1F7A4D',
-  sellPillBg: '#E2F0E8',
-  buy: '#B23A2A',
-  buyPillBg: '#F8E4E0',
+  sell: '#0F6B3C',
+  sellPillBg: '#D5EDE0',
+  buy: '#9E2A1C',
+  buyPillBg: '#F5D8D2',
   voucherGold: '#C99A35',
-  voucherMuted: '#1B2A41',
+  voucherMuted: '#0F1A2B',
   voucherLine: '#DCCDAE',
   voucherDash: '#C9B790',
-  voucherSig: '#1B2A41',
+  voucherSig: '#0F1A2B',
   softRow: '#FFFFFF',
   softBg: '#FFFFFF',
-  borderSoft: '#D0D5DC',
+  borderSoft: '#D2D7DE',
 } as const;
 
 export const fonts = {
@@ -41,17 +42,34 @@ export const fonts = {
   both: "'Pyidaungsu', 'IBM Plex Sans', sans-serif",
 } as const;
 
+/**
+ * Radius scale — sharper controls, softer large surfaces
+ * (avoids one flat “everything 8/12” look)
+ */
 export const radii = {
-  input: 8,
-  button: 8,
-  card: 12,
-  segment: 8,
+  /** Badges / pills / table chips */
+  xs: 4,
+  /** Compact row buttons, filter chips */
+  sm: 6,
+  /** Inputs, primary buttons, segmented */
+  md: 8,
+  /** Cards, stat strips, panels */
+  lg: 10,
+  /** Dialogs / large sheets */
+  xl: 14,
+  // Semantic aliases used across the app
+  pill: 4,
+  input: 6,
+  button: 6,
+  segment: 6,
+  card: 10,
+  dialog: 14,
 } as const;
 
 /** Sidebar brand row + top price strip — keep aligned */
 export const TOP_BAR_HEIGHT = 88;
 
-/** Thin black card edge — no heavy shadow */
+/** Thin card edge — no heavy shadow */
 export const cardShadow = 'none';
 
 export const MONTHS_MY = [

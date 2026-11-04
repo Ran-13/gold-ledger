@@ -57,7 +57,7 @@ export function Segmented<T extends string>({
         display: 'inline-flex',
         gap: 3,
         background: colors.white,
-        border: `1px solid ${colors.cardBorder}`,
+        border: `1.5px solid ${colors.cardBorder}`,
         padding: 4,
         borderRadius: radii.segment,
         alignSelf: 'flex-start',
@@ -68,24 +68,24 @@ export function Segmented<T extends string>({
         const style: CSSProperties =
           size === 'chip'
             ? {
-                height: 42,
+                height: 44,
                 padding: '0 16px',
                 borderRadius: radii.input,
-                fontSize: 17,
+                fontSize: 18,
                 fontWeight: 700,
                 lineHeight: 1.4,
                 letterSpacing: '0.01em',
                 cursor: 'pointer',
-                border: on ? `1px solid ${colors.ink}` : `1px solid transparent`,
+                border: on ? `1.5px solid ${colors.ink}` : `1.5px solid transparent`,
                 background: on ? colors.ink : 'transparent',
                 color: on ? colors.white : colors.ink,
               }
             : {
-                height: 34,
+                height: 38,
                 padding: '0 14px',
                 border: 'none',
                 borderRadius: radii.segment,
-                fontSize: 16,
+                fontSize: 17,
                 cursor: 'pointer',
                 fontWeight: 700,
                 lineHeight: 1.35,

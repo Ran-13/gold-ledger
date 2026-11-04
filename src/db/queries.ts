@@ -34,6 +34,7 @@ import {
   assertStockNonNegative,
   isoDate,
   isoTime,
+  nextVoucherInt,
   stockFromParts,
   toYway,
 } from '../lib/units';
@@ -409,7 +410,7 @@ export async function getTxn(id: number): Promise<Txn | null> {
 
 export async function nextVoucherNo(): Promise<number> {
   const txns = await listTxns();
-  return txns.reduce((m, t) => Math.max(m, t.voucher_no), 0) + 1;
+  return nextVoucherInt(txns.map((t) => t.voucher_no));
 }
 
 export async function saveTxn(input: SaveTxnInput): Promise<number> {
@@ -487,7 +488,7 @@ export async function saveTxn(input: SaveTxnInput): Promise<number> {
   const rows = await database.select<{ m: number | null }[]>(
     'SELECT MAX(voucher_no) as m FROM txns',
   );
-  const no = (rows[0]?.m ?? 0) + 1;
+  const no = nextVoucherInt(rows[0]?.m == null ? [] : [rows[0].m]);
   const res = await database.execute(
     `INSERT INTO txns (voucher_no, date, time, type, customer_id, yway, price, amount, note, channel, card_fee)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,

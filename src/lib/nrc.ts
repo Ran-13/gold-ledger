@@ -81,10 +81,12 @@ export function townshipsForState(stateCode: string): NrcTownship[] {
 
 export function defaultTownshipForState(stateCode: string): NrcTownship | null {
   const list = townshipsForState(stateCode);
+  if (!list.length) return null;
+  // State 9 (မန္တလေး) → prefer သာစည်; others → first township so state can change
   if (stateCode === DEFAULT_NRC_STATE) {
     return list.find((t) => t.short.mm === DEFAULT_NRC_TOWNSHIP_SHORT) ?? list[0] ?? null;
   }
-  return null;
+  return list[0] ?? null;
 }
 
 export function formatNrc(

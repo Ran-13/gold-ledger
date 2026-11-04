@@ -1,4 +1,4 @@
-import { colors } from '../styles/tokens';
+import { colors, radii } from '../styles/tokens';
 
 export function Pill({ type }: { type: 'sell' | 'buy' }) {
   const sell = type === 'sell';
@@ -7,7 +7,7 @@ export function Pill({ type }: { type: 'sell' | 'buy' }) {
       style={{
         display: 'inline-block',
         padding: '5px 12px',
-        borderRadius: 6,
+        borderRadius: radii.pill,
         fontSize: 15,
         fontWeight: 700,
         lineHeight: 1.45,
