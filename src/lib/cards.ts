@@ -145,7 +145,7 @@ export function formatCardLines(
   digits: DigitsMode = 'latin',
 ): string {
   if (!lines.length) return '—';
-  return lines.map((l) => `${cardLabel(l.denom)} × ${D(l.qty, digits)}`).join(' · ');
+  return lines.map((l) => `${cardLabel(l.denom)} × ${D(l.qty, digits)} ကဒ်`).join(' · ');
 }
 
 export function emptyCardQtyMap(): Record<CardDenom, number> {

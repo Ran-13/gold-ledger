@@ -270,7 +270,7 @@ export function Settings() {
             onClick={() => void saveShop()}
             style={{ ...clearPrimaryBtn, alignSelf: 'flex-start', height: 44 }}
           >
-            သိမ်းဆည်းမည်
+            သိမ်းမည်
           </button>
         </div>
       </Card>

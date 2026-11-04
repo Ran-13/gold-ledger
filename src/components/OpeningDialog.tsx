@@ -105,7 +105,7 @@ export function OpeningDialog() {
               opacity: wouldGoNegative ? 0.45 : 1,
             }}
           >
-            သိမ်းဆည်းမည်
+            သိမ်းမည်
           </button>
         </div>
       }

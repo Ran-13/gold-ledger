@@ -61,7 +61,7 @@ export function CardOpeningDialog() {
             onClick={() => void save()}
             style={primaryBtn}
           >
-            သိမ်းဆည်းမည်
+            သိမ်းမည်
           </button>
         </div>
       }

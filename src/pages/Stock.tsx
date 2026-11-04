@@ -1,6 +1,7 @@
 
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { Card } from '../components/Card';
+import { Dialog, dialogBtnGhost, dialogBtnPrimary } from '../components/Dialog';
 import {
   CellMeta,
   CellTone,
@@ -72,6 +73,8 @@ export function Stock() {
   const [filter, setFilter] = useState<MoveFilter>('all');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [pendingDelete, setPendingDelete] = useState<MoveRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const sortedPrices = [...prices].sort((a, b) => {
     const ka = `${a.date}T${a.time.length === 5 ? a.time + ':00' : a.time}`;
@@ -172,7 +175,7 @@ export function Stock() {
           label: a.kind === 'in' ? 'အကယ်ဒမီအခေါက်ရွှေ ထည့်' : 'အကယ်ဒမီအခေါက်ရွှေ လျှော့',
           date: a.date,
           time: a.time.slice(0, 5),
-          detail: `${isCardDenom(a.denom) ? cardLabel(a.denom) : a.denom} × ${D(a.qty, digits)}${
+          detail: `${isCardDenom(a.denom) ? cardLabel(a.denom) : a.denom} × ${D(a.qty, digits)} ကဒ်${
             a.note ? ` · ${a.note}` : ''
           }`,
           inY: a.kind === 'in' ? yw : 0,
@@ -213,14 +216,19 @@ export function Stock() {
     { value: 'adj-out', label: 'မီးလင်းဖြတ်စ လျှော့' },
   ];
 
-  const removeAdj = async (m: MoveRow) => {
-    if (!window.confirm('ဒီညှိနှိုင်းမှုကို ဖျက်မှာ သေချာပါသလား?')) return;
+  const confirmDelete = async () => {
+    const m = pendingDelete;
+    if (!m || deleting) return;
+    setDeleting(true);
     try {
       if (m.deleteKind === 'card') await deleteCardAdjustment(m.id);
       else await deleteStockAdjustment(m.id);
+      setPendingDelete(null);
       await refresh();
     } catch (e) {
       window.alert(e instanceof Error ? e.message : String(e));
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -421,7 +429,7 @@ export function Stock() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
-              <th style={{ ...tableTh, paddingLeft: 16 }}>အမျိုး / ရက်စွဲ</th>
+              <th style={{ ...tableTh, paddingLeft: 16 }}>အမျိုးအစား / ရက်စွဲ</th>
               <th style={tableTh}>အသေးစိတ်</th>
               <th style={{ ...tableTh, textAlign: 'right' }}>အဝင်</th>
               <th style={{ ...tableTh, textAlign: 'right' }}>အထွက်</th>
@@ -500,7 +508,7 @@ export function Stock() {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          void removeAdj(m);
+                          setPendingDelete(m);
                         }}
                         style={{
                           height: 36,
@@ -533,6 +541,40 @@ export function Stock() {
           onPage={page.setPage}
         />
       </Card>
+
+      <Dialog
+        open={!!pendingDelete}
+        title="ဖျက်မည်"
+        onClose={() => {
+          if (!deleting) setPendingDelete(null);
+        }}
+        width={440}
+        compact
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={() => setPendingDelete(null)}
+              style={dialogBtnGhost}
+            >
+              မလုပ်တော့ပါ
+            </button>
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={() => void confirmDelete()}
+              style={{ ...dialogBtnPrimary, background: colors.buy }}
+            >
+              {deleting ? 'ဖျက်နေသည်…' : 'ဖျက်မည်'}
+            </button>
+          </div>
+        }
+      >
+        <div style={{ fontSize: 18, lineHeight: 1.55, color: colors.ink, padding: '8px 4px 12px' }}>
+          ဒီမှတ်တမ်းကို ဖျက်မှာ သေချာပါသလား?
+        </div>
+      </Dialog>
     </div>
   );
 }

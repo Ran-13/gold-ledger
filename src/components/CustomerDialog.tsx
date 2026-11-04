@@ -68,7 +68,7 @@ export function CustomerDialog() {
             onClick={() => void save()}
             style={{ ...dialogBtnPrimary, opacity: saving ? 0.7 : 1 }}
           >
-            သိမ်းဆည်းမည်
+            သိမ်းမည်
           </button>
         </div>
       }

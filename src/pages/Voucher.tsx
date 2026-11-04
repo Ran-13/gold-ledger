@@ -80,7 +80,7 @@ export function Voucher() {
         <div style={{ textAlign: 'center', color: colors.muted, fontSize: 18, lineHeight: 1.6 }}>
           ဘောင်ချာ မရှိသေးပါ
           <div style={{ fontSize: 16, color: colors.muted2, marginTop: 8 }}>
-            စာရင်းသွင်းခြင်းမှ သိမ်းဆည်းရင် ဒီမှာ ပေါ်ပါမယ်
+            အရောင်း/အဝယ်မှ သိမ်းမည်ကိုနှိပ်ရင် ဒီမှာ ပေါ်ပါမယ်
           </div>
         </div>
       </Card>

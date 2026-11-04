@@ -59,7 +59,7 @@ export function Customers() {
           <thead>
             <tr>
               <th style={{ ...tableTh, paddingLeft: 16 }}>
-                အမည် · ဖုန်း ({D(customers.length, digits)})
+                အမည် · ဖုန်း
               </th>
               <th style={tableTh}>မှတ်ပုံတင်</th>
               <th style={tableTh}>ဘောင်ချာ</th>

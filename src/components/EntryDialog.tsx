@@ -660,7 +660,7 @@ export function EntryDialog() {
                       }}
                     >
                       <div style={{ fontSize: 14, color: colors.muted2, lineHeight: 1.45 }}>
-                        {money(feePerCard, digits)} × {D(cardsFeeableQty(cardLines), digits)}
+                        {money(feePerCard, digits)} × {D(cardsFeeableQty(cardLines), digits)} ကဒ်
                       </div>
                       <div
                         className="num"

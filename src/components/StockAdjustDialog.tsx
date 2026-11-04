@@ -97,7 +97,7 @@ export function StockAdjustDialog() {
               opacity: overdraw ? 0.45 : 1,
             }}
           >
-            {saving ? 'သိမ်းနေသည်…' : 'သိမ်းဆည်းမည်'}
+            {saving ? 'သိမ်းနေသည်…' : 'သိမ်းမည်'}
           </button>
         </div>
       }

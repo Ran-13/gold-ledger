@@ -77,7 +77,7 @@ export function PriceDialog() {
               cursor: saving ? 'default' : 'pointer',
             }}
           >
-            သိမ်းဆည်းမည်
+            သိမ်းမည်
           </button>
         </div>
       }
