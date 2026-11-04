@@ -1,6 +1,6 @@
 [package]
 name = "gold-ledger"
-version = "1.0.2"
+version = "1.0.3"
 description = "ဦးသန့်စင် · အခေါက်ရွှေ စာရင်း"
 authors = ["ဦးသန့်စင်"]
 edition = "2021"
