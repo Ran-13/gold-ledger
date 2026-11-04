@@ -76,8 +76,11 @@ export function EntryDialog() {
   const [cardQty, setCardQty] = useState(emptyCardQty);
   const [priceStr, setPriceStr] = useState('');
   const [editingPrice, setEditingPrice] = useState(false);
+  const [cardFeeStr, setCardFeeStr] = useState('');
+  const [editingCardFee, setEditingCardFee] = useState(false);
   const [saving, setSaving] = useState(false);
   const priceInputRef = useRef<HTMLInputElement | null>(null);
+  const cardFeeInputRef = useRef<HTMLInputElement | null>(null);
 
   const sortedPrices = [...prices].sort((a, b) =>
     dateTimeKey(a.date, a.time) < dateTimeKey(b.date, b.time) ? -1 : 1,
@@ -99,9 +102,11 @@ export function EntryDialog() {
     setChannel('card');
     setPriceStr(String(curSell));
     setEditingPrice(false);
+    setCardFeeStr(String(settings.card_fee));
+    setEditingCardFee(false);
     const t = window.setTimeout(() => kRef.current?.focus(), 80);
     return () => window.clearTimeout(t);
-  }, [open, curBuy, curSell]);
+  }, [open, curBuy, curSell, settings.card_fee]);
 
   useEffect(() => {
     if (!open) return;
@@ -116,6 +121,13 @@ export function EntryDialog() {
       return () => window.clearTimeout(t);
     }
   }, [editingPrice]);
+
+  useEffect(() => {
+    if (editingCardFee) {
+      const t = window.setTimeout(() => cardFeeInputRef.current?.focus(), 40);
+      return () => window.clearTimeout(t);
+    }
+  }, [editingCardFee]);
 
   const cardStock = useMemo(() => {
     const typeById = new Map(txns.map((t) => [t.id, t.type]));
@@ -146,9 +158,13 @@ export function EntryDialog() {
   const yway = channel === 'card' ? cardYway : looseYway;
 
   const price = N(priceStr) || (form.type === 'sell' ? curSell : curBuy);
+  const feePerCard =
+    cardFeeStr.trim() === ''
+      ? settings.card_fee
+      : Math.max(0, Math.round(N(cardFeeStr)));
   const cardParts =
     channel === 'card'
-      ? cardTxnAmount(form.type, yway, price, cardLines, settings.card_fee)
+      ? cardTxnAmount(form.type, yway, price, cardLines, feePerCard)
       : null;
   const amt =
     channel === 'card' && cardParts
@@ -231,7 +247,7 @@ export function EntryDialog() {
         price,
         note: form.note,
         cards: channel === 'card' ? cardLines : undefined,
-        cardFee: settings.card_fee,
+        cardFee: channel === 'card' ? feePerCard : undefined,
       });
       await refresh();
       close();
@@ -579,11 +595,82 @@ export function EntryDialog() {
             {channel === 'card' && cardParts ? (
               <>
                 <SummaryRow label="ကျသင့်ငွေ" value={money(cardParts.gold, digits)} />
-                <SummaryRow
-                  label="ကဒ်ဖိုး (+)"
-                  value={money(cardParts.fee, digits)}
-                  hint={`${money(settings.card_fee, digits)} × ${D(cardsFeeableQty(cardLines), digits)}`}
-                />
+                <div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: 4,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 15,
+                        fontWeight: 700,
+                        color: colors.muted,
+                        letterSpacing: '0.01em',
+                      }}
+                    >
+                      ကဒ်ဖိုး (+)
+                    </span>
+                    {!editingCardFee && (
+                      <button type="button" onClick={() => setEditingCardFee(true)} style={linkBtn}>
+                        ပြင်ရန်
+                      </button>
+                    )}
+                  </div>
+                  {editingCardFee ? (
+                    <div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input
+                          ref={cardFeeInputRef}
+                          type="text"
+                          inputMode="numeric"
+                          className="num"
+                          value={cardFeeStr}
+                          onChange={(e) => setCardFeeStr(keepNumInput(e.target.value))}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              setEditingCardFee(false);
+                            }
+                          }}
+                          style={{ ...formInput, height: 42, fontSize: 18, fontWeight: 700, flex: 1 }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setEditingCardFee(false)}
+                          style={miniBtn(true)}
+                        >
+                          OK
+                        </button>
+                      </div>
+                      <div style={{ fontSize: 13, color: colors.muted2, marginTop: 6, lineHeight: 1.4 }}>
+                        ဤစာရင်းအတွက်သာ · Settings က ကဒ်တန်ဖိုး မပြောင်းပါ
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        gap: 12,
+                        alignItems: 'baseline',
+                      }}
+                    >
+                      <div style={{ fontSize: 14, color: colors.muted2, lineHeight: 1.45 }}>
+                        {money(feePerCard, digits)} × {D(cardsFeeableQty(cardLines), digits)}
+                      </div>
+                      <div
+                        className="num"
+                        style={{ fontSize: 17, fontWeight: 700, color: colors.ink, whiteSpace: 'nowrap' }}
+                      >
+                        {money(cardParts.fee, digits)}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </>
             ) : (
               <SummaryRow label="ကျသင့်ငွေ" value={money(amt, digits)} />
