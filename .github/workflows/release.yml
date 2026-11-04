@@ -39,10 +39,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: .
-          tagName: ${{ github.ref_type == 'tag' && github.ref_name || 'v1.0.0' }}
-          releaseName: Gold Ledger ${{ github.ref_type == 'tag' && github.ref_name || 'v1.0.0' }}
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || github.ref_name }}
+          releaseName: Gold Ledger ${{ github.ref_type == 'tag' && github.ref_name || github.ref_name }}
           releaseBody: |
-            ## ဦးသန့်စင် · အခေါက်ရွှေ စာရင်း (Gold Ledger) v1.0.0
+            ## ဦးသန့်စင် · အခေါက်ရွှေ စာရင်း (Gold Ledger)
 
             ### မြန်မာ — တပ်ဆင်နည်း
             1. အောက်က `Gold Ledger_*_x64-setup.exe` ကို ဒေါင်းလုဒ်လုပ်ပါ
