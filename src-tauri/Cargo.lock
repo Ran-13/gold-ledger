@@ -1322,7 +1322,7 @@ dependencies = [
 
 [[package]]
 name = "gold-ledger"
-version = "1.0.0"
+version = "1.0.4"
 dependencies = [
  "chrono",
  "rusqlite",

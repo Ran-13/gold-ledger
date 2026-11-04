@@ -2,7 +2,7 @@ import { useEffect, useMemo, type CSSProperties } from 'react';
 import * as XLSX from 'xlsx';
 import { Card } from '../components/Card';
 import { clearOutlineBtn, tableHover, tableTd, tableTh } from '../components/ClearUI';
-import { IconSearch } from '../components/Icons';
+import { IconPrint, IconSearch } from '../components/Icons';
 import { PaginationBar, usePagination } from '../components/Pagination';
 import { Segmented } from '../components/Segmented';
 import { filterInputStyle } from '../components/TableFilters';
@@ -432,8 +432,9 @@ export function Ledger() {
                       <button
                         type="button"
                         onClick={() => openVoucher(t.id)}
-                        style={btnRow}
+                        style={btnVoucher}
                       >
+                        <IconPrint size={14} />
                         ဘောင်ချာ
                       </button>
                     </td>
@@ -513,14 +514,17 @@ const btnClear: CSSProperties = {
   cursor: 'pointer',
 };
 
-const btnRow: CSSProperties = {
+const btnVoucher: CSSProperties = {
   height: 32,
   padding: '0 12px',
-  border: `1px solid ${colors.cardBorder}`,
+  border: 'none',
   borderRadius: 7,
-  background: colors.white,
-  color: colors.ink,
+  background: colors.ink,
+  color: colors.white,
   fontSize: 15,
-  fontWeight: 600,
+  fontWeight: 700,
   cursor: 'pointer',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
 };

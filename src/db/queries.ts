@@ -13,7 +13,12 @@ import type {
   TxnChannel,
 } from './types';
 import {
+  DEFAULT_AUTH_PASSWORD_HASH,
+  DEFAULT_AUTH_USERNAME,
+} from '../lib/auth';
+import {
   assertCardStockEnough,
+  buyCardAmountFixes,
   cardTxnAmount,
   cardsTotalYway,
   computeCardStock,
@@ -144,10 +149,34 @@ async function runMigrations(database: SqlDb): Promise<void> {
       for (const stmt of m.sql.split(';').map((s) => s.trim()).filter(Boolean)) {
         await database.execute(stmt);
       }
+      if (m.version === 8) {
+        await migrateBuyCardFeeAdd(database);
+      }
       await database.execute('INSERT INTO _migrations (version) VALUES ($1)', [m.version]);
     } catch (e) {
       throw e;
     }
+  }
+}
+
+/** v8: recompute buy+card txn amounts to gold + fee. */
+async function migrateBuyCardFeeAdd(database: SqlDb): Promise<void> {
+  const txns = await database.select<
+    {
+      id: number;
+      type: string;
+      channel: string;
+      yway: number;
+      price: number;
+      card_fee: number;
+      amount: number;
+    }[]
+  >(`SELECT id, type, channel, yway, price, card_fee, amount FROM txns`);
+  const cards = await database.select<{ txn_id: number; denom: string; qty: number }[]>(
+    `SELECT txn_id, denom, qty FROM txn_cards`,
+  );
+  for (const fix of buyCardAmountFixes(txns, cards)) {
+    await database.execute('UPDATE txns SET amount = $1 WHERE id = $2', [fix.amount, fix.id]);
   }
 }
 
@@ -166,6 +195,7 @@ export async function getSettings(): Promise<Settings> {
   );
   const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
   const fee = Number(map.card_fee ?? DEFAULT_CARD_FEE);
+  const printSize = map.print_size;
   return {
     opening_stock_yway: Number(map.opening_stock_yway ?? 0),
     digits: (map.digits === 'myanmar' ? 'myanmar' : 'latin') as Settings['digits'],
@@ -173,6 +203,10 @@ export async function getSettings(): Promise<Settings> {
     shop_mark: map.shop_mark?.trim() || 'သ',
     shop_tagline: map.shop_tagline?.trim() || 'အခေါက်ရွှေ အရောင်းအဝယ်',
     card_fee: Number.isFinite(fee) && fee >= 0 ? Math.round(fee) : DEFAULT_CARD_FEE,
+    print_size:
+      printSize === 'S' || printSize === 'M' || printSize === 'L' ? printSize : 'M',
+    auth_username: map.auth_username?.trim() || DEFAULT_AUTH_USERNAME,
+    auth_password_hash: map.auth_password_hash?.trim() || DEFAULT_AUTH_PASSWORD_HASH,
   };
 }
 
@@ -397,9 +431,6 @@ export async function saveTxn(input: SaveTxnInput): Promise<number> {
     if (!lines.length) throw new Error('ကဒ် အရေအတွက် ထည့်ပါ');
     yway = cardsTotalYway(lines);
     const parts = cardTxnAmount(input.type, yway, input.price, lines, feePerCard);
-    if (parts.total < 0) {
-      throw new Error('ကဒ်ဖိုးသည် ကျသင့်ငွေထက် များနေသည် · ဝယ်ငွေ အနှုတ် ဖြစ်မည်');
-    }
     amt = parts.total;
     cardFeeStored = feePerCard;
     if (input.type === 'sell') {

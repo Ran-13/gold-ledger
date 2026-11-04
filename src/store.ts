@@ -11,6 +11,7 @@ import type {
 } from './db/types';
 import * as db from './db/queries';
 import { scheduleDailyBackup } from './lib/autoBackup';
+import { verifyLogin } from './lib/auth';
 import { DEFAULT_CARD_FEE, type CardDenom } from './lib/cards';
 import { isoDate } from './lib/units';
 
@@ -69,8 +70,12 @@ interface AppState {
   /** After save → open voucher and print once */
   printAfterOpen: boolean;
   voucherDialogOpen: boolean;
+  /** Session auth — reset on each app launch */
+  authenticated: boolean;
 
   setScreen: (s: Screen) => void;
+  login: (username: string, password: string) => Promise<boolean>;
+  logout: () => void;
   setVoucherId: (id: number | null) => void;
   setPrintAfterOpen: (v: boolean) => void;
   openVoucher: (id: number, opts?: { print?: boolean }) => void;
@@ -120,8 +125,13 @@ export const useStore = create<AppState>((set, get) => ({
     shop_mark: 'သ',
     shop_tagline: 'အခေါက်ရွှေ အရောင်းအဝယ်',
     card_fee: DEFAULT_CARD_FEE,
+    print_size: 'M',
+    auth_username: 'admin',
+    auth_password_hash:
+      '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
   },
   voucherId: null,
+  authenticated: false,
   flt: { type: 'all', channel: 'all', q: '', from: today, to: today },
   range: '30',
   repMode: 'day',
@@ -163,6 +173,12 @@ export const useStore = create<AppState>((set, get) => ({
       printAfterOpen: !!opts?.print,
     }),
   closeVoucherDialog: () => set({ voucherDialogOpen: false, printAfterOpen: false }),
+  login: async (username, password) => {
+    const ok = await verifyLogin(username, password, get().settings);
+    if (ok) set({ authenticated: true });
+    return ok;
+  },
+  logout: () => set({ authenticated: false }),
   setFlt: (partial) => set({ flt: { ...get().flt, ...partial } }),
   clearFlt: () => {
     const d = isoDate();

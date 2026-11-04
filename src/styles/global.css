@@ -123,25 +123,23 @@ table {
 }
 
 @media print {
-  /* Match typical shop printers (A4). Dialog paper size should also be A4. */
+  /* Fallback if browser print is used instead of printVoucher() iframe */
   @page {
-    size: A4 portrait;
-    margin: 12mm;
+    size: 4in 6in;
+    margin: 0;
   }
 
   html,
   body,
   #root {
-    width: 100% !important;
-    height: auto !important;
-    min-height: 0 !important;
-    overflow: visible !important;
-    background: #fff !important;
     margin: 0 !important;
     padding: 0 !important;
+    background: #fff !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
   }
 
-  /* Hide everything, then reveal only the voucher slip */
   body * {
     visibility: hidden !important;
   }
@@ -156,51 +154,33 @@ table {
     visibility: hidden !important;
   }
 
-  [data-app],
-  [data-main],
-  [data-print-page] {
-    display: block !important;
-    width: 100% !important;
-    height: auto !important;
-    min-height: 0 !important;
-    min-width: 0 !important;
-    overflow: visible !important;
-    position: static !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    background: transparent !important;
-    grid-template-columns: none !important;
-    grid-template-rows: none !important;
-  }
-
-  /* Fill the printable page — not a small centered card */
   [data-print-root] {
-    position: static !important;
-    left: auto !important;
-    top: auto !important;
-    right: auto !important;
-    width: 100% !important;
-    max-width: none !important;
-    max-height: none !important;
-    height: auto !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 4in !important;
+    height: 6in !important;
+    max-width: 4in !important;
+    max-height: 6in !important;
     margin: 0 !important;
     padding: 0 !important;
-    overflow: visible !important;
+    overflow: hidden !important;
     box-shadow: none !important;
     border: 1px solid #111 !important;
     background: #fff !important;
     box-sizing: border-box !important;
-    break-inside: avoid;
-    page-break-inside: avoid;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 
   [data-print-root] > div {
-    margin: 6px !important;
-    max-width: none !important;
-    width: auto !important;
-    min-height: 240mm !important;
+    margin: 5px !important;
+    padding: 10px 12px 12px !important;
+    min-height: 0 !important;
+    height: calc(100% - 10px) !important;
+    max-height: none !important;
+    width: calc(100% - 10px) !important;
     box-sizing: border-box !important;
-    overflow: visible !important;
-    padding: 28px 32px 32px !important;
+    overflow: hidden !important;
   }
 }

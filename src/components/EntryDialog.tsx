@@ -159,8 +159,7 @@ export function EntryDialog() {
     cardLines.some((l) => l.qty > (cardStock[l.denom] ?? 0));
   const looseOverdraw =
     channel === 'loose' && form.type === 'sell' && looseYway > 0 && looseYway > looseStockY;
-  const feeTooHigh = channel === 'card' && !!cardParts && cardParts.total < 0;
-  const blocked = cardOverdraw || looseOverdraw || feeTooHigh;
+  const blocked = cardOverdraw || looseOverdraw;
 
   const nextNo = Math.max(0, ...txns.map((t) => t.voucher_no)) + 1;
   const ql = form.query.trim().toLowerCase();
@@ -187,8 +186,6 @@ export function EntryDialog() {
         window.alert(
           `လက်ကျန်ထက် ပို၍ မရပါ\nလက်ရှိမီးလင်းဖြတ်စလက်ကျန် · ${W(Math.max(0, looseStockY), digits)}`,
         );
-      } else if (feeTooHigh) {
-        window.alert('ကဒ်ဖိုးသည် ကျသင့်ငွေထက် များနေသည်');
       }
       return;
     }
@@ -290,9 +287,7 @@ export function EntryDialog() {
     ? 'အကယ်ဒမီအခေါက်ရွှေ လက်ကျန် မလုံလောက်ပါ'
     : looseOverdraw
       ? 'မီးလင်းဖြတ်စ လက်ကျန် မလုံလောက်ပါ'
-      : feeTooHigh
-        ? 'ကဒ်ဖိုးသည် ကျသင့်ငွေထက် များနေသည်'
-        : '';
+      : '';
 
   return (
     <Dialog
@@ -317,7 +312,7 @@ export function EntryDialog() {
               style={{
                 fontSize: 30,
                 fontWeight: 700,
-                color: feeTooHigh ? colors.buy : form.type === 'sell' ? colors.sell : colors.buy,
+                color: form.type === 'sell' ? colors.sell : colors.buy,
                 lineHeight: 1.3,
                 marginTop: 2,
               }}
@@ -583,7 +578,7 @@ export function EntryDialog() {
               <>
                 <SummaryRow label="ကျသင့်ငွေ" value={money(cardParts.gold, digits)} />
                 <SummaryRow
-                  label={`ကဒ်ဖိုး (${form.type === 'sell' ? '+' : '−'})`}
+                  label="ကဒ်ဖိုး (+)"
                   value={money(cardParts.fee, digits)}
                   hint={`${money(settings.card_fee, digits)} × ${D(cardsFeeableQty(cardLines), digits)}`}
                 />
@@ -597,8 +592,8 @@ export function EntryDialog() {
                 marginTop: 2,
                 padding: '12px 14px',
                 borderRadius: 10,
-                background: feeTooHigh ? '#FDF2F2' : colors.white,
-                border: `1.5px solid ${feeTooHigh ? colors.buy : colors.cardBorder}`,
+                background: colors.white,
+                border: `1.5px solid ${colors.cardBorder}`,
               }}
             >
               <div
@@ -617,7 +612,7 @@ export function EntryDialog() {
                   fontSize: 28,
                   fontWeight: 700,
                   marginTop: 4,
-                  color: feeTooHigh ? colors.buy : colors.ink,
+                  color: colors.ink,
                   lineHeight: 1.25,
                 }}
               >

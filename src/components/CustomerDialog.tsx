@@ -87,14 +87,14 @@ export function CustomerDialog() {
             }}
           />
         </label>
-        <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 12, alignItems: 'end', minWidth: 0 }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'end', minWidth: 0 }}>
           <label
             style={{
               display: 'flex',
               flexDirection: 'column',
               gap: 8,
-              flex: '0 1 140px',
-              minWidth: 110,
+              flex: '0 1 160px',
+              minWidth: 120,
             }}
           >
             <span style={dialogLabel}>ဖုန်း</span>
@@ -112,8 +112,8 @@ export function CustomerDialog() {
               display: 'flex',
               flexDirection: 'column',
               gap: 8,
-              flex: '1 1 140px',
-              minWidth: 120,
+              flex: '1 1 160px',
+              minWidth: 0,
             }}
           >
             <span style={dialogLabel}>နေရပ်</span>
@@ -125,17 +125,17 @@ export function CustomerDialog() {
               required
             />
           </label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: '0 0 auto' }}>
-            <span style={dialogLabel}>မှတ်ပုံတင်</span>
-            <NrcPicker
-              value={nc.nrc}
-              onChange={(nrc) => setNc((s) => ({ ...s, nrc }))}
-              digits={digits}
-              height={48}
-              inputStyle={dialogField}
-            />
-          </label>
         </div>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+          <span style={dialogLabel}>မှတ်ပုံတင်</span>
+          <NrcPicker
+            value={nc.nrc}
+            onChange={(nrc) => setNc((s) => ({ ...s, nrc }))}
+            digits={digits}
+            height={48}
+            inputStyle={dialogField}
+          />
+        </label>
       </div>
     </Dialog>
   );

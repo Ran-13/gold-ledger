@@ -13,7 +13,12 @@ import type {
   TxnType,
 } from './types';
 import {
+  DEFAULT_AUTH_PASSWORD_HASH,
+  DEFAULT_AUTH_USERNAME,
+} from '../lib/auth';
+import {
   assertCardStockEnough,
+  buyCardAmountFixes,
   cardTxnAmount,
   cardsTotalYway,
   computeCardStock,
@@ -73,6 +78,9 @@ function empty(): BrowserData {
       shop_mark: 'သ',
       shop_tagline: 'အခေါက်ရွှေ အရောင်းအဝယ်',
       card_fee: String(DEFAULT_CARD_FEE),
+      print_size: 'M',
+      auth_username: DEFAULT_AUTH_USERNAME,
+      auth_password_hash: DEFAULT_AUTH_PASSWORD_HASH,
     },
     nextCustomerId: 1,
     nextTxnId: 1,
@@ -114,6 +122,22 @@ function ensureCardTables(d: BrowserData): void {
   if (!d.nextCardAdjId) d.nextCardAdjId = 1;
   if (!d.nextTxnCardId) d.nextTxnCardId = 1;
   if (d.settings.card_fee == null) d.settings.card_fee = String(DEFAULT_CARD_FEE);
+  if (!d.settings.auth_username) d.settings.auth_username = DEFAULT_AUTH_USERNAME;
+  if (!d.settings.auth_password_hash) d.settings.auth_password_hash = DEFAULT_AUTH_PASSWORD_HASH;
+}
+
+/** One-time: buy+card amounts become gold + fee. Returns true if applied. */
+function migrateBuyCardFeeAdd(d: BrowserData): boolean {
+  if (d.settings.buy_card_fee_add === '1') return false;
+  const fixes = buyCardAmountFixes(d.txns, d.txnCards);
+  if (fixes.length) {
+    const byId = new Map(fixes.map((f) => [f.id, f.amount]));
+    d.txns = d.txns.map((t) =>
+      byId.has(t.id) ? { ...t, amount: byId.get(t.id)! } : t,
+    );
+  }
+  d.settings.buy_card_fee_add = '1';
+  return true;
 }
 
 let data: BrowserData | null = null;
@@ -129,6 +153,7 @@ function load(): BrowserData {
       ensureCardTables(data);
       normalizePrices(data);
       normalizeTxns(data);
+      if (migrateBuyCardFeeAdd(data)) persist();
       return data;
     }
   } catch {
@@ -185,6 +210,7 @@ export async function browserReopen(): Promise<void> {
 export async function browserGetSettings(): Promise<Settings> {
   const d = load();
   const fee = Number(d.settings.card_fee ?? DEFAULT_CARD_FEE);
+  const printSize = d.settings.print_size;
   return {
     opening_stock_yway: Number(d.settings.opening_stock_yway ?? 0),
     digits: d.settings.digits === 'myanmar' ? 'myanmar' : 'latin',
@@ -192,6 +218,11 @@ export async function browserGetSettings(): Promise<Settings> {
     shop_mark: d.settings.shop_mark?.trim() || 'သ',
     shop_tagline: d.settings.shop_tagline?.trim() || 'အခေါက်ရွှေ အရောင်းအဝယ်',
     card_fee: Number.isFinite(fee) && fee >= 0 ? Math.round(fee) : DEFAULT_CARD_FEE,
+    print_size:
+      printSize === 'S' || printSize === 'M' || printSize === 'L' ? printSize : 'M',
+    auth_username: d.settings.auth_username?.trim() || DEFAULT_AUTH_USERNAME,
+    auth_password_hash:
+      d.settings.auth_password_hash?.trim() || DEFAULT_AUTH_PASSWORD_HASH,
   };
 }
 
@@ -299,9 +330,6 @@ export async function browserSaveTxn(input: SaveTxnInput): Promise<number> {
     if (!lines.length) throw new Error('ကဒ် အရေအတွက် ထည့်ပါ');
     yway = cardsTotalYway(lines);
     const parts = cardTxnAmount(input.type, yway, input.price, lines, feePerCard);
-    if (parts.total < 0) {
-      throw new Error('ကဒ်ဖိုးသည် ကျသင့်ငွေထက် များနေသည် · ဝယ်ငွေ အနှုတ် ဖြစ်မည်');
-    }
     amt = parts.total;
     cardFeeStored = feePerCard;
     if (input.type === 'sell') {

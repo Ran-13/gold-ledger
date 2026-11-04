@@ -42,7 +42,7 @@ export function Reports() {
   const setRepYear = useStore((s) => s.setRepYear);
   const openVoucherDlg = useStore((s) => s.openVoucher);
 
-  const [view, setView] = useState<View>('month');
+  const [view, setView] = useState<View>('today');
   const [showDetail, setShowDetail] = useState(false);
   const today = isoDate();
 
@@ -124,9 +124,9 @@ export function Reports() {
     };
     const sellFee = sumMoney(sells, feeOf);
     const buyFee = sumMoney(buys, feeOf);
-    /** ရွှေဖိုး only (ကဒ်ဖိုး ခွဲပြီး) */
+    /** ရွှေဖိုး only (ကဒ်ဖိုး ခွဲပြီး) — amount is always gold + fee for card txns */
     const sellGoldAmt = sumMoney(sells, (t) => BigInt(Math.round(t.amount)) - feeOf(t));
-    const buyGoldAmt = sumMoney(buys, (t) => BigInt(Math.round(t.amount)) + feeOf(t));
+    const buyGoldAmt = sumMoney(buys, (t) => BigInt(Math.round(t.amount)) - feeOf(t));
     const sellAmt = sumMoney(sells, (t) => t.amount);
     const buyAmt = sumMoney(buys, (t) => t.amount);
 

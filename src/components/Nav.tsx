@@ -36,6 +36,7 @@ function navItemStyle(on: boolean) {
 export function Nav() {
   const screen = useStore((s) => s.screen);
   const setScreen = useStore((s) => s.setScreen);
+  const logout = useStore((s) => s.logout);
   const shopName = useStore((s) => s.settings.shop_name);
   const shopMark = useStore((s) => s.settings.shop_mark);
   const shopTagline = useStore((s) => s.settings.shop_tagline);
@@ -177,6 +178,14 @@ export function Nav() {
           )}
           <IconSettings size={20} stroke={screen === 'settings' ? 2 : 1.7} />
           ဆက်တင်
+        </button>
+        <button
+          type="button"
+          title="ထွက်မည်"
+          onClick={() => logout()}
+          style={{ ...navItemStyle(false), marginTop: 4 }}
+        >
+          ထွက်မည်
         </button>
       </div>
     </aside>

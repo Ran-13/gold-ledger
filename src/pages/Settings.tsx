@@ -3,16 +3,19 @@ import { Card } from '../components/Card';
 import { PageTitle, clearOutlineBtn, clearPrimaryBtn } from '../components/ClearUI';
 import { Segmented } from '../components/Segmented';
 import { isTauri } from '../db/env';
-import { closeDb, getDbPath, reopenDb, setSetting } from '../db/queries';
+import { closeDb, reopenDb, setSetting } from '../db/queries';
 import {
   fetchBackupStatus,
   restoreFromBackupFile,
   runAutoBackup,
   type BackupStatus,
 } from '../lib/autoBackup';
+import { hashPassword, verifyLogin } from '../lib/auth';
+import { PRINT_SIZE_OPTIONS } from '../lib/printVoucher';
 import { keepNumInput, money, N } from '../lib/units';
 import { colors } from '../styles/tokens';
 import { useStore } from '../store';
+import type { PrintSize } from '../db/types';
 
 export function Settings() {
   const settings = useStore((s) => s.settings);
@@ -26,6 +29,10 @@ export function Settings() {
   const [shopMark, setShopMark] = useState(settings.shop_mark);
   const [shopTagline, setShopTagline] = useState(settings.shop_tagline);
   const [cardFee, setCardFee] = useState(String(settings.card_fee));
+  const [authUser, setAuthUser] = useState(settings.auth_username);
+  const [currentPw, setCurrentPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
   const [backupStatus, setBackupStatus] = useState<BackupStatus | null>(null);
   const [restorePick, setRestorePick] = useState('');
 
@@ -79,7 +86,14 @@ export function Settings() {
     setShopMark(settings.shop_mark);
     setShopTagline(settings.shop_tagline);
     setCardFee(String(settings.card_fee));
-  }, [settings.shop_name, settings.shop_mark, settings.shop_tagline, settings.card_fee]);
+    setAuthUser(settings.auth_username);
+  }, [
+    settings.shop_name,
+    settings.shop_mark,
+    settings.shop_tagline,
+    settings.card_fee,
+    settings.auth_username,
+  ]);
 
   useEffect(() => {
     void reloadBackupStatus();
@@ -87,6 +101,11 @@ export function Settings() {
 
   const saveDigits = async (digitsMode: 'latin' | 'myanmar') => {
     await setSetting('digits', digitsMode);
+    await refreshSettings();
+  };
+
+  const savePrintSize = async (size: PrintSize) => {
+    await setSetting('print_size', size);
     await refreshSettings();
   };
 
@@ -103,6 +122,38 @@ export function Settings() {
     await setSetting('card_fee', String(fee));
     await refreshSettings();
     setMsg(`ကဒ်ဖိုး သိမ်းပြီး · ${money(fee, digits)}`);
+  };
+
+  const saveAuth = async () => {
+    const user = authUser.trim();
+    if (!user) {
+      setMsg('အသုံးပြုသူအမည် ထည့်ပါ');
+      return;
+    }
+    const ok = await verifyLogin(settings.auth_username, currentPw, settings);
+    if (!ok) {
+      setMsg('လက်ရှိ စကားဝှက် မှားနေသည်');
+      return;
+    }
+    if (newPw || confirmPw) {
+      if (newPw.length < 4) {
+        setMsg('စကားဝှက်အသစ် အနည်းဆုံး ၄ လုံး');
+        return;
+      }
+      if (newPw !== confirmPw) {
+        setMsg('စကားဝှက်အသစ် မတူညီပါ');
+        return;
+      }
+    }
+    await setSetting('auth_username', user);
+    if (newPw) {
+      await setSetting('auth_password_hash', await hashPassword(newPw));
+    }
+    await refreshSettings();
+    setCurrentPw('');
+    setNewPw('');
+    setConfirmPw('');
+    setMsg('ဝင်ရောက်မှု သိမ်းပြီးပါပြီ');
   };
 
   const backup = async () => {
@@ -227,7 +278,7 @@ export function Settings() {
       <Card padding="20px 22px">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ fontSize: 18, fontWeight: 700 }}>ဂဏန်းပုံစံ</div>
-          <div style={{ fontSize: 15, color: colors.muted2, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 15, color: colors.ink, lineHeight: 1.5 }}>
             စာမျက်နှာများပေါ်တွင် ပြမည့် ဂဏန်းပုံစံ
           </div>
           <Segmented
@@ -238,6 +289,67 @@ export function Settings() {
             value={settings.digits}
             onChange={(v) => void saveDigits(v)}
           />
+        </div>
+      </Card>
+
+      <Card padding="20px 22px">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ fontSize: 18, fontWeight: 700 }}>ဘောင်ချာ ပရင့်အရွယ်</div>
+          <Segmented
+            options={PRINT_SIZE_OPTIONS}
+            value={settings.print_size}
+            onChange={(v) => void savePrintSize(v)}
+          />
+        </div>
+      </Card>
+
+      <Card padding="20px 22px">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ fontSize: 18, fontWeight: 700 }}>ဝင်ရောက်မှု</div>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontSize: 16, fontWeight: 600, color: colors.ink }}>အသုံးပြုသူအမည်</span>
+            <input value={authUser} onChange={(e) => setAuthUser(e.target.value)} style={field} />
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontSize: 16, fontWeight: 600, color: colors.ink }}>
+              လက်ရှိ စကားဝှက်
+            </span>
+            <input
+              type="password"
+              value={currentPw}
+              onChange={(e) => setCurrentPw(e.target.value)}
+              style={field}
+            />
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontSize: 16, fontWeight: 600, color: colors.ink }}>
+              စကားဝှက်အသစ် (လိုလျှင်)
+            </span>
+            <input
+              type="password"
+              value={newPw}
+              onChange={(e) => setNewPw(e.target.value)}
+              style={field}
+            />
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontSize: 16, fontWeight: 600, color: colors.ink }}>
+              စကားဝှက်အသစ် ထပ်မံ
+            </span>
+            <input
+              type="password"
+              value={confirmPw}
+              onChange={(e) => setConfirmPw(e.target.value)}
+              style={field}
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => void saveAuth()}
+            style={{ ...clearPrimaryBtn, alignSelf: 'flex-start', height: 44 }}
+          >
+            သိမ်းမည်
+          </button>
         </div>
       </Card>
 
@@ -275,38 +387,6 @@ export function Settings() {
       <Card padding="20px 22px">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ fontSize: 18, fontWeight: 700 }}>Auto Backup</div>
-          <div style={{ fontSize: 15, color: colors.ink, lineHeight: 1.5 }}>
-            Saves a copy whenever your data changes.
-          </div>
-          {backupStatus && (
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 8,
-                padding: '12px 14px',
-                borderRadius: 8,
-                border: `1px solid ${colors.cardBorder}`,
-                background: '#FAFBFC',
-                fontSize: 15,
-                lineHeight: 1.5,
-              }}
-            >
-              <div>
-                <span style={{ color: colors.ink, fontWeight: 600 }}>Folder · </span>
-                <span style={{ wordBreak: 'break-all' }}>{backupStatus.backupsDir}</span>
-              </div>
-              <div>
-                <span style={{ color: colors.ink, fontWeight: 600 }}>Last backup · </span>
-                {backupStatus.lastTxn
-                  ? `${backupStatus.lastTxn.createdAt} · ${backupStatus.lastTxn.fileName}`
-                  : '—'}
-              </div>
-              <div style={{ fontSize: 14 }}>
-                {backupStatus.txnCount} backups
-              </div>
-            </div>
-          )}
 
           {isTauri() && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -404,9 +484,6 @@ export function Settings() {
       <Card padding="20px 22px">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ fontSize: 18, fontWeight: 700 }}>Manual Backup</div>
-          <div style={{ fontSize: 14, color: colors.ink, wordBreak: 'break-all', lineHeight: 1.5 }}>
-            File · {getDbPath() || '—'}
-          </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <button
               type="button"

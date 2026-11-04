@@ -130,4 +130,24 @@ CREATE TABLE IF NOT EXISTS txn_cards (
 CREATE INDEX IF NOT EXISTS txn_cards_txn ON txn_cards(txn_id);
 `,
   },
+  {
+    version: 7,
+    sql: `
+INSERT OR IGNORE INTO settings (key, value) VALUES ('print_size', 'M');
+`,
+  },
+  {
+    version: 8,
+    /** Buy card fee: amount = gold + fee (JS fix applied in runMigrations). */
+    sql: `
+INSERT OR IGNORE INTO settings (key, value) VALUES ('buy_card_fee_add', '1');
+`,
+  },
+  {
+    version: 9,
+    sql: `
+INSERT OR IGNORE INTO settings (key, value) VALUES ('auth_username', 'admin');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('auth_password_hash', '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8');
+`,
+  },
 ] as const;

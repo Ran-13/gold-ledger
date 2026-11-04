@@ -91,9 +91,9 @@ export function cardsFeeTotal(
   return cardsFeeableQty(lines) * Math.max(0, Math.round(feePerCard));
 }
 
-/** Sell: gold + fee · Buy: gold − fee */
+/** Sell and buy: gold + fee (card fee is always added). */
 export function cardTxnAmount(
-  type: 'sell' | 'buy',
+  _type: 'sell' | 'buy',
   yway: number,
   price: number,
   lines: Array<{ denom: CardDenom; qty: number }>,
@@ -101,8 +101,43 @@ export function cardTxnAmount(
 ): { gold: number; fee: number; total: number } {
   const gold = amount(yway, price);
   const fee = cardsFeeTotal(lines, feePerCard);
-  const total = type === 'sell' ? gold + fee : gold - fee;
+  const total = gold + fee;
   return { gold, fee, total };
+}
+
+/**
+ * Recalculate stored amounts for buy+card txns to gold + fee.
+ * Returns id → new amount for rows that need updating.
+ */
+export function buyCardAmountFixes(
+  txns: Array<{
+    id: number;
+    type: string;
+    channel: string;
+    yway: number;
+    price: number;
+    card_fee: number;
+    amount: number;
+  }>,
+  txnCards: Array<{ txn_id: number; denom: string; qty: number }>,
+): Array<{ id: number; amount: number }> {
+  const linesByTxn = new Map<number, Array<{ denom: CardDenom; qty: number }>>();
+  for (const c of txnCards) {
+    if (!isCardDenom(c.denom)) continue;
+    const qty = Math.max(0, Math.floor(c.qty) || 0);
+    if (!qty) continue;
+    const list = linesByTxn.get(c.txn_id) ?? [];
+    list.push({ denom: c.denom, qty });
+    linesByTxn.set(c.txn_id, list);
+  }
+  const out: Array<{ id: number; amount: number }> = [];
+  for (const t of txns) {
+    if (t.type !== 'buy' || t.channel !== 'card') continue;
+    const lines = linesByTxn.get(t.id) ?? [];
+    const next = cardTxnAmount('buy', t.yway, t.price, lines, t.card_fee).total;
+    if (next !== Math.round(t.amount)) out.push({ id: t.id, amount: next });
+  }
+  return out;
 }
 
 export function formatCardLines(

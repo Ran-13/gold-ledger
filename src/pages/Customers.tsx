@@ -104,18 +104,18 @@ export function Customers() {
                     onClick={() => openLedger(c.name)}
                     style={{
                       height: 32,
-                      border: `1px solid ${colors.cardBorder}`,
-                      background: '#fff',
-                      color: colors.ink,
+                      border: 'none',
+                      background: colors.ink,
+                      color: colors.white,
                       borderRadius: radii.button,
                       padding: '0 12px',
                       fontSize: 15,
-                      fontWeight: 600,
+                      fontWeight: 700,
                       whiteSpace: 'nowrap',
                       cursor: 'pointer',
                     }}
                   >
-                    ဘောင်ချာကြည့်
+                    မှတ်တမ်းကြည့်မည်
                   </button>
                 </td>
               </tr>

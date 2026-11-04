@@ -1,4 +1,5 @@
 import { colors } from './styles/tokens';
+import { LoginScreen } from './components/LoginScreen';
 import { Nav } from './components/Nav';
 import { PriceStrip } from './components/PriceStrip';
 import { CardAdjustDialog } from './components/CardAdjustDialog';
@@ -18,6 +19,7 @@ import { Settings } from './pages/Settings';
 
 export default function App() {
   const ready = useStore((s) => s.ready);
+  const authenticated = useStore((s) => s.authenticated);
   const screen = useStore((s) => s.screen);
   const error = useStore((s) => s.error);
 
@@ -29,13 +31,17 @@ export default function App() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: colors.muted,
+          color: colors.ink,
           fontSize: 19,
         }}
       >
         ခဏစောင့်ပါ…
       </div>
     );
+  }
+
+  if (!authenticated) {
+    return <LoginScreen />;
   }
 
   return (

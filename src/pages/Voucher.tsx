@@ -12,7 +12,8 @@ import {
 } from '../components/Icons';
 import { PaginationBar, usePagination } from '../components/Pagination';
 import { customerName } from '../lib/format';
-import { D, W, fromYway, voucherNo } from '../lib/units';
+import { printVoucher } from '../lib/printVoucher';
+import { D, W, formatDate, formatTimeAmPm, fromYway, voucherNo } from '../lib/units';
 import { colors } from '../styles/tokens';
 import { useStore } from '../store';
 
@@ -25,7 +26,7 @@ export function Voucher() {
   const printAfterOpen = useStore((s) => s.printAfterOpen);
   const setPrintAfterOpen = useStore((s) => s.setPrintAfterOpen);
   const digits = settings.digits;
-  const shopMark = settings.shop_mark;
+  const printSize = settings.print_size;
 
   const [q, setQ] = useState('');
 
@@ -58,13 +59,13 @@ export function Voucher() {
     const t = window.setTimeout(() => {
       if (!alive) return;
       setPrintAfterOpen(false);
-      window.print();
+      printVoucher(printSize);
     }, 450);
     return () => {
       alive = false;
       window.clearTimeout(t);
     };
-  }, [printAfterOpen, vt.id, setPrintAfterOpen]);
+  }, [printAfterOpen, vt?.id, setPrintAfterOpen, printSize]);
 
   if (!vt) {
     return (
@@ -287,7 +288,7 @@ export function Voucher() {
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {D(t.date, digits)}
+                        {formatDate(t.date, digits)}
                       </td>
                       <td
                         className="num"
@@ -351,7 +352,7 @@ export function Voucher() {
           </div>
           <button
             type="button"
-            onClick={() => window.print()}
+            onClick={() => printVoucher(printSize)}
             style={{
               height: 42,
               padding: '0 18px',
@@ -403,19 +404,20 @@ export function Voucher() {
             <CornerOrnament pos="bl" />
             <CornerOrnament pos="br" />
 
-            <WatermarkSeal mark={shopMark} />
+            <WatermarkSeal />
 
             <div style={{ position: 'relative', zIndex: 1 }}>
               <div
                 style={{
-                  display: 'flex',
-                  alignItems: 'flex-end',
-                  justifyContent: 'space-between',
-                  gap: 16,
+                  display: 'grid',
+                  gridTemplateColumns: '1fr auto 1fr',
+                  alignItems: 'end',
+                  gap: 8,
                   marginBottom: 18,
                 }}
               >
-                <div>
+                <div />
+                <div style={{ textAlign: 'center' }}>
                   <div
                     style={{
                       fontFamily: "'Cormorant Garamond', 'Times New Roman', serif",
@@ -430,27 +432,29 @@ export function Voucher() {
                   </div>
                   <div
                     style={{
-                      marginTop: 8,
+                      margin: '8px auto 0',
                       width: 48,
                       height: 2,
-                      background: 'linear-gradient(90deg, #111111, transparent)',
+                      background: 'linear-gradient(90deg, transparent, #111111, transparent)',
                       borderRadius: 1,
                     }}
                   />
                 </div>
                 <div
                   style={{
+                    justifySelf: 'end',
                     fontSize: 16,
                     color: '#111111',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 6,
                     paddingBottom: 2,
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   <IconClock size={14} style={{ color: '#111111' }} />
                   <span className="num" style={{ fontWeight: 600, letterSpacing: 0.3 }}>
-                    {D(vt.time.slice(0, 5), digits)}
+                    {formatTimeAmPm(vt.time, digits)}
                   </span>
                 </div>
               </div>
@@ -465,7 +469,7 @@ export function Voucher() {
               />
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 15, marginBottom: 34 }}>
-                <FieldRow icon={<IconCalendar size={15} />} label="ရက်စွဲ" value={D(vt.date, digits)} />
+                <FieldRow icon={<IconCalendar size={15} />} label="ရက်စွဲ" value={formatDate(vt.date, 'latin')} />
                 <FieldRow
                   icon={<IconUser size={15} />}
                   label="အမည်"
@@ -532,95 +536,33 @@ export function Voucher() {
   );
 }
 
-function WatermarkSeal({ mark }: { mark: string }) {
-  const label = mark.slice(0, 2);
+/** Small generic ornament — no shop mark (keeps shop identity subtle). */
+function WatermarkSeal() {
   return (
     <div
       aria-hidden
       style={{
         position: 'absolute',
-        inset: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        right: 14,
+        bottom: 14,
         pointerEvents: 'none',
         zIndex: 0,
+        opacity: 0.55,
       }}
     >
-      <div style={{ transform: 'rotate(-14deg)' }}>
-        <svg width="248" height="248" viewBox="0 0 248 248" fill="none">
-          <defs>
-            <radialGradient id="wmGlow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#111111" stopOpacity="0.06" />
-              <stop offset="55%" stopColor="#111111" stopOpacity="0.02" />
-              <stop offset="100%" stopColor="#111111" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-
-          <circle cx="124" cy="124" r="118" fill="url(#wmGlow)" />
-
-          <circle cx="124" cy="124" r="108" stroke="#111111" strokeOpacity="0.12" strokeWidth="1.25" />
-          <circle cx="124" cy="124" r="102" stroke="#111111" strokeOpacity="0.1" strokeWidth="3" />
-          <circle cx="124" cy="124" r="94" stroke="#111111" strokeOpacity="0.08" strokeWidth="1" />
-
-          {Array.from({ length: 36 }, (_, i) => {
-            const a = (i * 10 * Math.PI) / 180;
-            const outer = 100;
-            const inner = i % 3 === 0 ? 90 : 94;
-            const x1 = 124 + Math.cos(a) * outer;
-            const y1 = 124 + Math.sin(a) * outer;
-            const x2 = 124 + Math.cos(a) * inner;
-            const y2 = 124 + Math.sin(a) * inner;
-            return (
-              <line
-                key={i}
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
-                stroke="#111111"
-                strokeOpacity={i % 3 === 0 ? 0.2 : 0.1}
-                strokeWidth={i % 3 === 0 ? 1.4 : 1}
-              />
-            );
-          })}
-
-          <circle cx="124" cy="124" r="62" fill="#FFFFFF" fillOpacity="0.5" />
-          <circle cx="124" cy="124" r="62" stroke="#111111" strokeOpacity="0.14" strokeWidth="1.5" />
-          <circle cx="124" cy="124" r="56" stroke="#111111" strokeOpacity="0.08" strokeWidth="1" />
-
-          {[0, 90, 180, 270].map((deg) => {
-            const a = ((deg - 90) * Math.PI) / 180;
-            const x = 124 + Math.cos(a) * 78;
-            const y = 124 + Math.sin(a) * 78;
-            return (
-              <rect
-                key={deg}
-                x={x - 3}
-                y={y - 3}
-                width="6"
-                height="6"
-                rx="0.5"
-                transform={`rotate(45 ${x} ${y})`}
-                fill="#111111"
-                fillOpacity="0.16"
-              />
-            );
-          })}
-
-          <text
-            x="124"
-            y="124"
-            textAnchor="middle"
-            dominantBaseline="central"
+      <div style={{ transform: 'rotate(-12deg)' }}>
+        <svg width="52" height="52" viewBox="0 0 64 64" fill="none">
+          <circle cx="32" cy="32" r="28" stroke="#111111" strokeOpacity="0.18" strokeWidth="1.2" />
+          <circle cx="32" cy="32" r="22" stroke="#111111" strokeOpacity="0.12" strokeWidth="1" />
+          <path
+            d="M32 14 L36 28 L50 28 L39 37 L43 51 L32 42 L21 51 L25 37 L14 28 L28 28 Z"
             fill="#111111"
-            fillOpacity="0.1"
-            fontFamily="'Pyidaungsu', sans-serif"
-            fontSize={label.length > 1 ? 52 : 72}
-            fontWeight="700"
-          >
-            {label}
-          </text>
+            fillOpacity="0.08"
+            stroke="#111111"
+            strokeOpacity="0.2"
+            strokeWidth="0.8"
+            strokeLinejoin="round"
+          />
         </svg>
       </div>
     </div>

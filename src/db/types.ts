@@ -34,6 +34,8 @@ export interface Txn {
   card_fee: number;
 }
 
+export type PrintSize = 'S' | 'M' | 'L';
+
 export interface Settings {
   opening_stock_yway: number;
   digits: 'latin' | 'myanmar';
@@ -41,6 +43,11 @@ export interface Settings {
   shop_mark: string;
   shop_tagline: string;
   card_fee: number;
+  /** Voucher print slip size — S smaller, M default (A4/4), L larger */
+  print_size: PrintSize;
+  auth_username: string;
+  /** SHA-256 hex of password */
+  auth_password_hash: string;
 }
 
 /** Manual stock add (in) or remove (out) — not a buy/sell txn (loose gold) */

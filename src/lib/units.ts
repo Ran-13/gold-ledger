@@ -196,9 +196,29 @@ export function isoDate(d: Date = new Date()): string {
   return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
 }
 
+/** `YYYY-MM-DD` → `D-M-YYYY` (ရက်-လ-နှစ်, no leading zeros). Storage stays ISO. */
+export function formatDate(iso: string, digits: DigitsMode = 'latin'): string {
+  const m = (iso || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return D(iso || '—', digits);
+  const day = String(Number(m[3]));
+  const month = String(Number(m[2]));
+  return D(`${day}-${month}-${m[1]}`, digits);
+}
+
 export function isoTime(d: Date = new Date()): string {
   const z = (n: number) => String(n).padStart(2, '0');
   return `${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}`;
+}
+
+/** `HH:MM` or `HH:MM:SS` → `h:MM AM/PM` (always Latin digits). */
+export function formatTimeAmPm(time: string, _digits?: DigitsMode): string {
+  const m = (time || '').trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return (time || '').slice(0, 5) || '—';
+  const h24 = Number(m[1]);
+  const min = m[2]!;
+  const am = h24 < 12;
+  const h12 = h24 % 12 || 12;
+  return `${h12}:${min} ${am ? 'AM' : 'PM'}`;
 }
 
 /** Sort key for price logs / txns: date then time */
