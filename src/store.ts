@@ -1,6 +1,17 @@
 import { create } from 'zustand';
-import type { Customer, Price, Settings, StockAdjustment, Txn } from './db/types';
+import type {
+  CardAdjustment,
+  CardOpening,
+  Customer,
+  Price,
+  Settings,
+  StockAdjustment,
+  Txn,
+  TxnCard,
+} from './db/types';
 import * as db from './db/queries';
+import { scheduleDailyBackup } from './lib/autoBackup';
+import { DEFAULT_CARD_FEE, type CardDenom } from './lib/cards';
 import { isoDate } from './lib/units';
 
 export type Screen =
@@ -20,6 +31,7 @@ export type RangeKey = '7' | '30' | '90' | 'all';
 
 interface LedgerFilter {
   type: 'all' | 'sell' | 'buy';
+  channel: 'all' | 'card' | 'loose';
   q: string;
   from: string;
   to: string;
@@ -32,6 +44,9 @@ interface AppState {
   prices: Price[];
   txns: Txn[];
   stockAdjustments: StockAdjustment[];
+  cardOpenings: CardOpening[];
+  cardAdjustments: CardAdjustment[];
+  txnCards: TxnCard[];
   settings: Settings;
   voucherId: number | null;
   flt: LedgerFilter;
@@ -47,12 +62,19 @@ interface AppState {
   openingStockDialogOpen: boolean;
   stockAdjustDialogOpen: boolean;
   stockAdjustKind: 'in' | 'out';
+  cardOpeningDialogOpen: boolean;
+  cardAdjustDialogOpen: boolean;
+  cardAdjustKind: 'in' | 'out';
+  cardAdjustDenom: CardDenom | null;
   /** After save → open voucher and print once */
   printAfterOpen: boolean;
+  voucherDialogOpen: boolean;
 
   setScreen: (s: Screen) => void;
   setVoucherId: (id: number | null) => void;
   setPrintAfterOpen: (v: boolean) => void;
+  openVoucher: (id: number, opts?: { print?: boolean }) => void;
+  closeVoucherDialog: () => void;
   setFlt: (partial: Partial<LedgerFilter>) => void;
   clearFlt: () => void;
   setRange: (r: RangeKey) => void;
@@ -70,6 +92,10 @@ interface AppState {
   closeOpeningStockDialog: () => void;
   openStockAdjustDialog: (kind: 'in' | 'out') => void;
   closeStockAdjustDialog: () => void;
+  openCardOpeningDialog: () => void;
+  closeCardOpeningDialog: () => void;
+  openCardAdjustDialog: (kind: 'in' | 'out', denom: CardDenom) => void;
+  closeCardAdjustDialog: () => void;
   bootstrap: () => Promise<void>;
   refresh: () => Promise<void>;
   refreshSettings: () => Promise<void>;
@@ -84,16 +110,19 @@ export const useStore = create<AppState>((set, get) => ({
   prices: [],
   txns: [],
   stockAdjustments: [],
+  cardOpenings: [],
+  cardAdjustments: [],
+  txnCards: [],
   settings: {
     opening_stock_yway: 0,
     digits: 'latin',
-    round_to: 100,
     shop_name: 'ဦးသန့်စင်',
     shop_mark: 'သ',
     shop_tagline: 'အခေါက်ရွှေ အရောင်းအဝယ်',
+    card_fee: DEFAULT_CARD_FEE,
   },
   voucherId: null,
-  flt: { type: 'all', q: '', from: '', to: '' },
+  flt: { type: 'all', channel: 'all', q: '', from: today, to: today },
   range: '30',
   repMode: 'day',
   repMetric: 'w',
@@ -106,19 +135,39 @@ export const useStore = create<AppState>((set, get) => ({
   openingStockDialogOpen: false,
   stockAdjustDialogOpen: false,
   stockAdjustKind: 'in',
+  cardOpeningDialogOpen: false,
+  cardAdjustDialogOpen: false,
+  cardAdjustKind: 'in',
+  cardAdjustDenom: null,
   printAfterOpen: false,
+  voucherDialogOpen: false,
 
   setScreen: (screen) => {
     if (screen === 'entry') {
       set({ entryDialogOpen: true });
       return;
     }
+    // ဘောင်ချာ = မှတ်တမ်း ထဲက dialog — separate screen မလို
+    if (screen === 'voucher') {
+      set({ voucherDialogOpen: true, screen: get().screen === 'voucher' ? 'ledger' : get().screen });
+      return;
+    }
     set({ screen });
   },
   setVoucherId: (voucherId) => set({ voucherId }),
   setPrintAfterOpen: (printAfterOpen) => set({ printAfterOpen }),
+  openVoucher: (id, opts) =>
+    set({
+      voucherId: id,
+      voucherDialogOpen: true,
+      printAfterOpen: !!opts?.print,
+    }),
+  closeVoucherDialog: () => set({ voucherDialogOpen: false, printAfterOpen: false }),
   setFlt: (partial) => set({ flt: { ...get().flt, ...partial } }),
-  clearFlt: () => set({ flt: { type: 'all', q: '', from: '', to: '' } }),
+  clearFlt: () => {
+    const d = isoDate();
+    set({ flt: { type: 'all', channel: 'all', q: '', from: d, to: d } });
+  },
   setRange: (range) => set({ range }),
   setRepMode: (repMode) => set({ repMode }),
   setRepMetric: (repMetric) => set({ repMetric }),
@@ -134,11 +183,18 @@ export const useStore = create<AppState>((set, get) => ({
   closeOpeningStockDialog: () => set({ openingStockDialogOpen: false }),
   openStockAdjustDialog: (kind) => set({ stockAdjustDialogOpen: true, stockAdjustKind: kind }),
   closeStockAdjustDialog: () => set({ stockAdjustDialogOpen: false }),
+  openCardOpeningDialog: () => set({ cardOpeningDialogOpen: true }),
+  closeCardOpeningDialog: () => set({ cardOpeningDialogOpen: false }),
+  openCardAdjustDialog: (kind, denom) =>
+    set({ cardAdjustDialogOpen: true, cardAdjustKind: kind, cardAdjustDenom: denom }),
+  closeCardAdjustDialog: () => set({ cardAdjustDialogOpen: false }),
 
   bootstrap: async () => {
     try {
       await get().refresh();
       set({ ready: true, error: null });
+      // Daily snapshot once per calendar day (idempotent)
+      scheduleDailyBackup();
     } catch (e) {
       set({
         ready: true,
@@ -148,14 +204,35 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   refresh: async () => {
-    const [customers, prices, txns, stockAdjustments, settings] = await Promise.all([
+    const [
+      customers,
+      prices,
+      txns,
+      stockAdjustments,
+      settings,
+      cardOpenings,
+      cardAdjustments,
+      txnCards,
+    ] = await Promise.all([
       db.listCustomers(),
       db.listPrices(),
       db.listTxns(),
       db.listStockAdjustments(),
       db.getSettings(),
+      db.listCardOpenings(),
+      db.listCardAdjustments(),
+      db.listAllTxnCards(),
     ]);
-    set({ customers, prices, txns, stockAdjustments, settings });
+    set({
+      customers,
+      prices,
+      txns,
+      stockAdjustments,
+      settings,
+      cardOpenings,
+      cardAdjustments,
+      txnCards,
+    });
   },
 
   refreshSettings: async () => {
@@ -166,10 +243,9 @@ export const useStore = create<AppState>((set, get) => ({
 
 export const NAV: { key: Screen; label: string; title: string }[] = [
   { key: 'dash', label: 'ပင်မ', title: 'ပင်မ' },
-  { key: 'ledger', label: 'မှတ်တမ်း', title: 'အရောင်းအဝယ်မှတ်တမ်း' },
-  { key: 'voucher', label: 'ဘောင်ချာစာရင်း', title: 'ဘောင်ချာစာရင်း' },
-  { key: 'reports', label: 'စာရင်းစစ်ခြင်း', title: 'စာရင်းစစ်ခြင်း' },
+  { key: 'ledger', label: 'မှတ်တမ်း', title: 'မှတ်တမ်း' },
+  { key: 'reports', label: 'စာရင်းအင်း', title: 'စာရင်းအင်း' },
   { key: 'customers', label: 'ဝယ်သူ', title: 'ဝယ်သူများ' },
-  { key: 'stock', label: 'လက်ကျန်စီမံ', title: 'လက်ကျန် စီမံခြင်း' },
-  { key: 'prices', label: 'စျေးနှုန်း', title: 'စျေးနှုန်းပြင်ဆင်ရန်' },
+  { key: 'stock', label: 'လက်ကျန်', title: 'လက်ကျန်' },
+  { key: 'prices', label: 'စျေးနှုန်း', title: 'စျေးနှုန်း' },
 ];

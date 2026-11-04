@@ -7,6 +7,7 @@ import {
   isoDate,
   money,
   profit,
+  sumMoney,
   YWAY_PER_KYAT,
 } from './units';
 
@@ -35,8 +36,8 @@ export interface Bucket {
 export interface BucketRow extends Bucket {
   sP: number;
   bP: number;
-  sA: number;
-  bA: number;
+  sA: bigint;
+  bA: bigint;
   pr: number;
   bal: number;
 }
@@ -114,13 +115,57 @@ export function lastNDates(n: number, now = new Date()): string[] {
   return Array.from({ length: n }, (_, i) => isoDate(addDays(now, i - n + 1)));
 }
 
-export function marginOf(txns: TxnLike[], buyByDate: PriceMap): number {
+/**
+ * Latest shop buy-price as of each calendar day (forward-filled from price history).
+ * Missing days inherit the previous recorded buy price — never invents a fake spread.
+ */
+export function buildBuyPriceLookup(
+  prices: Array<{ date: string; time: string; buy: number }>,
+): (date: string) => number {
+  const sorted = [...prices].sort((a, b) => {
+    const ka = `${a.date}T${a.time.length === 5 ? a.time + ':00' : a.time}`;
+    const kb = `${b.date}T${b.time.length === 5 ? b.time + ':00' : b.time}`;
+    return ka < kb ? -1 : ka > kb ? 1 : 0;
+  });
+  return (date: string) => {
+    let buy = 0;
+    for (const p of sorted) {
+      if (p.date > date) break;
+      if (p.buy > 0) buy = p.buy;
+    }
+    return buy;
+  };
+}
+
+/** @deprecated Prefer buildBuyPriceLookup; kept for chart helpers that still pass maps */
+export function marginOf(txns: TxnLike[], buyByDate: PriceMap | ((date: string) => number)): number {
+  const getBuy =
+    typeof buyByDate === 'function'
+      ? buyByDate
+      : (date: string) => {
+          // map may be sparse — walk keys ≤ date
+          let buy = 0;
+          for (const d of Object.keys(buyByDate).sort()) {
+            if (d > date) break;
+            if (buyByDate[d]! > 0) buy = buyByDate[d]!;
+          }
+          return buy;
+        };
   return txns
     .filter((t) => t.type === 'sell')
     .reduce((a, t) => {
-      const buy = buyByDate[t.date] ?? t.price - 100000;
+      const buy = getBuy(t.date);
+      if (buy <= 0) return a;
       return a + profit(t.yway, t.price, buy);
     }, 0);
+}
+
+/** True when every sell has a known shop buy-price for its date */
+export function marginComplete(
+  txns: TxnLike[],
+  getBuy: (date: string) => number,
+): boolean {
+  return txns.filter((t) => t.type === 'sell').every((t) => getBuy(t.date) > 0);
 }
 
 export type AdjLike = { date: string; kind: 'in' | 'out'; yway: number };
@@ -166,16 +211,18 @@ export function makeChartData(
       ...bk,
       sP: sum(sa, (t) => t.yway),
       bP: sum(ba, (t) => t.yway),
-      sA: sum(sa, (t) => t.amount),
-      bA: sum(ba, (t) => t.amount),
+      sA: sumMoney(sa, (t) => t.amount),
+      bA: sumMoney(ba, (t) => t.amount),
       pr: marginOf(sa, buyByDate),
       bal: balAt(bk.to),
     };
   });
 
   const isW = metric === 'w';
-  const sv = (r: BucketRow) => (isW ? r.sP / YWAY_PER_KYAT : r.sA / 1e5);
-  const bv = (r: BucketRow) => (isW ? r.bP / YWAY_PER_KYAT : r.bA / 1e5);
+  /** Chart bar scale only — display uses BigInt money() */
+  const moneyBar = (n: bigint) => Number(n / 100000n) + Number(n % 100000n) / 1e5;
+  const sv = (r: BucketRow) => (isW ? r.sP / YWAY_PER_KYAT : moneyBar(r.sA));
+  const bv = (r: BucketRow) => (isW ? r.bP / YWAY_PER_KYAT : moneyBar(r.bA));
   const mx = Math.max(0.0001, ...rows.map((r) => Math.max(sv(r), bv(r))));
   const pmx = Math.max(0.0001, ...rows.map((r) => Math.abs(r.pr)));
   const few = rows.length <= 16;

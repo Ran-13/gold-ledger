@@ -3,12 +3,14 @@ import { IconFilter } from './Icons';
 import { colors, radii } from '../styles/tokens';
 
 export const filterInputStyle: CSSProperties = {
-  height: 40,
+  height: 46,
   width: '100%',
-  border: `1.5px solid ${colors.inputBorder}`,
+  border: `1px solid ${colors.cardBorder}`,
   borderRadius: radii.input,
-  padding: '0 12px',
-  fontSize: 14,
+  padding: '0 14px',
+  fontSize: 17,
+  fontWeight: 500,
+  lineHeight: 1.5,
   background: colors.white,
   color: colors.ink,
   boxSizing: 'border-box',
@@ -35,7 +37,7 @@ export function FilterField({
         minWidth: minWidth ?? undefined,
       }}
     >
-      <span style={{ fontSize: 12, fontWeight: 700, color: colors.muted, letterSpacing: 0.2 }}>
+      <span style={{ fontSize: 15, fontWeight: 700, color: colors.muted, letterSpacing: '0.015em', lineHeight: 1.5 }}>
         {label}
       </span>
       {children}
@@ -59,65 +61,67 @@ export function FilterPanel({
   return (
     <div
       style={{
-        padding: '16px 20px',
+        padding: '14px 16px',
         borderBottom: `1px solid ${colors.cardBorder}`,
         background: colors.softBg,
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          marginBottom: 12,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {title && (
-            <div
+      {(title || countLabel || active) && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            marginBottom: 12,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {title && (
+              <div
+                style={{
+                  fontSize: 17,
+                  fontWeight: 700,
+                  color: colors.ink,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <IconFilter size={16} style={{ color: colors.muted }} />
+                {title}
+              </div>
+            )}
+            {countLabel && (
+              <div style={{ fontSize: 16, color: colors.muted }}>{countLabel}</div>
+            )}
+          </div>
+          {active && (
+            <button
+              type="button"
+              onClick={onClear}
               style={{
-                fontSize: 14,
-                fontWeight: 700,
+                height: 34,
+                padding: '0 12px',
+                border: `1px solid ${colors.inputBorder}`,
+                borderRadius: radii.button,
+                background: colors.white,
                 color: colors.ink,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
+                fontSize: 16,
+                fontWeight: 600,
+                cursor: 'pointer',
               }}
             >
-              <IconFilter size={15} style={{ color: colors.muted }} />
-              {title}
-            </div>
-          )}
-          {countLabel && (
-            <div style={{ fontSize: 13, color: colors.muted }}>{countLabel}</div>
+              စစ်ထုတ်မှု ရှင်းမည်
+            </button>
           )}
         </div>
-        {active && (
-          <button
-            type="button"
-            onClick={onClear}
-            style={{
-              height: 32,
-              padding: '0 12px',
-              border: `1.5px solid ${colors.inputBorder}`,
-              borderRadius: radii.button,
-              background: colors.white,
-              color: colors.ink,
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            စစ်ထုတ်မှု ရှင်းမည်
-          </button>
-        )}
-      </div>
+      )}
       <div
         style={{
           display: 'flex',
           flexWrap: 'wrap',
-          gap: 14,
+          gap: 12,
           alignItems: 'flex-end',
         }}
       >

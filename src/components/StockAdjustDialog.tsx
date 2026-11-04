@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Dialog } from './Dialog';
+import { Dialog, dialogBtnGhost, dialogBtnPrimary } from './Dialog';
 import { createStockAdjustment } from '../db/queries';
 import { N, W, keepNumInput, stockFromParts, toYway } from '../lib/units';
 import { colors, radii } from '../styles/tokens';
@@ -33,20 +33,19 @@ export function StockAdjustDialog() {
   }, [open, kind]);
 
   const yway = toYway(N(k), N(p), N(y));
-  const stockY = stockFromParts(opening, txns, adjustments);
+  const looseTxns = txns.filter((t) => t.channel !== 'card');
+  const stockY = stockFromParts(opening, looseTxns, adjustments);
   const isIn = kind === 'in';
   const overdraw = !isIn && yway > 0 && yway > stockY;
-  const title = isIn ? 'လက်ကျန် ထည့်မည်' : 'လက်ကျန် လျှော့မည်';
-  const subtitle = isIn
-    ? 'ဆိုင်ထဲ ရွှေပေါင်းထည့်ခြင်း (ဝယ်စာရင်း မဟုတ်)'
-    : 'ဆိုင်ထဲမှ ရွှေလျှော့ခြင်း (ရောင်းစာရင်း မဟုတ်)';
+  const title = isIn ? 'မီးလင်းဖြတ်စ ထည့်မည်' : 'မီးလင်းဖြတ်စ လျှော့မည်';
+  const subtitle = 'ဝယ် / ရောင်း စာရင်း မဟုတ်';
 
   const field = {
-    height: 48,
-    border: `1.5px solid ${colors.inputBorder}`,
+    height: 36,
+    border: `1px solid ${colors.inputBorder}`,
     borderRadius: radii.input,
-    padding: '0 12px',
-    fontSize: 20,
+    padding: '0 10px',
+    fontSize: 18,
     fontWeight: 700,
     textAlign: 'right' as const,
     width: '100%',
@@ -85,21 +84,7 @@ export function StockAdjustDialog() {
       width={480}
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <button
-            type="button"
-            onClick={close}
-            style={{
-              height: 46,
-              padding: '0 18px',
-              border: `1.5px solid ${colors.inputBorder}`,
-              borderRadius: 8,
-              background: colors.white,
-              color: colors.muted,
-              fontSize: 15,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
+          <button type="button" onClick={close} style={dialogBtnGhost}>
             ပိတ်မည်
           </button>
           <button
@@ -107,14 +92,7 @@ export function StockAdjustDialog() {
             disabled={saving || overdraw}
             onClick={() => void save()}
             style={{
-              height: 46,
-              padding: '0 22px',
-              border: 'none',
-              borderRadius: 8,
-              background: colors.ink,
-              color: colors.white,
-              fontSize: 15,
-              fontWeight: 700,
+              ...dialogBtnPrimary,
               cursor: saving || overdraw ? 'default' : 'pointer',
               opacity: overdraw ? 0.45 : 1,
             }}
@@ -134,7 +112,7 @@ export function StockAdjustDialog() {
             ] as const
           ).map(([label, val, set, focus]) => (
             <label key={label} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: colors.muted }}>{label}</span>
+              <span style={{ fontSize: 16, fontWeight: 600, color: colors.muted }}>{label}</span>
               <input
                 ref={focus ? kRef : undefined}
                 type="text"
@@ -165,13 +143,13 @@ export function StockAdjustDialog() {
             borderRadius: 8,
           }}
         >
-          <span style={{ fontSize: 14, color: colors.muted }}>
+          <span style={{ fontSize: 16, color: colors.muted }}>
             {isIn ? 'ပေါင်းထည့်မည့် အလေးချိန်' : 'လျှော့မည့် အလေးချိန်'}
           </span>
           <span
             className="num"
             style={{
-              fontSize: 20,
+              fontSize: 22,
               fontWeight: 700,
               color: overdraw ? colors.buy : isIn ? colors.sell : colors.buy,
             }}
@@ -183,7 +161,7 @@ export function StockAdjustDialog() {
         {!isIn && (
           <div
             style={{
-              fontSize: 13,
+              fontSize: 16,
               color: overdraw ? colors.buy : colors.muted2,
               lineHeight: 1.55,
             }}
@@ -194,17 +172,17 @@ export function StockAdjustDialog() {
         )}
 
         <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: colors.muted }}>မှတ်ချက်</span>
+          <span style={{ fontSize: 16, fontWeight: 600, color: colors.muted }}>မှတ်ချက်</span>
           <input
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="ဥပမာ — စာရင်းညှိ / ဆုံးရှုံး / ပန်းထိမ် ပြန်လာ"
+            placeholder="မှတ်ချက်"
             style={{
               height: 44,
               border: `1.5px solid ${colors.inputBorder}`,
               borderRadius: radii.input,
               padding: '0 12px',
-              fontSize: 14,
+              fontSize: 16,
               width: '100%',
               boxSizing: 'border-box',
             }}

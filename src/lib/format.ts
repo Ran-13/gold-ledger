@@ -7,7 +7,7 @@ export function pillStyle(type: 'sell' | 'buy'): CSSProperties {
     display: 'inline-block',
     padding: '3px 14px',
     borderRadius: 6,
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: 600,
     whiteSpace: 'nowrap',
     background: colors.white,
@@ -24,8 +24,8 @@ export function customerName(
   id: number | null,
   map: Map<number, { name: string }>,
 ): string {
-  if (id == null) return 'ဝယ်သူအထွေထွေ';
-  return map.get(id)?.name ?? 'ဝယ်သူအထွေထွေ';
+  if (id == null) return '—';
+  return map.get(id)?.name ?? '—';
 }
 
 export type { DigitsMode };

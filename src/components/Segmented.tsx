@@ -20,7 +20,7 @@ export function Segmented<T extends string>({
         style={{
           display: 'grid',
           gridTemplateColumns: `repeat(${options.length}, minmax(0,1fr))`,
-          gap: 14,
+          gap: 10,
         }}
       >
         {options.map((o) => {
@@ -31,13 +31,13 @@ export function Segmented<T extends string>({
               type="button"
               onClick={() => onChange(o.value)}
               style={{
-                height: 72,
+                height: 48,
                 borderRadius: radii.input,
-                fontSize: 17,
+                fontSize: 18,
                 fontWeight: 700,
-                lineHeight: 1.5,
+                lineHeight: 1.45,
                 cursor: 'pointer',
-                border: on ? `2px solid ${colors.ink}` : `1.5px solid ${colors.cardBorder}`,
+                border: on ? `1px solid ${colors.ink}` : `1px solid ${colors.cardBorder}`,
                 background: on ? colors.ink : colors.white,
                 color: on ? colors.white : colors.muted,
               }}
@@ -57,9 +57,9 @@ export function Segmented<T extends string>({
         display: 'inline-flex',
         gap: 3,
         background: colors.white,
-        border: `1.5px solid ${colors.cardBorder}`,
+        border: `1px solid ${colors.cardBorder}`,
         padding: 4,
-        borderRadius: 8,
+        borderRadius: radii.segment,
         alignSelf: 'flex-start',
       }}
     >
@@ -69,25 +69,26 @@ export function Segmented<T extends string>({
           size === 'chip'
             ? {
                 height: 42,
-                padding: '0 18px',
+                padding: '0 16px',
                 borderRadius: radii.input,
-                fontSize: 15,
-                fontWeight: 600,
-                lineHeight: 1.5,
+                fontSize: 17,
+                fontWeight: 700,
+                lineHeight: 1.4,
+                letterSpacing: '0.01em',
                 cursor: 'pointer',
-                border: on ? `1.5px solid ${colors.ink}` : `1.5px solid transparent`,
+                border: on ? `1px solid ${colors.ink}` : `1px solid transparent`,
                 background: on ? colors.ink : 'transparent',
                 color: on ? colors.white : colors.ink,
               }
             : {
-                height: 36,
-                padding: '0 16px',
+                height: 34,
+                padding: '0 14px',
                 border: 'none',
                 borderRadius: radii.segment,
-                fontSize: 15,
+                fontSize: 16,
                 cursor: 'pointer',
-                fontWeight: 600,
-                lineHeight: 1.5,
+                fontWeight: 700,
+                lineHeight: 1.35,
                 background: on ? colors.ink : 'transparent',
                 color: on ? colors.white : colors.muted,
               };

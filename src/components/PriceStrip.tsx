@@ -1,6 +1,6 @@
 import { IconEdit, IconPlus, IconPrice } from './Icons';
 import { dateTimeKey, isoDate, money } from '../lib/units';
-import { TOP_BAR_HEIGHT, colors } from '../styles/tokens';
+import { TOP_BAR_HEIGHT, cardShadow, colors, radii } from '../styles/tokens';
 import { useStore } from '../store';
 
 /** Top price bar — buy / sell only */
@@ -39,21 +39,22 @@ export function PriceStrip() {
         type="button"
         onClick={openPriceDialog}
         style={{
-          height: 38,
-          padding: '0 14px',
-          border: `1.5px solid ${colors.inputBorder}`,
-          borderRadius: 8,
+          height: 46,
+          padding: '0 16px',
+          border: `1px solid ${colors.cardBorder}`,
+          borderRadius: radii.button,
           background: colors.white,
           color: colors.ink,
-          fontSize: 14,
-          fontWeight: 600,
+          fontSize: 17,
+          fontWeight: 700,
           cursor: 'pointer',
           display: 'inline-flex',
           alignItems: 'center',
           gap: 8,
+          lineHeight: 1.4,
         }}
       >
-        <IconEdit size={15} />
+        <IconEdit size={16} />
         စျေးနှုန်းပြင်ဆင်ရန်
       </button>
 
@@ -61,21 +62,22 @@ export function PriceStrip() {
         type="button"
         onClick={openEntryDialog}
         style={{
-          height: 38,
-          padding: '0 16px',
+          height: 46,
+          padding: '0 18px',
           border: 'none',
-          borderRadius: 8,
+          borderRadius: radii.button,
           background: colors.ink,
           color: colors.white,
-          fontSize: 14,
+          fontSize: 17,
           fontWeight: 700,
+          lineHeight: 1.4,
           cursor: 'pointer',
           display: 'inline-flex',
           alignItems: 'center',
           gap: 8,
         }}
       >
-        <IconPlus size={16} />
+        <IconPlus size={17} />
         စာရင်းသွင်းခြင်း
       </button>
     </div>
@@ -89,22 +91,24 @@ function PriceBox({ label, value }: { label: string; value: string }) {
         display: 'flex',
         alignItems: 'center',
         gap: 10,
-        padding: '6px 14px',
+        padding: '12px 16px',
         background: colors.white,
-        border: `1.5px solid ${colors.cardBorder}`,
-        borderRadius: 6,
-        minWidth: 150,
+        border: `1px solid ${colors.cardBorder}`,
+        boxShadow: cardShadow,
+        borderRadius: radii.button,
+        minWidth: 168,
       }}
     >
-      <IconPrice size={14} style={{ color: colors.muted }} />
-      <span style={{ fontSize: 13, fontWeight: 600, color: colors.muted }}>{label}</span>
+      <IconPrice size={15} style={{ color: colors.muted }} />
+      <span style={{ fontSize: 16, fontWeight: 700, color: colors.muted, lineHeight: 1.45 }}>{label}</span>
       <span
         className="num"
         style={{
-          fontSize: 18,
+          fontSize: 22,
           fontWeight: 700,
           color: colors.ink,
-          lineHeight: 1.2,
+          lineHeight: 1.3,
+          letterSpacing: '-0.01em',
         }}
       >
         {value}

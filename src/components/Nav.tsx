@@ -5,7 +5,7 @@ import { TOP_BAR_HEIGHT } from '../styles/tokens';
 const WHITE = '#FFFFFF';
 const BLACK = '#111111';
 const MUTED = '#6B6B6B';
-const LINE = '#E5E5E5';
+const LINE = '#D0D5DC';
 const SELECT_BG = '#F4F4F4';
 
 function navItemStyle(on: boolean) {
@@ -15,18 +15,18 @@ function navItemStyle(on: boolean) {
     alignItems: 'center',
     gap: 12,
     width: 'calc(100% - 16px)',
-    height: 46,
+    height: 48,
     margin: '0 8px',
-    padding: on ? '0 12px 0 14px' : '0 12px 0 16px',
+    padding: on ? '0 14px 0 16px' : '0 14px 0 18px',
     boxSizing: 'border-box' as const,
     border: 'none',
-    borderRadius: 6,
+    borderRadius: 10,
     background: on ? SELECT_BG : 'transparent',
     color: on ? BLACK : MUTED,
-    fontWeight: on ? 700 : 450,
-    fontSize: 16,
-    letterSpacing: 0.15,
-    lineHeight: 1.45,
+    fontWeight: on ? 700 : 600,
+    fontSize: 18,
+    letterSpacing: 0.02,
+    lineHeight: 1.5,
     cursor: 'pointer',
     textAlign: 'left' as const,
     transition: 'background-color .15s ease, color .15s ease',
@@ -44,7 +44,7 @@ export function Nav() {
     <aside
       data-noprint="1"
       style={{
-        width: 236,
+        width: 240,
         flexShrink: 0,
         height: '100%',
         background: WHITE,
@@ -60,15 +60,15 @@ export function Nav() {
           gap: 12,
           height: TOP_BAR_HEIGHT,
           boxSizing: 'border-box',
-          padding: '0 18px',
+          padding: '0 16px',
           borderBottom: `1px solid ${LINE}`,
           flexShrink: 0,
         }}
       >
         <div
           style={{
-            width: 36,
-            height: 36,
+            width: 46,
+            height: 46,
             borderRadius: '50%',
             background: BLACK,
             color: WHITE,
@@ -76,7 +76,7 @@ export function Nav() {
             alignItems: 'center',
             justifyContent: 'center',
             fontWeight: 700,
-            fontSize: 15,
+            fontSize: 20,
             lineHeight: 1,
             flexShrink: 0,
           }}
@@ -86,10 +86,10 @@ export function Nav() {
         <div style={{ minWidth: 0 }}>
           <div
             style={{
-              fontSize: 16,
+              fontSize: 22,
               fontWeight: 700,
               color: BLACK,
-              lineHeight: 1.45,
+              lineHeight: 1.4,
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -99,9 +99,10 @@ export function Nav() {
           </div>
           <div
             style={{
-              fontSize: 12,
+              fontSize: 16,
               color: MUTED,
-              lineHeight: 1.4,
+              lineHeight: 1.5,
+              marginTop: 4,
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -119,7 +120,7 @@ export function Nav() {
           padding: '16px 0',
           display: 'flex',
           flexDirection: 'column',
-          gap: 8,
+          gap: 10,
         }}
       >
         {NAV.map((n) => {
@@ -138,22 +139,22 @@ export function Nav() {
                   style={{
                     position: 'absolute',
                     left: 0,
-                    top: 11,
-                    bottom: 11,
-                    width: 2.5,
+                    top: 12,
+                    bottom: 12,
+                    width: 3,
                     borderRadius: 2,
                     background: BLACK,
                   }}
                 />
               )}
-              <NavIcon screen={n.key} size={18} stroke={on ? 1.9 : 1.6} />
+              <NavIcon screen={n.key} size={20} stroke={on ? 2 : 1.7} />
               {n.label}
             </button>
           );
         })}
       </nav>
 
-      <div style={{ padding: '12px 0 16px', borderTop: `1px solid ${LINE}` }}>
+      <div style={{ padding: '14px 0 18px', borderTop: `1px solid ${LINE}` }}>
         <button
           type="button"
           title="ဆက်တင်"
@@ -166,15 +167,15 @@ export function Nav() {
               style={{
                 position: 'absolute',
                 left: 0,
-                top: 11,
-                bottom: 11,
-                width: 2.5,
+                top: 12,
+                bottom: 12,
+                width: 3,
                 borderRadius: 2,
                 background: BLACK,
               }}
             />
           )}
-          <IconSettings size={18} stroke={screen === 'settings' ? 1.9 : 1.6} />
+          <IconSettings size={20} stroke={screen === 'settings' ? 2 : 1.7} />
           ဆက်တင်
         </button>
       </div>

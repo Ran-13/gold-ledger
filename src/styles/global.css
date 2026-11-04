@@ -27,29 +27,29 @@
   font-display: swap;
 }
 @font-face {
-  font-family: 'Noto Sans Myanmar';
-  src: url('../assets/fonts/NotoSansMyanmar-Regular.woff2') format('woff2');
+  font-family: 'Pyidaungsu';
+  src: url('../assets/fonts/Pyidaungsu-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: 'Noto Sans Myanmar';
-  src: url('../assets/fonts/NotoSansMyanmar-Medium.woff2') format('woff2');
+  font-family: 'Pyidaungsu';
+  src: url('../assets/fonts/Pyidaungsu-Regular.woff2') format('woff2');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: 'Noto Sans Myanmar';
-  src: url('../assets/fonts/NotoSansMyanmar-SemiBold.woff2') format('woff2');
+  font-family: 'Pyidaungsu';
+  src: url('../assets/fonts/Pyidaungsu-Bold.woff2') format('woff2');
   font-weight: 600;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: 'Noto Sans Myanmar';
-  src: url('../assets/fonts/NotoSansMyanmar-Bold.woff2') format('woff2');
+  font-family: 'Pyidaungsu';
+  src: url('../assets/fonts/Pyidaungsu-Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -67,17 +67,32 @@ html, body, #root {
   background: #FFFFFF;
   color: #1B2A41;
   /* Myanmar first so diacritics render correctly; Plex for Latin/numbers */
-  font-family: 'Noto Sans Myanmar', 'IBM Plex Sans', sans-serif;
-  font-size: 17px;
-  line-height: 1.75;
+  font-family: 'Pyidaungsu', 'IBM Plex Sans', sans-serif;
+  font-size: 19px;
+  line-height: 1.65;
+  letter-spacing: 0.02em;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   font-variant-numeric: lining-nums tabular-nums;
+  font-weight: 400;
+}
+
+h1, h2, h3, strong, b {
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.015em;
+}
+
+p {
+  line-height: 1.7;
 }
 
 .num {
-  font-family: 'IBM Plex Sans', 'Noto Sans Myanmar', sans-serif;
+  font-family: 'IBM Plex Sans', 'Pyidaungsu', sans-serif;
   font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: -0.01em;
+  /* Myanmar fonts need extra line box or descenders clip */
+  line-height: 1.55;
 }
 
 a { color: #9A6B12; }

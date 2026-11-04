@@ -12,7 +12,7 @@ import {
 } from '../components/Icons';
 import { PaginationBar, usePagination } from '../components/Pagination';
 import { customerName } from '../lib/format';
-import { D, W, fromYway, money, voucherNo } from '../lib/units';
+import { D, W, fromYway, voucherNo } from '../lib/units';
 import { colors } from '../styles/tokens';
 import { useStore } from '../store';
 
@@ -69,9 +69,9 @@ export function Voucher() {
   if (!vt) {
     return (
       <Card padding="48px 32px">
-        <div style={{ textAlign: 'center', color: colors.muted, fontSize: 16, lineHeight: 1.6 }}>
+        <div style={{ textAlign: 'center', color: colors.muted, fontSize: 18, lineHeight: 1.6 }}>
           ဘောင်ချာ မရှိသေးပါ
-          <div style={{ fontSize: 14, color: colors.muted2, marginTop: 8 }}>
+          <div style={{ fontSize: 16, color: colors.muted2, marginTop: 8 }}>
             စာရင်းသွင်းခြင်းမှ သိမ်းဆည်းရင် ဒီမှာ ပေါ်ပါမယ်
           </div>
         </div>
@@ -88,7 +88,7 @@ export function Voucher() {
   const thBase: CSSProperties = {
     padding: '14px 12px',
     fontWeight: 600,
-    fontSize: 13,
+    fontSize: 16,
     letterSpacing: 0.2,
     lineHeight: 1.4,
     color: colors.muted,
@@ -129,10 +129,10 @@ export function Voucher() {
                 marginBottom: 14,
               }}
             >
-              <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.35, letterSpacing: 0.2 }}>
+              <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.35, letterSpacing: 0.2 }}>
                 ဘောင်ချာစာရင်း
               </div>
-              <div style={{ fontSize: 14, color: colors.muted, fontWeight: 600, lineHeight: 1.4 }}>
+              <div style={{ fontSize: 16, color: colors.muted, fontWeight: 600, lineHeight: 1.4 }}>
                 {D(filtered.length, digits)} စောင်
               </div>
             </div>
@@ -160,7 +160,7 @@ export function Voucher() {
                   border: `1.5px solid ${colors.inputBorder}`,
                   borderRadius: 8,
                   padding: '0 14px 0 42px',
-                  fontSize: 16,
+                  fontSize: 18,
                   lineHeight: 1.5,
                   background: colors.white,
                 }}
@@ -178,13 +178,11 @@ export function Voucher() {
               }}
             >
               <colgroup>
-                <col style={{ width: '11%' }} />
-                <col style={{ width: '12%' }} />
+                <col style={{ width: '14%' }} />
+                <col style={{ width: '14%' }} />
+                <col style={{ width: '28%' }} />
                 <col style={{ width: '20%' }} />
-                <col style={{ width: '14%' }} />
-                <col style={{ width: '14%' }} />
-                <col style={{ width: '14%' }} />
-                <col style={{ width: '15%' }} />
+                <col style={{ width: '24%' }} />
               </colgroup>
               <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                 <tr>
@@ -192,21 +190,19 @@ export function Voucher() {
                   <th style={thBase}>အမျိုး</th>
                   <th style={thBase}>အမည်</th>
                   <th style={thBase}>ရက်စွဲ</th>
-                  <th style={{ ...thBase, textAlign: 'right' }}>ရွှေချိန်</th>
-                  <th style={{ ...thBase, textAlign: 'right' }}>စျေး</th>
-                  <th style={{ ...thBase, textAlign: 'right', paddingRight: 16 }}>ငွေ</th>
+                  <th style={{ ...thBase, textAlign: 'right', paddingRight: 16 }}>ရွှေချိန်</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 && (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={5}
                       style={{
                         padding: 48,
                         textAlign: 'center',
                         color: colors.muted2,
-                        fontSize: 16,
+                        fontSize: 18,
                         lineHeight: 1.6,
                       }}
                     >
@@ -239,7 +235,7 @@ export function Voucher() {
                           padding: '15px 12px 15px 16px',
                           borderTop: rowBorder,
                           fontWeight: 700,
-                          fontSize: 16,
+                          fontSize: 18,
                           lineHeight: 1.35,
                           whiteSpace: 'nowrap',
                         }}
@@ -250,7 +246,7 @@ export function Voucher() {
                         <span
                           style={{
                             display: 'inline-block',
-                            fontSize: 13,
+                            fontSize: 16,
                             fontWeight: 700,
                             lineHeight: 1.3,
                             padding: '5px 9px',
@@ -270,7 +266,7 @@ export function Voucher() {
                           padding: '15px 12px',
                           borderTop: rowBorder,
                           fontWeight: 600,
-                          fontSize: 15,
+                          fontSize: 17,
                           lineHeight: 1.45,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -285,7 +281,7 @@ export function Voucher() {
                         style={{
                           padding: '15px 12px',
                           borderTop: rowBorder,
-                          fontSize: 14,
+                          fontSize: 16,
                           lineHeight: 1.4,
                           color: on ? 'rgba(255,255,255,.78)' : colors.muted,
                           whiteSpace: 'nowrap',
@@ -296,46 +292,16 @@ export function Voucher() {
                       <td
                         className="num"
                         style={{
-                          padding: '15px 12px',
+                          padding: '15px 16px 15px 12px',
                           borderTop: rowBorder,
                           textAlign: 'right',
                           fontWeight: 700,
-                          fontSize: 15,
+                          fontSize: 17,
                           lineHeight: 1.35,
                           whiteSpace: 'nowrap',
                         }}
                       >
                         {W(t.yway, digits)}
-                      </td>
-                      <td
-                        className="num"
-                        style={{
-                          padding: '15px 12px',
-                          borderTop: rowBorder,
-                          textAlign: 'right',
-                          fontWeight: 600,
-                          fontSize: 14,
-                          lineHeight: 1.35,
-                          color: on ? 'rgba(255,255,255,.85)' : colors.muted,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {money(t.price, digits)}
-                      </td>
-                      <td
-                        className="num"
-                        style={{
-                          padding: '15px 16px 15px 12px',
-                          borderTop: rowBorder,
-                          textAlign: 'right',
-                          fontWeight: 600,
-                          fontSize: 14,
-                          lineHeight: 1.35,
-                          color: on ? 'rgba(255,255,255,.85)' : colors.muted,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {money(t.amount, digits)}
                       </td>
                     </tr>
                   );
@@ -377,10 +343,10 @@ export function Voucher() {
           }}
         >
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700 }}>{voucherNo(vt.voucher_no, digits)}</div>
-            <div style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>
-              {vt.type === 'sell' ? 'အရောင်း' : 'အဝယ်'} · {W(vt.yway, digits)} · စျေး {money(vt.price, digits)} ·{' '}
-              {money(vt.amount, digits)}
+            <div style={{ fontSize: 20, fontWeight: 700 }}>{voucherNo(vt.voucher_no, digits)}</div>
+            <div style={{ fontSize: 16, color: colors.muted, marginTop: 2 }}>
+              {vt.type === 'sell' ? 'အရောင်း' : 'အဝယ်'}
+              {vt.channel === 'card' ? ' · အကယ်ဒမီအခေါက်ရွှေ' : ' · မီးလင်းဖြတ်စ'} · {W(vt.yway, digits)}
             </div>
           </div>
           <button
@@ -393,7 +359,7 @@ export function Voucher() {
               borderRadius: 8,
               background: colors.ink,
               color: colors.white,
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: 700,
               cursor: 'pointer',
               flexShrink: 0,
@@ -453,7 +419,7 @@ export function Voucher() {
                   <div
                     style={{
                       fontFamily: "'Cormorant Garamond', 'Times New Roman', serif",
-                      fontSize: 34,
+                      fontSize: 36,
                       fontWeight: 600,
                       letterSpacing: 1.2,
                       color: '#111111',
@@ -474,7 +440,7 @@ export function Voucher() {
                 </div>
                 <div
                   style={{
-                    fontSize: 13,
+                    fontSize: 16,
                     color: '#111111',
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -482,7 +448,7 @@ export function Voucher() {
                     paddingBottom: 2,
                   }}
                 >
-                  <IconClock size={14} style={{ color: '#555555' }} />
+                  <IconClock size={14} style={{ color: '#111111' }} />
                   <span className="num" style={{ fontWeight: 600, letterSpacing: 0.3 }}>
                     {D(vt.time.slice(0, 5), digits)}
                   </span>
@@ -525,7 +491,7 @@ export function Voucher() {
                             border: '1.5px solid #111111',
                             padding: '10px 14px',
                             fontWeight: 700,
-                            fontSize: 14,
+                            fontSize: 16,
                             letterSpacing: 0.3,
                             background: '#F5F5F5',
                             color: '#111111',
@@ -548,32 +514,12 @@ export function Voucher() {
 
               <div
                 style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 8,
-                  alignItems: 'center',
-                  marginBottom: 28,
-                  fontSize: 15,
-                  color: '#111111',
-                }}
-              >
-                <div>
-                  စျေးနှုန်း · <span className="num" style={{ fontWeight: 700 }}>{money(vt.price, digits)}</span>
-                  <span style={{ color: '#555555' }}> / ကျပ်သား</span>
-                </div>
-                <div>
-                  ကျသင့်ငွေ · <span className="num" style={{ fontWeight: 700 }}>{money(vt.amount, digits)}</span>
-                  <span style={{ color: '#555555' }}> ကျပ်</span>
-                </div>
-              </div>
-
-              <div
-                style={{
                   textAlign: 'center',
-                  fontSize: 15,
+                  fontSize: 17,
                   fontWeight: 600,
                   color: '#111111',
                   letterSpacing: 0.4,
+                  marginTop: 28,
                 }}
               >
                 ကျေးဇူးတင်ပါသည်။
@@ -669,7 +615,7 @@ function WatermarkSeal({ mark }: { mark: string }) {
             dominantBaseline="central"
             fill="#111111"
             fillOpacity="0.1"
-            fontFamily="'Noto Sans Myanmar', sans-serif"
+            fontFamily="'Pyidaungsu', sans-serif"
             fontSize={label.length > 1 ? 52 : 72}
             fontWeight="700"
           >
@@ -716,14 +662,14 @@ function FieldRow({
         display: 'grid',
         gridTemplateColumns: '22px 88px 14px minmax(0, 1fr)',
         alignItems: 'center',
-        fontSize: 15,
+        fontSize: 17,
         lineHeight: 1.45,
         gap: 2,
       }}
     >
-      <span style={{ color: '#555555', display: 'flex' }}>{icon}</span>
+      <span style={{ color: '#111111', display: 'flex' }}>{icon}</span>
       <span style={{ fontWeight: 600, color: '#111111', letterSpacing: 0.1 }}>{label}</span>
-      <span style={{ color: '#888888', textAlign: 'center' }}>-</span>
+      <span style={{ color: '#111111', textAlign: 'center' }}>-</span>
       <span
         className="num"
         style={{
@@ -746,7 +692,7 @@ function WeightCell({ children }: { children: ReactNode }) {
     padding: '14px 12px',
     textAlign: 'center',
     fontWeight: 700,
-    fontSize: 20,
+    fontSize: 22,
     letterSpacing: 0.3,
     color: '#111111',
     background: '#FFFFFF',

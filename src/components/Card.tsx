@@ -5,7 +5,7 @@ export function Card({
   children,
   style,
   navy,
-  padding = '26px 28px',
+  padding = '24px 26px',
 }: {
   children: ReactNode;
   style?: CSSProperties;
@@ -17,7 +17,7 @@ export function Card({
       style={{
         background: navy ? colors.ink : colors.white,
         color: navy ? colors.white : colors.ink,
-        border: navy ? `1px solid ${colors.navyBorder}` : `1.5px solid ${colors.cardBorder}`,
+        border: navy ? `1px solid ${colors.navyBorder}` : `1px solid ${colors.cardBorder}`,
         borderRadius: radii.card,
         boxShadow: navy ? 'none' : cardShadow,
         padding,
@@ -34,9 +34,10 @@ export function CardLabel({ children, muted }: { children: ReactNode; muted?: bo
   return (
     <div
       style={{
-        fontSize: 15,
-        fontWeight: 600,
-        lineHeight: 1.6,
+        fontSize: 16,
+        fontWeight: 700,
+        lineHeight: 1.55,
+        letterSpacing: '0.015em',
         color: muted === false ? undefined : colors.muted,
       }}
     >
@@ -48,7 +49,7 @@ export function CardLabel({ children, muted }: { children: ReactNode; muted?: bo
 /** Primary weight figure */
 export function WeightFigure({
   children,
-  size = 26,
+  size = 28,
   color,
 }: {
   children: ReactNode;
@@ -61,7 +62,7 @@ export function WeightFigure({
       style={{
         fontSize: size,
         fontWeight: 700,
-        lineHeight: 1.35,
+        lineHeight: 1.3,
         color: color ?? colors.ink,
         letterSpacing: '-0.01em',
       }}
@@ -74,7 +75,7 @@ export function WeightFigure({
 /** Secondary money line */
 export function MoneyLine({ children }: { children: ReactNode }) {
   return (
-    <div className="num" style={{ fontSize: 15, color: colors.muted, lineHeight: 1.6 }}>
+    <div className="num" style={{ fontSize: 16, fontWeight: 600, color: colors.muted, lineHeight: 1.5 }}>
       {children}
     </div>
   );

@@ -4,6 +4,7 @@ import { Card } from '../components/Card';
 import { Segmented } from '../components/Segmented';
 import type { Customer, TxnType } from '../db/types';
 import { saveTxn, upsertPrice } from '../db/queries';
+import { DEFAULT_NRC, isNrcComplete } from '../lib/nrc';
 import {
   D,
   N,
@@ -35,7 +36,7 @@ const EMPTY: {
   customerId: null as number | null,
   query: '',
   newPhone: '',
-  newNrc: '',
+  newNrc: DEFAULT_NRC,
   newAddress: '',
   k: '',
   p: '',
@@ -51,8 +52,7 @@ export function Entry() {
   const settings = useStore((s) => s.settings);
   const refresh = useStore((s) => s.refresh);
   const setScreen = useStore((s) => s.setScreen);
-  const setVoucherId = useStore((s) => s.setVoucherId);
-  const setPrintAfterOpen = useStore((s) => s.setPrintAfterOpen);
+  const openVoucher = useStore((s) => s.openVoucher);
   const digits = settings.digits;
   const today = isoDate();
 
@@ -83,10 +83,14 @@ export function Entry() {
   }, [curBuy, curSell]);
 
   const yway = toYway(N(form.k), N(form.p), N(form.y));
-  const stockY = stockFromParts(settings.opening_stock_yway, txns, adjustments);
+  const stockY = stockFromParts(
+    settings.opening_stock_yway,
+    txns.filter((t) => t.channel !== 'card'),
+    adjustments,
+  );
   const overdraw = form.type === 'sell' && yway > 0 && yway > stockY;
   const price = form.type === 'sell' ? N(sellStr) || curSell : N(buyStr) || curBuy;
-  const amt = amount(yway, price, settings.round_to);
+  const amt = amount(yway, price);
   const nextNo = Math.max(0, ...txns.map((t) => t.voucher_no)) + 1;
 
   const ql = form.query.trim().toLowerCase();
@@ -128,6 +132,10 @@ export function Entry() {
   const resetForm = () => setForm({ ...EMPTY, type: form.type });
 
   const save = async (andPrint = true) => {
+    if (!form.customerId && !ql) {
+      window.alert('ဝယ်သူ ရွေးပါ သို့မဟုတ် အမည် ထည့်ပါ');
+      return;
+    }
     if (yway <= 0) {
       window.alert('အလေးချိန် ထည့်ပါ');
       return;
@@ -145,8 +153,8 @@ export function Entry() {
         window.alert('နေရပ်လိပ်စာ ထည့်ပါ');
         return;
       }
-      if (!form.newNrc.trim()) {
-        window.alert('မှတ်ပုံတင် ထည့်ပါ');
+      if (!isNrcComplete(form.newNrc)) {
+        window.alert('မှတ်ပုံတင် ပြည့်စုံရွေးပါ (နံပါတ် ၆ လုံး)');
         return;
       }
     }
@@ -174,13 +182,11 @@ export function Entry() {
         y: N(form.y),
         price,
         note: form.note,
-        roundTo: settings.round_to,
       });
       await refresh();
       setForm({ ...EMPTY, type: form.type });
-      setVoucherId(id);
-      setPrintAfterOpen(andPrint);
-      setScreen('voucher');
+      setScreen('ledger');
+      openVoucher(id, { print: andPrint });
     } catch (e) {
       window.alert(e instanceof Error ? e.message : String(e));
     } finally {
@@ -223,13 +229,10 @@ export function Entry() {
               newAddress={form.newAddress}
               digits={digits}
               onQuery={(q) => {
-                const m = customers.find(
-                  (c) => c.name.trim().toLowerCase() === q.trim().toLowerCase(),
-                );
                 setForm((f) => ({
                   ...f,
                   query: q,
-                  customerId: m ? m.id : null,
+                  customerId: null,
                 }));
               }}
               onSelect={onSelect}
@@ -238,7 +241,7 @@ export function Entry() {
               onNewAddress={(a) => setForm((f) => ({ ...f, newAddress: a }))}
             />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <span style={{ fontSize: 16, fontWeight: 600 }}>အလေးချိန်</span>
+              <span style={{ fontSize: 18, fontWeight: 600 }}>အလေးချိန်</span>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
                 <label
                   style={{
@@ -264,12 +267,12 @@ export function Entry() {
                       minWidth: 0,
                       border: 'none',
                       outline: 'none',
-                      fontSize: 24,
+                      fontSize: 26,
                       fontWeight: 600,
                       background: 'none',
                     }}
                   />
-                  <span style={{ fontSize: 16, color: colors.muted }}>ကျပ်</span>
+                  <span style={{ fontSize: 18, color: colors.muted }}>ကျပ်</span>
                 </label>
                 <label
                   style={{
@@ -295,12 +298,12 @@ export function Entry() {
                       minWidth: 0,
                       border: 'none',
                       outline: 'none',
-                      fontSize: 24,
+                      fontSize: 26,
                       fontWeight: 600,
                       background: 'none',
                     }}
                   />
-                  <span style={{ fontSize: 16, color: colors.muted }}>ပဲ</span>
+                  <span style={{ fontSize: 18, color: colors.muted }}>ပဲ</span>
                 </label>
                 <label
                   style={{
@@ -326,17 +329,17 @@ export function Entry() {
                       minWidth: 0,
                       border: 'none',
                       outline: 'none',
-                      fontSize: 24,
+                      fontSize: 26,
                       fontWeight: 600,
                       background: 'none',
                     }}
                   />
-                  <span style={{ fontSize: 16, color: colors.muted }}>ရွေး</span>
+                  <span style={{ fontSize: 18, color: colors.muted }}>ရွေး</span>
                 </label>
               </div>
               <div
                 style={{
-                  fontSize: 15,
+                  fontSize: 17,
                   color: overdraw ? colors.buy : colors.muted,
                 }}
               >
@@ -345,7 +348,7 @@ export function Entry() {
               {form.type === 'sell' && (
                 <div
                   style={{
-                    fontSize: 13,
+                    fontSize: 16,
                     color: overdraw ? colors.buy : colors.muted2,
                     lineHeight: 1.5,
                   }}
@@ -357,10 +360,10 @@ export function Entry() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                <span style={{ fontSize: 16, fontWeight: 600 }}>ယနေ့ဈေး · ၁ ကျပ်သား</span>
+                <span style={{ fontSize: 18, fontWeight: 600 }}>ယနေ့ဈေး · ၁ ကျပ်သား</span>
                 <span
                   style={{
-                    fontSize: 14,
+                    fontSize: 16,
                     color: hasToday ? colors.muted2 : colors.buy,
                     fontWeight: hasToday ? 400 : 600,
                   }}
@@ -374,7 +377,7 @@ export function Entry() {
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
-                      fontSize: 15,
+                      fontSize: 17,
                       color: colors.muted,
                     }}
                   >
@@ -393,7 +396,7 @@ export function Entry() {
                       border: 'none',
                       outline: 'none',
                       background: 'none',
-                      fontSize: 24,
+                      fontSize: 26,
                       fontWeight: 700,
                       width: '100%',
                       padding: 0,
@@ -406,7 +409,7 @@ export function Entry() {
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
-                      fontSize: 15,
+                      fontSize: 17,
                       color: colors.muted,
                     }}
                   >
@@ -425,7 +428,7 @@ export function Entry() {
                       border: 'none',
                       outline: 'none',
                       background: 'none',
-                      fontSize: 24,
+                      fontSize: 26,
                       fontWeight: 700,
                       width: '100%',
                       padding: 0,
@@ -436,7 +439,7 @@ export function Entry() {
               </div>
             </div>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <span style={{ fontSize: 16, fontWeight: 600 }}>မှတ်ချက်</span>
+              <span style={{ fontSize: 18, fontWeight: 600 }}>မှတ်ချက်</span>
               <input
                 value={form.note}
                 onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
@@ -445,7 +448,7 @@ export function Entry() {
                   border: `1px solid ${colors.inputBorder}`,
                   borderRadius: radii.input,
                   padding: '0 16px',
-                  fontSize: 16,
+                  fontSize: 18,
                   background: '#fff',
                 }}
               />
@@ -456,10 +459,10 @@ export function Entry() {
       <Card navy padding="32px" style={{ position: 'sticky', top: 0 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span style={{ fontFamily: "'Noto Sans Myanmar', sans-serif", fontSize: 19, fontWeight: 700 }}>
+            <span style={{ fontFamily: "'Pyidaungsu', sans-serif", fontSize: 21, fontWeight: 700 }}>
               တွက်ချက်မှု
             </span>
-            <span style={{ fontSize: 15, color: colors.mutedOnNavy }}>{voucherNo(nextNo, digits)}</span>
+            <span style={{ fontSize: 17, color: colors.mutedOnNavy }}>{voucherNo(nextNo, digits)}</span>
           </div>
           <div
             style={{
@@ -470,16 +473,16 @@ export function Entry() {
               borderBottom: `1px solid ${colors.navyBorder}`,
             }}
           >
-            <span style={{ fontSize: 16, color: colors.mutedOnNavy }}>အလေးချိန်</span>
-            <span style={{ fontSize: 32, fontWeight: 700, lineHeight: 1.35, color: colors.goldOnNavy }}>
+            <span style={{ fontSize: 18, color: colors.mutedOnNavy }}>အလေးချိန်</span>
+            <span style={{ fontSize: 34, fontWeight: 700, lineHeight: 1.35, color: colors.goldOnNavy }}>
               {W(yway, digits)}
             </span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16, gap: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 18, gap: 12 }}>
             <span style={{ color: colors.mutedOnNavy }}>ဈေး</span>
             <span>{money(price, digits)}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 18, gap: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 20, gap: 12 }}>
             <span style={{ color: colors.mutedOnNavy }}>ကျသင့်ငွေ</span>
             <span style={{ fontWeight: 600 }}>{money(amt, digits)}</span>
           </div>
@@ -493,7 +496,7 @@ export function Entry() {
               borderRadius: 8,
               background: saving || overdraw ? colors.inputBorder : colors.ink,
               color: colors.white,
-              fontSize: 17,
+              fontSize: 19,
               fontWeight: 700,
               marginTop: 10,
               cursor: saving || overdraw ? 'default' : 'pointer',
@@ -510,7 +513,7 @@ export function Entry() {
               borderRadius: 8,
               background: 'none',
               color: colors.mutedOnNavy,
-              fontSize: 16,
+              fontSize: 18,
             }}
           >
             ရှင်းမည်

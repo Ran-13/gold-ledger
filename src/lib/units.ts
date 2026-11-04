@@ -6,7 +6,6 @@ export const PE_PER_KYAT = 16;
 export const MMD = '၀၁၂၃၄၅၆၇၈၉';
 
 export type DigitsMode = 'latin' | 'myanmar';
-export type RoundTo = 1 | 100 | 1000;
 
 export function toYway(k: number, p: number, y: number): number {
   return (k || 0) * YWAY_PER_KYAT + (p || 0) * YWAY_PER_PE + (y || 0);
@@ -54,9 +53,9 @@ export function W(yway: number, digits: DigitsMode = 'latin'): string {
   return D((neg ? '− ' : '') + parts.join(' '), digits);
 }
 
-/** amount = round(yway / 128 × price / R) × R */
-export function amount(yway: number, price: number, R: RoundTo = 100): number {
-  return Math.round((yway / YWAY_PER_KYAT) * price / R) * R;
+/** amount = round(yway / 128 × price) to nearest ကျပ် */
+export function amount(yway: number, price: number): number {
+  return Math.round((yway / YWAY_PER_KYAT) * price);
 }
 
 /** Profit for a sale = yway/128 × (sale price − that day's buy price) */
@@ -166,8 +165,26 @@ export function keepNumInput(s: string): string {
   return out;
 }
 
-export function money(n: number, digits: DigitsMode = 'latin'): string {
-  return D(Math.round(n).toLocaleString('en-US'), digits);
+/** Exact ကျပ် integer — use for totals that can exceed Number.MAX_SAFE_INTEGER. */
+export function toMoneyInt(n: number | bigint): bigint {
+  if (typeof n === 'bigint') return n;
+  if (!Number.isFinite(n)) return 0n;
+  return BigInt(Math.round(n));
+}
+
+/** Sum money fields with BigInt (လချုပ် / နှစ်ချုပ် safe). */
+export function sumMoney<T>(arr: T[], f: (t: T) => number | bigint): bigint {
+  let total = 0n;
+  for (const t of arr) total += toMoneyInt(f(t));
+  return total;
+}
+
+export function money(n: number | bigint, digits: DigitsMode = 'latin'): string {
+  const v = toMoneyInt(n);
+  const neg = v < 0n;
+  const abs = neg ? -v : v;
+  const grouped = abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return `${D(`${neg ? '-' : ''}${grouped}`, digits)} ကျပ်`;
 }
 
 export function voucherNo(n: number, digits: DigitsMode = 'latin'): string {

@@ -16,6 +16,7 @@ export interface Price {
 }
 
 export type TxnType = 'sell' | 'buy';
+export type TxnChannel = 'card' | 'loose';
 
 export interface Txn {
   id: number;
@@ -28,18 +29,21 @@ export interface Txn {
   price: number;
   amount: number;
   note: string | null;
+  channel: TxnChannel;
+  /** Per-card fee rate used at transaction time (card channel only). */
+  card_fee: number;
 }
 
 export interface Settings {
   opening_stock_yway: number;
   digits: 'latin' | 'myanmar';
-  round_to: 1 | 100 | 1000;
   shop_name: string;
   shop_mark: string;
   shop_tagline: string;
+  card_fee: number;
 }
 
-/** Manual stock add (in) or remove (out) — not a buy/sell txn */
+/** Manual stock add (in) or remove (out) — not a buy/sell txn (loose gold) */
 export type StockAdjKind = 'in' | 'out';
 
 export interface StockAdjustment {
@@ -51,14 +55,41 @@ export interface StockAdjustment {
   note: string | null;
 }
 
+export interface CardOpening {
+  denom: string;
+  qty: number;
+}
+
+export interface CardAdjustment {
+  id: number;
+  date: string;
+  time: string;
+  kind: StockAdjKind;
+  denom: string;
+  qty: number;
+  note: string | null;
+}
+
+export interface TxnCard {
+  id: number;
+  txn_id: number;
+  denom: string;
+  qty: number;
+}
+
 export interface SaveTxnInput {
   type: TxnType;
+  channel?: TxnChannel;
   customerId: number | null;
   newCustomer?: { name: string; phone: string; nrc: string; address: string };
+  /** Loose mode units */
   k: number;
   p: number;
   y: number;
   price: number;
   note: string;
-  roundTo: 1 | 100 | 1000;
+  /** Card mode lines — required when channel === 'card' */
+  cards?: Array<{ denom: string; qty: number }>;
+  /** Fee per card at save time (defaults to settings) */
+  cardFee?: number;
 }

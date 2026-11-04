@@ -20,7 +20,7 @@ export function FormRow({
         alignItems: 'center',
       }}
     >
-      <span style={{ fontSize: 14, fontWeight: 600, color: colors.muted, lineHeight: 1.5 }}>
+      <span style={{ fontSize: 16, fontWeight: 700, color: colors.muted, lineHeight: 1.55 }}>
         {label}
       </span>
       <div>{children}</div>
@@ -29,13 +29,15 @@ export function FormRow({
 }
 
 export const formInput: CSSProperties = {
-  height: 40,
+  height: 46,
   width: '100%',
   boxSizing: 'border-box',
   border: `1.5px solid ${colors.inputBorder}`,
   borderRadius: radii.input,
-  padding: '0 12px',
-  fontSize: 15,
+  padding: '0 14px',
+  fontSize: 17,
+  fontWeight: 500,
+  lineHeight: 1.5,
   background: colors.white,
   color: colors.ink,
 };
@@ -47,20 +49,21 @@ export const formSection: CSSProperties = {
   padding: 16,
   background: colors.white,
   border: `1.5px solid ${colors.cardBorder}`,
-  borderRadius: 10,
+  borderRadius: radii.card,
 };
 
 export function SectionTitle({ children }: { children: ReactNode }) {
   return (
     <div
       style={{
-        fontSize: 15,
+        fontSize: 17,
         fontWeight: 700,
         color: colors.ink,
         paddingBottom: 8,
-        marginBottom: 2,
-        borderBottom: `1px solid ${colors.rowDivider}`,
+        marginBottom: 4,
+        borderBottom: `1.5px solid ${colors.rowDivider}`,
         lineHeight: 1.5,
+        letterSpacing: '0.015em',
       }}
     >
       {children}

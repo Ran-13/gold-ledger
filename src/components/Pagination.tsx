@@ -63,15 +63,15 @@ export function PaginationBar({
       disabled={disabled}
       onClick={() => onPage(next)}
       style={{
-        height: 36,
-        minWidth: 36,
-        padding: '0 12px',
-        border: `1.5px solid ${colors.inputBorder}`,
+        height: 40,
+        minWidth: 40,
+        padding: '0 14px',
+        border: `1px solid ${colors.cardBorder}`,
         borderRadius: 8,
         background: colors.white,
         color: disabled ? colors.muted2 : colors.ink,
-        fontSize: 14,
-        fontWeight: 600,
+        fontSize: 17,
+        fontWeight: 700,
         cursor: disabled ? 'default' : 'pointer',
         opacity: disabled ? 0.45 : 1,
       }}
@@ -90,15 +90,15 @@ export function PaginationBar({
         flexWrap: 'wrap',
         padding: '12px 20px',
         borderTop: `1px solid ${colors.rowDivider}`,
-        background: '#FAFBFC',
+        background: colors.white,
       }}
     >
-      <div className="num" style={{ fontSize: 14, color: colors.muted, fontWeight: 500 }}>
+      <div className="num" style={{ fontSize: 17, color: colors.muted, fontWeight: 500 }}>
         {D(from, digits)}–{D(to, digits)} / {D(total, digits)}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {btn('‹', page - 1, page <= 1)}
-        <span className="num" style={{ fontSize: 14, fontWeight: 600, color: colors.ink, minWidth: 64, textAlign: 'center' }}>
+        <span className="num" style={{ fontSize: 17, fontWeight: 600, color: colors.ink, minWidth: 64, textAlign: 'center' }}>
           {D(page, digits)} / {D(totalPages, digits)}
         </span>
         {btn('›', page + 1, page >= totalPages)}

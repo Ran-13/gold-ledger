@@ -1,10 +1,23 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { CardQtyPicker } from './CardQtyPicker';
 import { CustomerCombobox } from './Combobox';
-import { Dialog } from './Dialog';
-import { FormRow, formInput } from './FormRow';
+import { Dialog, dialogBtnGhost, dialogBtnPrimary } from './Dialog';
+import { formInput } from './FormRow';
 import { IconPrint } from './Icons';
-import type { Customer, TxnType } from '../db/types';
+import { Segmented } from './Segmented';
+import type { Customer, TxnChannel, TxnType } from '../db/types';
 import { saveTxn, upsertPrice } from '../db/queries';
+import {
+  CARD_DENOMS,
+  cardTxnAmount,
+  cardsFeeableQty,
+  cardsTotalQty,
+  cardsTotalYway,
+  computeCardStock,
+  normalizeCardLines,
+  type CardDenom,
+} from '../lib/cards';
+import { DEFAULT_NRC, isNrcComplete } from '../lib/nrc';
 import {
   D,
   N,
@@ -18,7 +31,7 @@ import {
   toYway,
   voucherNo,
 } from '../lib/units';
-import { colors } from '../styles/tokens';
+import { colors, radii } from '../styles/tokens';
 import { useStore } from '../store';
 
 const EMPTY = {
@@ -26,13 +39,17 @@ const EMPTY = {
   customerId: null as number | null,
   query: '',
   newPhone: '',
-  newNrc: '',
+  newNrc: DEFAULT_NRC,
   newAddress: '',
   k: '',
   p: '',
   y: '',
   note: '',
 };
+
+function emptyCardQty(): Record<CardDenom, string> {
+  return Object.fromEntries(CARD_DENOMS.map((d) => [d.id, ''])) as Record<CardDenom, string>;
+}
 
 export function EntryDialog() {
   const open = useStore((s) => s.entryDialogOpen);
@@ -41,16 +58,20 @@ export function EntryDialog() {
   const prices = useStore((s) => s.prices);
   const txns = useStore((s) => s.txns);
   const adjustments = useStore((s) => s.stockAdjustments);
+  const cardOpenings = useStore((s) => s.cardOpenings);
+  const cardAdjustments = useStore((s) => s.cardAdjustments);
+  const txnCards = useStore((s) => s.txnCards);
   const settings = useStore((s) => s.settings);
   const refresh = useStore((s) => s.refresh);
   const setScreen = useStore((s) => s.setScreen);
-  const setVoucherId = useStore((s) => s.setVoucherId);
-  const setPrintAfterOpen = useStore((s) => s.setPrintAfterOpen);
+  const openVoucher = useStore((s) => s.openVoucher);
   const digits = settings.digits;
   const today = isoDate();
   const kRef = useRef<HTMLInputElement | null>(null);
 
+  const [channel, setChannel] = useState<TxnChannel>('card');
   const [form, setForm] = useState(EMPTY);
+  const [cardQty, setCardQty] = useState(emptyCardQty);
   const [priceStr, setPriceStr] = useState('');
   const [editingPrice, setEditingPrice] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -72,17 +93,19 @@ export function EntryDialog() {
   useEffect(() => {
     if (!open) return;
     setForm(EMPTY);
+    setCardQty(emptyCardQty());
+    setChannel('card');
     setPriceStr(String(curSell));
     setEditingPrice(false);
     const t = window.setTimeout(() => kRef.current?.focus(), 80);
     return () => window.clearTimeout(t);
   }, [open, curBuy, curSell]);
 
-  // Keep price in sync when switching အရောင်း / အဝယ်
   useEffect(() => {
     if (!open) return;
     setPriceStr(String(form.type === 'sell' ? curSell : curBuy));
     setEditingPrice(false);
+    setCardQty(emptyCardQty());
   }, [form.type]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -92,24 +115,81 @@ export function EntryDialog() {
     }
   }, [editingPrice]);
 
-  const yway = toYway(N(form.k), N(form.p), N(form.y));
-  const stockY = stockFromParts(settings.opening_stock_yway, txns, adjustments);
-  const overdraw = form.type === 'sell' && yway > 0 && yway > stockY;
+  const cardStock = useMemo(() => {
+    const typeById = new Map(txns.map((t) => [t.id, t.type]));
+    return computeCardStock({
+      openings: cardOpenings,
+      adjustments: cardAdjustments,
+      txnCards: txnCards.map((c) => ({
+        type: typeById.get(c.txn_id) ?? 'sell',
+        denom: c.denom,
+        qty: c.qty,
+      })),
+    });
+  }, [cardOpenings, cardAdjustments, txnCards, txns]);
+
+  const looseTxns = useMemo(() => txns.filter((t) => t.channel !== 'card'), [txns]);
+  const looseStockY = stockFromParts(settings.opening_stock_yway, looseTxns, adjustments);
+
+  const cardLines = useMemo(
+    () =>
+      normalizeCardLines(
+        CARD_DENOMS.map((d) => ({ denom: d.id, qty: N(cardQty[d.id]) })),
+      ),
+    [cardQty],
+  );
+  const cardYway = cardsTotalYway(cardLines);
+  const cardCount = cardsTotalQty(cardLines);
+  const looseYway = toYway(N(form.k), N(form.p), N(form.y));
+  const yway = channel === 'card' ? cardYway : looseYway;
+
   const price = N(priceStr) || (form.type === 'sell' ? curSell : curBuy);
-  const amt = amount(yway, price, settings.round_to);
+  const cardParts =
+    channel === 'card'
+      ? cardTxnAmount(form.type, yway, price, cardLines, settings.card_fee)
+      : null;
+  const amt =
+    channel === 'card' && cardParts
+      ? cardParts.total
+      : amount(yway, price);
+
+  const cardOverdraw =
+    channel === 'card' &&
+    form.type === 'sell' &&
+    cardLines.some((l) => l.qty > (cardStock[l.denom] ?? 0));
+  const looseOverdraw =
+    channel === 'loose' && form.type === 'sell' && looseYway > 0 && looseYway > looseStockY;
+  const feeTooHigh = channel === 'card' && !!cardParts && cardParts.total < 0;
+  const blocked = cardOverdraw || looseOverdraw || feeTooHigh;
+
   const nextNo = Math.max(0, ...txns.map((t) => t.voucher_no)) + 1;
   const ql = form.query.trim().toLowerCase();
   const isNew = !!ql && !customers.find((c) => c.id === form.customerId);
 
   const save = async (andPrint = false) => {
-    if (yway <= 0) {
+    if (!form.customerId && !ql) {
+      window.alert('ဝယ်သူ ရွေးပါ သို့မဟုတ် အမည် ထည့်ပါ');
+      return;
+    }
+    if (channel === 'card') {
+      if (!cardLines.length) {
+        window.alert('ကဒ် အရေအတွက် ထည့်ပါ');
+        return;
+      }
+    } else if (looseYway <= 0) {
       window.alert('ရွှေချိန် ထည့်ပါ');
       kRef.current?.focus();
       return;
     }
-    if (overdraw) {
-      window.alert(`လက်ကျန်ထက် ပို၍ မရပါ\nလက်ရှိလက်ကျန် · ${W(Math.max(0, stockY), digits)}`);
-      kRef.current?.focus();
+    if (blocked) {
+      if (cardOverdraw) window.alert('အကယ်ဒမီအခေါက်ရွှေ လက်ကျန် မလုံလောက်ပါ');
+      else if (looseOverdraw) {
+        window.alert(
+          `လက်ကျန်ထက် ပို၍ မရပါ\nလက်ရှိမီးလင်းဖြတ်စလက်ကျန် · ${W(Math.max(0, looseStockY), digits)}`,
+        );
+      } else if (feeTooHigh) {
+        window.alert('ကဒ်ဖိုးသည် ကျသင့်ငွေထက် များနေသည်');
+      }
       return;
     }
     if (isNew) {
@@ -121,14 +201,13 @@ export function EntryDialog() {
         window.alert('နေရပ်လိပ်စာ ထည့်ပါ');
         return;
       }
-      if (!form.newNrc.trim()) {
-        window.alert('မှတ်ပုံတင် ထည့်ပါ');
+      if (!isNrcComplete(form.newNrc)) {
+        window.alert('မှတ်ပုံတင် ပြည့်စုံရွေးပါ (နံပါတ် ၆ လုံး)');
         return;
       }
     }
     setSaving(true);
     try {
-      // If entry price differs from latest market price, log a price change with this moment's time
       const buy = form.type === 'buy' ? price : curBuy;
       const sell = form.type === 'sell' ? price : curSell;
       if (buy > 0 && sell > 0 && (buy !== curBuy || sell !== curSell)) {
@@ -136,6 +215,7 @@ export function EntryDialog() {
       }
       const id = await saveTxn({
         type: form.type,
+        channel,
         customerId: isNew ? null : form.customerId,
         newCustomer:
           isNew && ql
@@ -151,13 +231,13 @@ export function EntryDialog() {
         y: N(form.y),
         price,
         note: form.note,
-        roundTo: settings.round_to,
+        cards: channel === 'card' ? cardLines : undefined,
+        cardFee: settings.card_fee,
       });
       await refresh();
       close();
-      setVoucherId(id);
-      setPrintAfterOpen(andPrint);
-      setScreen('voucher');
+      setScreen('ledger');
+      openVoucher(id, { print: andPrint });
     } catch (e) {
       window.alert(e instanceof Error ? e.message : String(e));
     } finally {
@@ -165,12 +245,21 @@ export function EntryDialog() {
     }
   };
 
-  const title = 'စာရင်းသွင်းခြင်း';
   const priceLabel = form.type === 'sell' ? 'အရောင်းစျေး' : 'အဝယ်စျေး';
 
   const unitInput = (key: 'k' | 'p' | 'y', unit: string, autofocus?: boolean) => (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-      <span style={{ fontSize: 13, fontWeight: 600, color: colors.muted }}>{unit}</span>
+      <span
+        style={{
+          fontSize: 15,
+          fontWeight: 700,
+          color: colors.muted,
+          letterSpacing: '0.01em',
+          lineHeight: 1.45,
+        }}
+      >
+        {unit}
+      </span>
       <input
         ref={autofocus ? kRef : undefined}
         type="text"
@@ -188,261 +277,280 @@ export function EntryDialog() {
         style={{
           ...formInput,
           height: 52,
-          fontSize: 22,
+          fontSize: 24,
           fontWeight: 700,
           textAlign: 'right',
+          lineHeight: 1.3,
         }}
       />
     </label>
   );
 
+  const errMsg = cardOverdraw
+    ? 'အကယ်ဒမီအခေါက်ရွှေ လက်ကျန် မလုံလောက်ပါ'
+    : looseOverdraw
+      ? 'မီးလင်းဖြတ်စ လက်ကျန် မလုံလောက်ပါ'
+      : feeTooHigh
+        ? 'ကဒ်ဖိုးသည် ကျသင့်ငွေထက် များနေသည်'
+        : '';
+
   return (
     <Dialog
       open={open}
-      title={title}
+      title="စာရင်းသွင်းခြင်း"
       subtitle={
         <span className="num">
-          {voucherNo(nextNo, digits)} · {D(today, digits)} · ၁၆ ပဲရည်
+          {voucherNo(nextNo, digits)} · {D(today, digits)}
         </span>
       }
       onClose={close}
-      width={760}
+      width={960}
+      compact
       footer={
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
           <div>
-            <div style={{ fontSize: 13, color: colors.muted }}>ကျသင့်ငွေ</div>
-            <div className="num" style={{ fontSize: 26, fontWeight: 700, color: colors.ink, marginTop: 2 }}>
+            <div style={{ fontSize: 14, color: colors.muted, fontWeight: 700, letterSpacing: '0.01em' }}>
+              ပေးရမည့်ငွေ
+            </div>
+            <div
+              className="num"
+              style={{
+                fontSize: 30,
+                fontWeight: 700,
+                color: feeTooHigh ? colors.buy : form.type === 'sell' ? colors.sell : colors.buy,
+                lineHeight: 1.3,
+                marginTop: 2,
+              }}
+            >
               {money(amt, digits)}
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <button
-              type="button"
-              onClick={close}
-              style={{
-                height: 48,
-                padding: '0 18px',
-                border: `1.5px solid ${colors.inputBorder}`,
-                borderRadius: 8,
-                background: colors.white,
-                color: colors.muted,
-                fontSize: 15,
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
+            <button type="button" onClick={close} style={{ ...dialogBtnGhost, height: 46, fontSize: 16 }}>
               ပိတ်မည်
             </button>
             <button
               type="button"
-              disabled={saving || overdraw}
+              disabled={saving || blocked}
               onClick={() => void save(false)}
               style={{
-                height: 48,
-                padding: '0 18px',
-                border: `1.5px solid ${colors.ink}`,
-                borderRadius: 8,
-                background: colors.white,
+                ...dialogBtnGhost,
+                height: 46,
+                fontSize: 16,
+                border: `1px solid ${colors.ink}`,
                 color: colors.ink,
-                fontSize: 15,
-                fontWeight: 600,
-                cursor: saving || overdraw ? 'default' : 'pointer',
-                opacity: overdraw ? 0.45 : 1,
+                cursor: saving || blocked ? 'default' : 'pointer',
+                opacity: blocked ? 0.45 : 1,
               }}
             >
-              သိမ်းဆည်းမည်
+              သိမ်းမည်
             </button>
             <button
               type="button"
-              disabled={saving || overdraw}
+              disabled={saving || blocked}
               onClick={() => void save(true)}
               style={{
-                height: 48,
-                padding: '0 20px',
-                border: 'none',
-                borderRadius: 8,
-                background: saving || overdraw ? colors.inputBorder : colors.ink,
-                color: colors.white,
-                fontSize: 15,
-                fontWeight: 700,
-                cursor: saving || overdraw ? 'default' : 'pointer',
+                ...dialogBtnPrimary,
+                height: 46,
+                fontSize: 16,
+                background: saving || blocked ? colors.inputBorder : colors.ink,
+                cursor: saving || blocked ? 'default' : 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 8,
               }}
             >
               <IconPrint size={16} />
-              {saving ? 'သိမ်းဆည်းနေသည်…' : 'သိမ်းပြီး ပရင့်ထုတ်မည်'}
+              {saving ? 'သိမ်းနေ…' : 'သိမ်းပြီး ပရင့်'}
             </button>
           </div>
         </div>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-        {/* အရောင်း / အဝယ် — clear choice */}
-        <section style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          {(
-            [
-              {
-                type: 'sell' as const,
-                title: 'အရောင်း',
-                desc: 'ဆိုင်က ရွှေရောင်းမည်',
-              },
-              {
-                type: 'buy' as const,
-                title: 'အဝယ်',
-                desc: 'ဆိုင်က ရွှေဝယ်မည်',
-              },
-            ] as const
-          ).map((opt) => {
-            const on = form.type === opt.type;
-            return (
-              <button
-                key={opt.type}
-                type="button"
-                onClick={() => setForm((f) => ({ ...f, type: opt.type }))}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
-                  gap: 4,
-                  padding: '16px 18px',
-                  borderRadius: 10,
-                  border: on ? `2px solid ${colors.ink}` : `1.5px solid ${colors.cardBorder}`,
-                  background: colors.white,
-                  color: colors.ink,
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                }}
-              >
-                <span style={{ fontSize: 17, fontWeight: 700, lineHeight: 1.4 }}>
-                  {on ? '● ' : '○ '}
-                  {opt.title}
-                </span>
-                <span style={{ fontSize: 13, color: colors.muted, lineHeight: 1.45 }}>
-                  {opt.desc}
-                </span>
-              </button>
-            );
-          })}
-        </section>
-
-        {/* ဝယ်သူ */}
-        <section style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <h3
-            style={{
-              margin: 0,
-              fontSize: 15,
-              fontWeight: 700,
-              color: colors.ink,
-              paddingBottom: 8,
-              borderBottom: `1px solid ${colors.cardBorder}`,
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        {/* 1. What kind of entry? */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+          <Segmented
+            size="chip"
+            options={[
+              { value: 'sell', label: 'အရောင်း' },
+              { value: 'buy', label: 'အဝယ်' },
+            ]}
+            value={form.type}
+            onChange={(type) => {
+              setForm((f) => ({ ...f, type }));
+              setCardQty(emptyCardQty());
             }}
-          >
-            ဝယ်သူ
-          </h3>
-          <CustomerCombobox
-            customers={customers}
-            query={form.query}
-            customerId={form.customerId}
-            newPhone={form.newPhone}
-            newNrc={form.newNrc}
-            newAddress={form.newAddress}
-            digits={digits}
-            onQuery={(q) => {
-              const m = customers.find(
-                (c) => c.name.trim().toLowerCase() === q.trim().toLowerCase(),
-              );
-              setForm((f) => ({
-                ...f,
-                query: q,
-                customerId: m ? m.id : null,
-              }));
-            }}
-            onSelect={(c: Customer) => setForm((f) => ({ ...f, customerId: c.id, query: c.name }))}
-            onNewPhone={(p) => setForm((f) => ({ ...f, newPhone: p }))}
-            onNewNrc={(n) => setForm((f) => ({ ...f, newNrc: n }))}
-            onNewAddress={(a) => setForm((f) => ({ ...f, newAddress: a }))}
           />
-        </section>
+          <Segmented
+            size="chip"
+            options={[
+              { value: 'card', label: 'အကယ်ဒမီအခေါက်ရွှေ' },
+              { value: 'loose', label: 'မီးလင်းဖြတ်စ' },
+            ]}
+            value={channel}
+            onChange={setChannel}
+          />
+          <input
+            value={form.note}
+            onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
+            placeholder="မှတ်ချက် (မဖြည့်လည်းရ)"
+            style={{
+              ...formInput,
+              height: 42,
+              flex: 1,
+              minWidth: 160,
+              fontSize: 16,
+              fontWeight: 500,
+            }}
+          />
+        </div>
 
-        {/* ရွှေချိန် + စျေး */}
-        <section
+        {/* 2. Who? */}
+        <CustomerCombobox
+          customers={customers}
+          query={form.query}
+          customerId={form.customerId}
+          newPhone={form.newPhone}
+          newNrc={form.newNrc}
+          newAddress={form.newAddress}
+          digits={digits}
+          onQuery={(q) => {
+            setForm((f) => ({
+              ...f,
+              query: q,
+              customerId: null,
+            }));
+          }}
+          onSelect={(c: Customer) => setForm((f) => ({ ...f, customerId: c.id, query: c.name }))}
+          onNewPhone={(p) => setForm((f) => ({ ...f, newPhone: p }))}
+          onNewNrc={(n) => setForm((f) => ({ ...f, newNrc: n }))}
+          onNewAddress={(a) => setForm((f) => ({ ...f, newAddress: a }))}
+        />
+
+        {/* 3. Qty + money side by side */}
+        <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1.2fr 1fr',
-            gap: 28,
+            gridTemplateColumns: 'minmax(0, 1.55fr) minmax(260px, 0.9fr)',
+            gap: 14,
             alignItems: 'start',
           }}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <h3
-              style={{
-                margin: 0,
-                fontSize: 15,
-                fontWeight: 700,
-                color: colors.ink,
-                paddingBottom: 8,
-                borderBottom: `1px solid ${colors.cardBorder}`,
-              }}
-            >
-              ရွှေချိန်
-            </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-              {unitInput('k', 'ကျပ်', true)}
-              {unitInput('p', 'ပဲ')}
-              {unitInput('y', 'ရွေး')}
-            </div>
+          <div>
             <div
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                paddingTop: 4,
-              }}
-            >
-              <span style={{ fontSize: 14, color: colors.muted }}>ပေါင်းချိန်</span>
-              <span
-                className="num"
-                style={{
-                  fontSize: 20,
-                  fontWeight: 700,
-                  color: overdraw ? colors.buy : colors.ink,
-                }}
-              >
-                {W(yway, digits)}
-              </span>
-            </div>
-            {form.type === 'sell' && (
-              <div
-                style={{
-                  fontSize: 13,
-                  color: overdraw ? colors.buy : colors.muted2,
-                  lineHeight: 1.5,
-                }}
-              >
-                လက်ရှိလက်ကျန် · <span className="num">{W(Math.max(0, stockY), digits)}</span>
-                {overdraw ? ' — လက်ကျန်ထက် ပို၍ မရပါ' : ''}
-              </div>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <h3
-              style={{
-                margin: 0,
                 fontSize: 15,
                 fontWeight: 700,
-                color: colors.ink,
-                paddingBottom: 8,
-                borderBottom: `1px solid ${colors.cardBorder}`,
+                color: colors.muted,
+                marginBottom: 10,
+                letterSpacing: '0.01em',
+                lineHeight: 1.45,
               }}
             >
-              စျေးနှုန်း
-            </h3>
-            <FormRow label={priceLabel} labelWidth={96}>
+              {channel === 'card' ? 'ကဒ် အရေအတွက် ရွေးပါ' : 'ရွှေချိန် ထည့်ပါ'}
+            </div>
+            {channel === 'card' ? (
+              <CardQtyPicker
+                qty={cardQty}
+                stock={cardStock}
+                digits={digits}
+                sellMode={form.type === 'sell'}
+                compact
+                onChange={(denom, value) => setCardQty((q) => ({ ...q, [denom]: value }))}
+              />
+            ) : (
+              <div
+                style={{
+                  padding: 14,
+                  border: `1.5px solid ${colors.cardBorder}`,
+                  borderRadius: radii.card,
+                }}
+              >
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                  {unitInput('k', 'ကျပ်', true)}
+                  {unitInput('p', 'ပဲ')}
+                  {unitInput('y', 'ရွေး')}
+                </div>
+                <div
+                  style={{
+                    marginTop: 12,
+                    fontSize: 15,
+                    color: looseOverdraw ? colors.buy : colors.muted,
+                    fontWeight: 600,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  စု · <span className="num">{W(looseYway, digits)}</span>
+                  {form.type === 'sell' && (
+                    <span>
+                      {' '}
+                      · လက်ကျန် {W(Math.max(0, looseStockY), digits)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+            {errMsg ? (
+              <div
+                style={{
+                  marginTop: 10,
+                  fontSize: 15,
+                  fontWeight: 700,
+                  color: colors.buy,
+                  lineHeight: 1.45,
+                }}
+              >
+                {errMsg}
+              </div>
+            ) : null}
+          </div>
+
+          <aside
+            style={{
+              border: `1.5px solid ${colors.cardBorder}`,
+              borderRadius: radii.card,
+              padding: '14px 16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+              background: '#FAFBFC',
+            }}
+          >
+            <SummaryRow label="အလေးချိန်" value={W(yway, digits)} strong />
+            {channel === 'card' && (
+              <SummaryRow label="ကဒ်အရေအတွက်" value={`${D(cardCount, digits)} ကဒ်`} />
+            )}
+
+            <div style={{ height: 1, background: colors.rowDivider }} />
+
+            <div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 6,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 700,
+                    color: colors.muted,
+                    letterSpacing: '0.01em',
+                  }}
+                >
+                  {priceLabel}
+                </span>
+                {!editingPrice && (
+                  <button type="button" onClick={() => setEditingPrice(true)} style={linkBtn}>
+                    ပြင်ရန်
+                  </button>
+                )}
+              </div>
               {editingPrice ? (
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 8 }}>
                   <input
                     ref={priceInputRef}
                     type="text"
@@ -455,103 +563,143 @@ export function EntryDialog() {
                         e.preventDefault();
                         setEditingPrice(false);
                       }
-                      if (e.key === 'Escape') {
-                        setPriceStr(String(form.type === 'sell' ? curSell : curBuy));
-                        setEditingPrice(false);
-                      }
                     }}
-                    style={{
-                      ...formInput,
-                      height: 48,
-                      fontSize: 20,
-                      fontWeight: 700,
-                      flex: 1,
-                    }}
+                    style={{ ...formInput, height: 42, fontSize: 18, fontWeight: 700, flex: 1 }}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setEditingPrice(false)}
-                    style={{
-                      height: 48,
-                      padding: '0 14px',
-                      border: 'none',
-                      borderRadius: 8,
-                      background: colors.ink,
-                      color: colors.white,
-                      fontSize: 14,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                    }}
-                  >
-                    ပြီးပြီ
+                  <button type="button" onClick={() => setEditingPrice(false)} style={miniBtn(true)}>
+                    OK
                   </button>
                 </div>
               ) : (
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <div
-                    className="num"
-                    style={{
-                      ...formInput,
-                      height: 48,
-                      fontSize: 20,
-                      fontWeight: 700,
-                      display: 'flex',
-                      alignItems: 'center',
-                      flex: 1,
-                      background: colors.white,
-                      color: colors.ink,
-                    }}
-                  >
-                    {money(price, digits)}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setEditingPrice(true)}
-                    style={{
-                      height: 48,
-                      padding: '0 14px',
-                      border: `1.5px solid ${colors.ink}`,
-                      borderRadius: 8,
-                      background: colors.white,
-                      color: colors.ink,
-                      fontSize: 14,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                    }}
-                  >
-                    ပြင်မည်
-                  </button>
+                <div className="num" style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.35 }}>
+                  {money(price, digits)}
                 </div>
               )}
-            </FormRow>
+            </div>
+
+            <div style={{ height: 1, background: colors.rowDivider }} />
+
+            {channel === 'card' && cardParts ? (
+              <>
+                <SummaryRow label="ကျသင့်ငွေ" value={money(cardParts.gold, digits)} />
+                <SummaryRow
+                  label={`ကဒ်ဖိုး (${form.type === 'sell' ? '+' : '−'})`}
+                  value={money(cardParts.fee, digits)}
+                  hint={`${money(settings.card_fee, digits)} × ${D(cardsFeeableQty(cardLines), digits)}`}
+                />
+              </>
+            ) : (
+              <SummaryRow label="ကျသင့်ငွေ" value={money(amt, digits)} />
+            )}
+
             <div
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'baseline',
-                paddingTop: 8,
+                marginTop: 2,
+                padding: '12px 14px',
+                borderRadius: 10,
+                background: feeTooHigh ? '#FDF2F2' : colors.white,
+                border: `1.5px solid ${feeTooHigh ? colors.buy : colors.cardBorder}`,
               }}
             >
-              <span style={{ fontSize: 14, color: colors.muted }}>ကျသင့်ငွေ</span>
-              <span className="num" style={{ fontSize: 28, fontWeight: 700, color: colors.ink }}>
+              <div
+                style={{
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: colors.muted,
+                  letterSpacing: '0.01em',
+                }}
+              >
+                စုစုပေါင်း
+              </div>
+              <div
+                className="num"
+                style={{
+                  fontSize: 28,
+                  fontWeight: 700,
+                  marginTop: 4,
+                  color: feeTooHigh ? colors.buy : colors.ink,
+                  lineHeight: 1.25,
+                }}
+              >
                 {money(amt, digits)}
-              </span>
+              </div>
             </div>
-          </div>
-        </section>
-
-        {/* မှတ်ချက် */}
-        <FormRow label="မှတ်ချက်" labelWidth={72}>
-          <input
-            value={form.note}
-            onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
-            placeholder="လိုရင် ရေးပါ"
-            style={formInput}
-          />
-        </FormRow>
+          </aside>
+        </div>
       </div>
     </Dialog>
   );
 }
+
+function SummaryRow({
+  label,
+  value,
+  hint,
+  strong,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  strong?: boolean;
+}) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
+      <div>
+        <div
+          style={{
+            fontSize: 15,
+            color: colors.muted,
+            fontWeight: 700,
+            lineHeight: 1.5,
+            letterSpacing: '0.01em',
+          }}
+        >
+          {label}
+        </div>
+        {hint && (
+          <div style={{ fontSize: 14, color: colors.muted2, marginTop: 2, lineHeight: 1.45 }}>{hint}</div>
+        )}
+      </div>
+      <div
+        className="num"
+        style={{
+          fontSize: strong ? 20 : 17,
+          fontWeight: 700,
+          color: colors.ink,
+          whiteSpace: 'nowrap',
+          lineHeight: 1.4,
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function miniBtn(filled: boolean): CSSProperties {
+  return {
+    height: 40,
+    padding: '0 12px',
+    border: filled ? 'none' : `1px solid ${colors.ink}`,
+    borderRadius: 6,
+    background: filled ? colors.ink : colors.white,
+    color: filled ? colors.white : colors.ink,
+    fontSize: 14,
+    fontWeight: 700,
+    cursor: 'pointer',
+    flexShrink: 0,
+  };
+}
+
+const linkBtn: CSSProperties = {
+  border: 'none',
+  background: 'none',
+  padding: 0,
+  color: colors.ink,
+  fontSize: 14,
+  fontWeight: 700,
+  cursor: 'pointer',
+  textDecoration: 'underline',
+  textUnderlineOffset: 3,
+  lineHeight: 1.5,
+};

@@ -1,5 +1,7 @@
 import { MIGRATIONS } from './migrations';
 import type {
+  CardAdjustment,
+  CardOpening,
   Customer,
   Price,
   SaveTxnInput,
@@ -7,14 +9,26 @@ import type {
   StockAdjKind,
   StockAdjustment,
   Txn,
+  TxnCard,
+  TxnChannel,
 } from './types';
+import {
+  assertCardStockEnough,
+  cardTxnAmount,
+  cardsTotalYway,
+  computeCardStock,
+  DEFAULT_CARD_FEE,
+  normalizeCardLines,
+  type CardDenom,
+} from '../lib/cards';
+import { runAutoBackup, scheduleDbBackup } from '../lib/autoBackup';
+import { isNrcComplete, normalizeNrcKey } from '../lib/nrc';
 import {
   amount,
   assertStockEnough,
   assertStockNonNegative,
   isoDate,
   isoTime,
-  RoundTo,
   stockFromParts,
   toYway,
 } from '../lib/units';
@@ -22,6 +36,17 @@ import { isTauri } from './env';
 import * as browser from './browserStore';
 
 export type { SaveTxnInput };
+
+const TXN_COLS =
+  'id, voucher_no, date, time, type, customer_id, yway, price, amount, note, channel, card_fee';
+
+function normalizeTxn(t: Txn): Txn {
+  return {
+    ...t,
+    channel: (t.channel === 'card' ? 'card' : 'loose') as TxnChannel,
+    card_fee: Number(t.card_fee ?? 0),
+  };
+}
 
 type SqlDb = {
   execute: (query: string, bindValues?: unknown[]) => Promise<{ lastInsertId?: number; rowsAffected: number }>;
@@ -121,24 +146,50 @@ export async function getSettings(): Promise<Settings> {
     'SELECT key, value FROM settings',
   );
   const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
-  const round = Number(map.round_to ?? 100);
+  const fee = Number(map.card_fee ?? DEFAULT_CARD_FEE);
   return {
     opening_stock_yway: Number(map.opening_stock_yway ?? 0),
     digits: (map.digits === 'myanmar' ? 'myanmar' : 'latin') as Settings['digits'],
-    round_to: ([1, 100, 1000].includes(round) ? round : 100) as RoundTo,
     shop_name: map.shop_name?.trim() || 'ဦးသန့်စင်',
     shop_mark: map.shop_mark?.trim() || 'သ',
     shop_tagline: map.shop_tagline?.trim() || 'အခေါက်ရွှေ အရောင်းအဝယ်',
+    card_fee: Number.isFinite(fee) && fee >= 0 ? Math.round(fee) : DEFAULT_CARD_FEE,
   };
 }
 
-export async function getStockYway(): Promise<number> {
+/** Loose-gold stock only (excludes card-channel txns). */
+export async function getLooseStockYway(): Promise<number> {
   const [settings, txns, adjs] = await Promise.all([
     getSettings(),
     listTxns(),
     listStockAdjustments(),
   ]);
-  return stockFromParts(settings.opening_stock_yway, txns, adjs);
+  const loose = txns.filter((t) => t.channel !== 'card');
+  return stockFromParts(settings.opening_stock_yway, loose, adjs);
+}
+
+/** @deprecated use getLooseStockYway — kept for call-site compatibility */
+export async function getStockYway(): Promise<number> {
+  return getLooseStockYway();
+}
+
+export async function getCardStockMap(): Promise<Record<CardDenom, number>> {
+  const [openings, adjs, txnCards, txns] = await Promise.all([
+    listCardOpenings(),
+    listCardAdjustments(),
+    listAllTxnCards(),
+    listTxns(),
+  ]);
+  const typeById = new Map(txns.map((t) => [t.id, t.type]));
+  return computeCardStock({
+    openings,
+    adjustments: adjs,
+    txnCards: txnCards.map((c) => ({
+      type: typeById.get(c.txn_id) ?? 'sell',
+      denom: c.denom,
+      qty: c.qty,
+    })),
+  });
 }
 
 export async function setSetting(key: string, value: string): Promise<void> {
@@ -150,8 +201,9 @@ export async function setSetting(key: string, value: string): Promise<void> {
       listTxns(),
       listStockAdjustments(),
     ]);
+    const loose = txns.filter((t) => t.channel !== 'card');
     assertStockNonNegative(
-      stockFromParts(opening, txns, adjs),
+      stockFromParts(opening, loose, adjs),
       settings.digits,
       'အစလက်ကျန် လျှော့လို့ မရပါ · လက်ကျန် အနှုတ် ဖြစ်မည်',
     );
@@ -161,6 +213,7 @@ export async function setSetting(key: string, value: string): Promise<void> {
     'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
     [key, value],
   );
+  scheduleDbBackup();
 }
 
 export async function listCustomers(): Promise<Customer[]> {
@@ -175,7 +228,23 @@ export async function listCustomers(): Promise<Customer[]> {
 export function assertCustomerDetails(phone: string, address: string, nrc: string): void {
   if (!phone.trim()) throw new Error('ဖုန်းနံပါတ် ထည့်ပါ');
   if (!address.trim()) throw new Error('နေရပ်လိပ်စာ ထည့်ပါ');
-  if (!nrc.trim()) throw new Error('မှတ်ပုံတင် ထည့်ပါ');
+  if (!isNrcComplete(nrc)) throw new Error('မှတ်ပုံတင် ပြည့်စုံရွေးပါ (နံပါတ် ၆ လုံး)');
+}
+
+async function assertNrcUnique(nrc: string): Promise<void> {
+  const key = normalizeNrcKey(nrc);
+  if (mode === 'browser') {
+    const hit = (await browser.browserListCustomers()).find(
+      (c) => normalizeNrcKey(c.nrc) === key,
+    );
+    if (hit) throw new Error(`မှတ်ပုံတင်တူ ရှိပြီး — ${hit.name}`);
+    return;
+  }
+  const rows = await db!.select<{ id: number; name: string }[]>(
+    "SELECT id, name FROM customers WHERE REPLACE(TRIM(COALESCE(nrc, '')), ' ', '') = $1 LIMIT 1",
+    [key],
+  );
+  if (rows[0]) throw new Error(`မှတ်ပုံတင်တူ ရှိပြီး — ${rows[0].name}`);
 }
 
 export async function createCustomer(
@@ -187,11 +256,13 @@ export async function createCustomer(
   await initDb();
   if (!name.trim()) throw new Error('ဝယ်သူအမည် ထည့်ပါ');
   assertCustomerDetails(phone, address, nrc);
+  await assertNrcUnique(nrc);
   if (mode === 'browser') return browser.browserCreateCustomer(name, phone, address, nrc);
   const res = await db!.execute(
     'INSERT INTO customers (name, phone, nrc, address) VALUES ($1, $2, $3, $4)',
     [name.trim(), phone.trim(), nrc.trim(), address.trim()],
   );
+  scheduleDbBackup();
   return res.lastInsertId as number;
 }
 
@@ -224,6 +295,7 @@ export async function upsertPrice(date: string, buy: number, sell: number): Prom
      ON CONFLICT(date) DO UPDATE SET buy = excluded.buy, sell = excluded.sell`,
     [d, buy, sell],
   );
+  scheduleDbBackup();
 }
 
 export async function getLatestPrice(): Promise<Price | null> {
@@ -257,30 +329,29 @@ export async function getPriceOn(date: string): Promise<Price | null> {
 export async function listTxns(): Promise<Txn[]> {
   await initDb();
   if (mode === 'browser') return browser.browserListTxns();
-  return db!.select<Txn[]>(
-    `SELECT id, voucher_no, date, time, type, customer_id, yway, price, amount, note
-     FROM txns ORDER BY voucher_no DESC`,
+  const rows = await db!.select<Txn[]>(
+    `SELECT ${TXN_COLS} FROM txns ORDER BY voucher_no DESC`,
   );
+  return rows.map(normalizeTxn);
 }
 
 export async function listTxnsAsc(): Promise<Txn[]> {
   await initDb();
   if (mode === 'browser') return browser.browserListTxnsAsc();
-  return db!.select<Txn[]>(
-    `SELECT id, voucher_no, date, time, type, customer_id, yway, price, amount, note
-     FROM txns ORDER BY date ASC, time ASC, voucher_no ASC`,
+  const rows = await db!.select<Txn[]>(
+    `SELECT ${TXN_COLS} FROM txns ORDER BY date ASC, time ASC, voucher_no ASC`,
   );
+  return rows.map(normalizeTxn);
 }
 
 export async function getTxn(id: number): Promise<Txn | null> {
   await initDb();
   if (mode === 'browser') return browser.browserGetTxn(id);
   const rows = await db!.select<Txn[]>(
-    `SELECT id, voucher_no, date, time, type, customer_id, yway, price, amount, note
-     FROM txns WHERE id = $1`,
+    `SELECT ${TXN_COLS} FROM txns WHERE id = $1`,
     [id],
   );
-  return rows[0] ?? null;
+  return rows[0] ? normalizeTxn(rows[0]) : null;
 }
 
 export async function nextVoucherNo(): Promise<number> {
@@ -290,8 +361,42 @@ export async function nextVoucherNo(): Promise<number> {
 
 export async function saveTxn(input: SaveTxnInput): Promise<number> {
   await initDb();
-  const yway = Math.round(toYway(input.k, input.p, input.y) * 1000) / 1000;
-  if (yway <= 0) throw new Error('ရွှေချိန် ထည့်ပါ');
+  const channel: TxnChannel = input.channel === 'card' ? 'card' : 'loose';
+  const settings = await getSettings();
+  const feePerCard =
+    input.cardFee != null && Number.isFinite(input.cardFee)
+      ? Math.max(0, Math.round(input.cardFee))
+      : settings.card_fee;
+
+  let yway: number;
+  let lines: Array<{ denom: CardDenom; qty: number }> = [];
+  let amt: number;
+  let cardFeeStored = 0;
+
+  if (channel === 'card') {
+    lines = normalizeCardLines(input.cards ?? []);
+    if (!lines.length) throw new Error('ကဒ် အရေအတွက် ထည့်ပါ');
+    yway = cardsTotalYway(lines);
+    const parts = cardTxnAmount(input.type, yway, input.price, lines, feePerCard);
+    if (parts.total < 0) {
+      throw new Error('ကဒ်ဖိုးသည် ကျသင့်ငွေထက် များနေသည် · ဝယ်ငွေ အနှုတ် ဖြစ်မည်');
+    }
+    amt = parts.total;
+    cardFeeStored = feePerCard;
+    if (input.type === 'sell') {
+      const stock = await getCardStockMap();
+      assertCardStockEnough(stock, lines, settings.digits);
+    }
+  } else {
+    yway = Math.round(toYway(input.k, input.p, input.y) * 1000) / 1000;
+    if (yway <= 0) throw new Error('ရွှေချိန် ထည့်ပါ');
+    amt = amount(yway, input.price);
+    if (input.type === 'sell') {
+      const avail = await getLooseStockYway();
+      assertStockEnough(avail, yway, settings.digits);
+    }
+  }
+
   if (input.newCustomer) {
     if (!input.newCustomer.name.trim()) throw new Error('ဝယ်သူအမည် ထည့်ပါ');
     assertCustomerDetails(
@@ -299,15 +404,18 @@ export async function saveTxn(input: SaveTxnInput): Promise<number> {
       input.newCustomer.address,
       input.newCustomer.nrc,
     );
+    await assertNrcUnique(input.newCustomer.nrc);
+  } else if (input.customerId == null) {
+    throw new Error('ဝယ်သူ ရွေးပါ သို့မဟုတ် အသစ်ထည့်ပါ');
   }
-  if (input.type === 'sell') {
-    const [avail, settings] = await Promise.all([getStockYway(), getSettings()]);
-    assertStockEnough(avail, yway, settings.digits);
+
+  if (mode === 'browser') {
+    const id = await browser.browserSaveTxn({ ...input, channel, cardFee: feePerCard });
+    // browser mode has no file DB — skip auto backup
+    return id;
   }
-  if (mode === 'browser') return browser.browserSaveTxn(input);
 
   const database = db!;
-  const amt = amount(yway, input.price, input.roundTo);
   const now = new Date();
   const date = isoDate(now);
   const time = isoTime(now);
@@ -316,11 +424,6 @@ export async function saveTxn(input: SaveTxnInput): Promise<number> {
   try {
     let customerId = input.customerId;
     if (input.newCustomer) {
-      assertCustomerDetails(
-        input.newCustomer.phone,
-        input.newCustomer.address,
-        input.newCustomer.nrc,
-      );
       const res = await database.execute(
         'INSERT INTO customers (name, phone, nrc, address) VALUES ($1, $2, $3, $4)',
         [
@@ -337,12 +440,34 @@ export async function saveTxn(input: SaveTxnInput): Promise<number> {
     );
     const no = (rows[0]?.m ?? 0) + 1;
     const res = await database.execute(
-      `INSERT INTO txns (voucher_no, date, time, type, customer_id, yway, price, amount, note)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [no, date, time, input.type, customerId, yway, input.price, amt, input.note || null],
+      `INSERT INTO txns (voucher_no, date, time, type, customer_id, yway, price, amount, note, channel, card_fee)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      [
+        no,
+        date,
+        time,
+        input.type,
+        customerId,
+        yway,
+        input.price,
+        amt,
+        input.note || null,
+        channel,
+        cardFeeStored,
+      ],
     );
+    const txnId = res.lastInsertId as number;
+    if (channel === 'card') {
+      for (const line of lines) {
+        await database.execute(
+          'INSERT INTO txn_cards (txn_id, denom, qty) VALUES ($1, $2, $3)',
+          [txnId, line.denom, line.qty],
+        );
+      }
+    }
     await database.execute('COMMIT');
-    return res.lastInsertId as number;
+    scheduleDbBackup();
+    return txnId;
   } catch (e) {
     await database.execute('ROLLBACK');
     throw e;
@@ -352,11 +477,28 @@ export async function saveTxn(input: SaveTxnInput): Promise<number> {
 export async function deleteTxn(id: number): Promise<void> {
   await initDb();
   const txn = await getTxn(id);
-  if (txn?.type === 'buy') {
-    const [avail, settings] = await Promise.all([getStockYway(), getSettings()]);
+  if (!txn) return;
+  const settings = await getSettings();
+
+  if (txn.channel === 'card') {
+    if (txn.type === 'buy') {
+      const lines = await listTxnCards(id);
+      const stock = await getCardStockMap();
+      assertCardStockEnough(
+        stock,
+        normalizeCardLines(lines),
+        settings.digits,
+      );
+    }
+  } else if (txn.type === 'buy') {
+    const avail = await getLooseStockYway();
     assertStockEnough(avail, txn.yway, settings.digits);
   }
+
   if (mode === 'browser') return browser.browserDeleteTxn(id);
+  // Snapshot full DB (incl. this voucher) before delete
+  await runAutoBackup('txn');
+  await db!.execute('DELETE FROM txn_cards WHERE txn_id = $1', [id]);
   await db!.execute('DELETE FROM txns WHERE id = $1', [id]);
 }
 
@@ -393,7 +535,7 @@ export async function createStockAdjustment(
   await initDb();
   if (yway <= 0) throw new Error('ရွှေချိန် ထည့်ပါ');
   if (kind === 'out') {
-    const [avail, settings] = await Promise.all([getStockYway(), getSettings()]);
+    const [avail, settings] = await Promise.all([getLooseStockYway(), getSettings()]);
     assertStockEnough(avail, yway, settings.digits);
   }
   if (mode === 'browser') return browser.browserCreateStockAdjustment(kind, yway, note);
@@ -403,6 +545,7 @@ export async function createStockAdjustment(
      VALUES ($1, $2, $3, $4, $5)`,
     [isoDate(now), isoTime(now), kind, yway, note.trim() || null],
   );
+  scheduleDbBackup();
   return res.lastInsertId as number;
 }
 
@@ -410,9 +553,104 @@ export async function deleteStockAdjustment(id: number): Promise<void> {
   await initDb();
   const adj = (await listStockAdjustments()).find((a) => a.id === id);
   if (adj?.kind === 'in') {
-    const [avail, settings] = await Promise.all([getStockYway(), getSettings()]);
+    const [avail, settings] = await Promise.all([getLooseStockYway(), getSettings()]);
     assertStockEnough(avail, adj.yway, settings.digits);
   }
   if (mode === 'browser') return browser.browserDeleteStockAdjustment(id);
+  await runAutoBackup('txn');
   await db!.execute('DELETE FROM stock_adjustments WHERE id = $1', [id]);
+}
+
+export async function listCardOpenings(): Promise<CardOpening[]> {
+  await initDb();
+  if (mode === 'browser') return browser.browserListCardOpenings();
+  return db!.select<CardOpening[]>('SELECT denom, qty FROM card_openings ORDER BY denom');
+}
+
+export async function setCardOpening(denom: string, qty: number): Promise<void> {
+  await initDb();
+  const q = Math.max(0, Math.floor(qty) || 0);
+  if (mode === 'browser') return browser.browserSetCardOpening(denom, q);
+  await db!.execute(
+    `INSERT INTO card_openings (denom, qty) VALUES ($1, $2)
+     ON CONFLICT(denom) DO UPDATE SET qty = excluded.qty`,
+    [denom, q],
+  );
+  scheduleDbBackup();
+}
+
+export async function setCardOpenings(map: Record<string, number>): Promise<void> {
+  for (const [denom, qty] of Object.entries(map)) {
+    await setCardOpening(denom, qty);
+  }
+  // setCardOpening already schedules; one more debounce coalesce is fine
+}
+
+export async function listCardAdjustments(): Promise<CardAdjustment[]> {
+  await initDb();
+  if (mode === 'browser') return browser.browserListCardAdjustments();
+  return db!.select<CardAdjustment[]>(
+    `SELECT id, date, time, kind, denom, qty, note
+     FROM card_adjustments
+     ORDER BY date ASC, time ASC, id ASC`,
+  );
+}
+
+export async function createCardAdjustment(
+  kind: StockAdjKind,
+  denom: string,
+  qty: number,
+  note = '',
+): Promise<number> {
+  await initDb();
+  const q = Math.floor(qty) || 0;
+  if (q <= 0) throw new Error('ကဒ် အရေအတွက် ထည့်ပါ');
+  if (kind === 'out') {
+    const [stock, settings] = await Promise.all([getCardStockMap(), getSettings()]);
+    assertCardStockEnough(
+      stock,
+      normalizeCardLines([{ denom, qty: q }]),
+      settings.digits,
+    );
+  }
+  if (mode === 'browser') return browser.browserCreateCardAdjustment(kind, denom, q, note);
+  const now = new Date();
+  const res = await db!.execute(
+    `INSERT INTO card_adjustments (date, time, kind, denom, qty, note)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [isoDate(now), isoTime(now), kind, denom, q, note.trim() || null],
+  );
+  scheduleDbBackup();
+  return res.lastInsertId as number;
+}
+
+export async function deleteCardAdjustment(id: number): Promise<void> {
+  await initDb();
+  const adj = (await listCardAdjustments()).find((a) => a.id === id);
+  if (adj?.kind === 'in') {
+    const [stock, settings] = await Promise.all([getCardStockMap(), getSettings()]);
+    assertCardStockEnough(
+      stock,
+      normalizeCardLines([{ denom: adj.denom, qty: adj.qty }]),
+      settings.digits,
+    );
+  }
+  if (mode === 'browser') return browser.browserDeleteCardAdjustment(id);
+  await runAutoBackup('txn');
+  await db!.execute('DELETE FROM card_adjustments WHERE id = $1', [id]);
+}
+
+export async function listTxnCards(txnId: number): Promise<TxnCard[]> {
+  await initDb();
+  if (mode === 'browser') return browser.browserListTxnCards(txnId);
+  return db!.select<TxnCard[]>(
+    'SELECT id, txn_id, denom, qty FROM txn_cards WHERE txn_id = $1 ORDER BY id',
+    [txnId],
+  );
+}
+
+export async function listAllTxnCards(): Promise<TxnCard[]> {
+  await initDb();
+  if (mode === 'browser') return browser.browserListAllTxnCards();
+  return db!.select<TxnCard[]>('SELECT id, txn_id, denom, qty FROM txn_cards ORDER BY id');
 }

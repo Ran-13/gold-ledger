@@ -1,8 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Dialog } from './Dialog';
+import {
+  Dialog,
+  dialogBtnGhost,
+  dialogBtnPrimary,
+  dialogField,
+  dialogLabel,
+} from './Dialog';
 import { upsertPrice } from '../db/queries';
 import { N, dateTimeKey, isoDate, keepNumInput, money } from '../lib/units';
-import { colors, radii } from '../styles/tokens';
+import { colors } from '../styles/tokens';
 import { useStore } from '../store';
 
 export function PriceDialog() {
@@ -33,18 +39,6 @@ export function PriceDialog() {
   const pfS = sellStr !== '' ? N(sellStr) : cur.sell;
   const spread = pfS - pfB;
 
-  const field = {
-    height: 56,
-    border: `1.5px solid ${colors.inputBorder}`,
-    borderRadius: radii.input,
-    padding: '0 16px',
-    fontSize: 24,
-    fontWeight: 700,
-    background: colors.white,
-    color: colors.ink,
-    width: '100%',
-  } as const;
-
   const save = async () => {
     if (!pfB || !pfS) {
       window.alert('ဝယ်စျေး / ရောင်းစျေး ထည့်ပါ');
@@ -66,25 +60,11 @@ export function PriceDialog() {
     <Dialog
       open={open}
       title="စျေးနှုန်းပြင်ဆင်ရန်"
-      subtitle="အခေါက်ရွှေ · ၁၆ ပဲရည် · ၁ ကျပ်သား"
       onClose={close}
-      width={480}
+      width={440}
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <button
-            type="button"
-            onClick={close}
-            style={{
-              height: 46,
-              padding: '0 18px',
-              border: `1.5px solid ${colors.inputBorder}`,
-              borderRadius: 8,
-              background: colors.white,
-              color: colors.muted,
-              fontSize: 15,
-              fontWeight: 600,
-            }}
-          >
+          <button type="button" onClick={close} style={dialogBtnGhost}>
             ပိတ်မည်
           </button>
           <button
@@ -92,14 +72,9 @@ export function PriceDialog() {
             disabled={saving}
             onClick={() => void save()}
             style={{
-              height: 46,
-              padding: '0 22px',
-              border: 'none',
-              borderRadius: 8,
-              background: colors.ink,
-              color: colors.white,
-              fontSize: 15,
-              fontWeight: 700,
+              ...dialogBtnPrimary,
+              opacity: saving ? 0.7 : 1,
+              cursor: saving ? 'default' : 'pointer',
             }}
           >
             သိမ်းဆည်းမည်
@@ -107,9 +82,9 @@ export function PriceDialog() {
         </div>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 12 }}>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: colors.muted }}>ဝယ်စျေး</span>
+          <span style={dialogLabel}>ဝယ်စျေး</span>
           <input
             type="text"
             inputMode="decimal"
@@ -117,12 +92,12 @@ export function PriceDialog() {
             value={buyStr}
             placeholder={String(cur.buy || '')}
             onChange={(e) => setBuyStr(keepNumInput(e.target.value))}
-            style={field}
+            style={{ ...dialogField, textAlign: 'right' }}
             autoFocus
           />
         </label>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: colors.muted }}>ရောင်းစျေး</span>
+          <span style={dialogLabel}>ရောင်းစျေး</span>
           <input
             type="text"
             inputMode="decimal"
@@ -130,19 +105,35 @@ export function PriceDialog() {
             value={sellStr}
             placeholder={String(cur.sell || '')}
             onChange={(e) => setSellStr(keepNumInput(e.target.value))}
-            style={field}
+            style={{ ...dialogField, textAlign: 'right' }}
           />
         </label>
+
         <div
-          className="num"
           style={{
-            fontSize: 15,
-            color: spread >= 0 ? colors.sell : colors.buy,
-            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            padding: '14px 16px',
+            borderRadius: 10,
+            background: spread >= 0 ? 'rgba(31,122,77,.06)' : 'rgba(178,58,42,.06)',
+            border: `1px solid ${spread >= 0 ? 'rgba(31,122,77,.18)' : 'rgba(178,58,42,.18)'}`,
           }}
         >
-          ကွာဟချက် {spread >= 0 ? '+' : ''}
-          {money(spread, digits)}
+          <span style={{ fontSize: 15, fontWeight: 700, color: colors.muted }}>ကွာဟချက်</span>
+          <span
+            className="num"
+            style={{
+              fontSize: 18,
+              fontWeight: 700,
+              color: spread >= 0 ? colors.sell : colors.buy,
+              letterSpacing: '-0.02em',
+            }}
+          >
+            {spread >= 0 ? '+' : ''}
+            {money(spread, digits)}
+          </span>
         </div>
       </div>
     </Dialog>

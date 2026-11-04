@@ -14,6 +14,9 @@
     "fs:default",
     "allow-backup-database",
     "allow-restore-database",
-    "allow-get-db-file-path"
+    "allow-get-db-file-path",
+    "allow-auto-backup-database",
+    "allow-get-auto-backup-status",
+    "allow-get-backups-dir"
   ]
 }

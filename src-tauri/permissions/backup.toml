@@ -12,3 +12,18 @@ commands.allow = ["restore_database"]
 identifier = "allow-get-db-file-path"
 description = "Allow reading the database file path"
 commands.allow = ["get_db_file_path"]
+
+[[permission]]
+identifier = "allow-auto-backup-database"
+description = "Allow automatic AppData backups"
+commands.allow = ["auto_backup_database"]
+
+[[permission]]
+identifier = "allow-get-auto-backup-status"
+description = "Allow reading auto backup status"
+commands.allow = ["get_auto_backup_status"]
+
+[[permission]]
+identifier = "allow-get-backups-dir"
+description = "Allow reading the backups folder path"
+commands.allow = ["get_backups_dir"]

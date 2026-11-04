@@ -62,16 +62,16 @@ export async function makeSeed(database: Database): Promise<void> {
         const type = r() < 0.55 ? 'sell' : 'buy';
         const yway = 8 + Math.round(r() * 180);
         const price = type === 'sell' ? p.sell : p.buy;
-        const amt = amount(yway, price, 100);
+        const amt = amount(yway, price);
         const time =
           String(9 + Math.floor(r() * 8)).padStart(2, '0') +
           ':' +
           String(Math.floor(r() * 60)).padStart(2, '0');
         const cid = customerIds[Math.floor(r() * 8)]!;
         await database.execute(
-          `INSERT INTO txns (voucher_no, date, time, type, customer_id, yway, price, amount, note)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-          [no, date, time, type, cid, yway, price, amt, null],
+          `INSERT INTO txns (voucher_no, date, time, type, customer_id, yway, price, amount, note, channel, card_fee)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+          [no, date, time, type, cid, yway, price, amt, null, 'loose', 0],
         );
         no++;
       }

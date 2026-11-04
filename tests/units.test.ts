@@ -68,14 +68,12 @@ describe('fromYway', () => {
 });
 
 describe('amount', () => {
-  it('rounds to R', () => {
+  it('rounds to nearest ကျပ်', () => {
     // 128 yway × 7_000_000 / 128 = 7_000_000
-    expect(amount(128, 7000000, 100)).toBe(7000000);
+    expect(amount(128, 7000000)).toBe(7000000);
     // 64 yway = half kyat → 3_500_000
-    expect(amount(64, 7000000, 100)).toBe(3500000);
-    expect(amount(1, 7000000, 100)).toBe(54700); // round(7000000/128/100)*100
-    expect(amount(1, 7000000, 1)).toBe(Math.round(7000000 / 128));
-    expect(amount(1, 7000000, 1000)).toBe(Math.round(7000000 / 128 / 1000) * 1000);
+    expect(amount(64, 7000000)).toBe(3500000);
+    expect(amount(1, 7000000)).toBe(Math.round(7000000 / 128));
   });
 });
 

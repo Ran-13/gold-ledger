@@ -1,15 +1,15 @@
 import { colors } from './styles/tokens';
 import { Nav } from './components/Nav';
 import { PriceStrip } from './components/PriceStrip';
+import { CardAdjustDialog } from './components/CardAdjustDialog';
 import { EntryDialog } from './components/EntryDialog';
 import { CustomerDialog } from './components/CustomerDialog';
 import { PriceDialog } from './components/PriceDialog';
-import { OpeningDialog } from './components/OpeningDialog';
 import { StockAdjustDialog } from './components/StockAdjustDialog';
 import { useStore } from './store';
 import { Dashboard } from './pages/Dashboard';
 import { Ledger } from './pages/Ledger';
-import { Voucher } from './pages/Voucher';
+import { VoucherDialog } from './components/VoucherDialog';
 import { Reports } from './pages/Reports';
 import { Customers } from './pages/Customers';
 import { Stock } from './pages/Stock';
@@ -30,7 +30,7 @@ export default function App() {
           alignItems: 'center',
           justifyContent: 'center',
           color: colors.muted,
-          fontSize: 17,
+          fontSize: 19,
         }}
       >
         ခဏစောင့်ပါ…
@@ -64,7 +64,7 @@ export default function App() {
           data-main="1"
           style={{
             overflow: 'auto',
-            padding: '20px 24px 48px',
+            padding: '20px 24px 36px',
             minHeight: 0,
             background: colors.white,
           }}
@@ -78,7 +78,7 @@ export default function App() {
                 background: colors.white,
                 border: `1.5px solid ${colors.buy}`,
                 color: colors.buy,
-                fontSize: 15,
+                fontSize: 17,
               }}
             >
               {error}
@@ -86,7 +86,6 @@ export default function App() {
           )}
           {screen === 'dash' && <Dashboard />}
           {screen === 'ledger' && <Ledger />}
-          {screen === 'voucher' && <Voucher />}
           {screen === 'reports' && <Reports />}
           {screen === 'customers' && <Customers />}
           {screen === 'stock' && <Stock />}
@@ -95,10 +94,11 @@ export default function App() {
         </main>
       </div>
       <EntryDialog />
+      <VoucherDialog />
       <CustomerDialog />
       <PriceDialog />
-      <OpeningDialog />
       <StockAdjustDialog />
+      <CardAdjustDialog />
     </div>
   );
 }

@@ -6,14 +6,14 @@ export function Pill({ type }: { type: 'sell' | 'buy' }) {
     <span
       style={{
         display: 'inline-block',
-        padding: '4px 14px',
+        padding: '5px 12px',
         borderRadius: 6,
         fontSize: 15,
-        fontWeight: 600,
-        lineHeight: 1.5,
+        fontWeight: 700,
+        lineHeight: 1.45,
         whiteSpace: 'nowrap',
-        background: colors.white,
-        border: `1.5px solid ${sell ? colors.sell : colors.buy}`,
+        background: sell ? colors.sellPillBg : colors.buyPillBg,
+        border: `1px solid ${sell ? colors.sell : colors.buy}`,
         color: sell ? colors.sell : colors.buy,
       }}
     >

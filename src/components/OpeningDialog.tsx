@@ -13,6 +13,7 @@ export function OpeningDialog() {
   const adjustments = useStore((s) => s.stockAdjustments);
   const refreshSettings = useStore((s) => s.refreshSettings);
   const digits = settings.digits;
+  const looseTxns = txns.filter((t) => t.channel !== 'card');
 
   const [k, setK] = useState('');
   const [p, setP] = useState('');
@@ -28,7 +29,7 @@ export function OpeningDialog() {
   }, [open, settings.opening_stock_yway]);
 
   const yway = toYway(N(k), N(p), N(y));
-  const projected = stockFromParts(yway, txns, adjustments);
+  const projected = stockFromParts(yway, looseTxns, adjustments);
   const wouldGoNegative = projected < 0;
 
   const field = {
@@ -36,7 +37,7 @@ export function OpeningDialog() {
     border: `1.5px solid ${colors.inputBorder}`,
     borderRadius: radii.input,
     padding: '0 12px',
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 700,
     textAlign: 'right' as const,
     width: '100%',
@@ -66,7 +67,6 @@ export function OpeningDialog() {
     <Dialog
       open={open}
       title="အစလက်ကျန် သတ်မှတ်မည်"
-      subtitle="ဆိုင်စတင်ချိန်က ရွှေလက်ကျန် (အခေါက် · ၁၆ ပဲရည်)"
       onClose={close}
       width={480}
       footer={
@@ -81,7 +81,7 @@ export function OpeningDialog() {
               borderRadius: 8,
               background: colors.white,
               color: colors.muted,
-              fontSize: 15,
+              fontSize: 17,
               fontWeight: 600,
               cursor: 'pointer',
             }}
@@ -99,7 +99,7 @@ export function OpeningDialog() {
               borderRadius: 8,
               background: colors.ink,
               color: colors.white,
-              fontSize: 15,
+              fontSize: 17,
               fontWeight: 700,
               cursor: saving || wouldGoNegative ? 'default' : 'pointer',
               opacity: wouldGoNegative ? 0.45 : 1,
@@ -120,7 +120,7 @@ export function OpeningDialog() {
             ] as const
           ).map(([label, val, set]) => (
             <label key={label} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: colors.muted }}>{label}</span>
+              <span style={{ fontSize: 16, fontWeight: 600, color: colors.muted }}>{label}</span>
               <input
                 type="text"
                 inputMode="decimal"
@@ -144,14 +144,14 @@ export function OpeningDialog() {
             borderRadius: 8,
           }}
         >
-          <span style={{ fontSize: 14, color: colors.muted }}>အစလက်ကျန်</span>
-          <span className="num" style={{ fontSize: 20, fontWeight: 700, color: colors.ink }}>
+          <span style={{ fontSize: 16, color: colors.muted }}>အစလက်ကျန်</span>
+          <span className="num" style={{ fontSize: 22, fontWeight: 700, color: colors.ink }}>
             {W(yway, digits)}
           </span>
         </div>
         <div
           style={{
-            fontSize: 13,
+            fontSize: 16,
             color: wouldGoNegative ? colors.buy : colors.muted2,
             lineHeight: 1.55,
           }}

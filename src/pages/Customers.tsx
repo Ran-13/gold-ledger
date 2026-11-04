@@ -1,4 +1,5 @@
 import { Card } from '../components/Card';
+import { clearPrimaryBtn, tableTd, tableTh } from '../components/ClearUI';
 import { PaginationBar, usePagination } from '../components/Pagination';
 import { D, W } from '../lib/units';
 import { colors, radii } from '../styles/tokens';
@@ -41,35 +42,22 @@ export function Customers() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 1360 }}>
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <button
-          type="button"
-          onClick={openCustomerDialog}
-          style={{
-            height: 44,
-            padding: '0 20px',
-            border: 'none',
-            borderRadius: 8,
-            background: colors.ink,
-            color: colors.white,
-            fontWeight: 700,
-            fontSize: 15,
-          }}
-        >
+        <button type="button" onClick={openCustomerDialog} style={clearPrimaryBtn}>
           + ဝယ်သူအသစ်
         </button>
       </div>
 
       <Card padding={0} style={{ overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 16 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ color: colors.muted, textAlign: 'left', fontSize: 15 }}>
-              <th style={{ padding: '16px 20px', fontWeight: 600 }}>
-                ဝယ်သူ ({D(customers.length, digits)})
+            <tr>
+              <th style={{ ...tableTh, paddingLeft: 16 }}>
+                အမည် · ဖုန်း ({D(customers.length, digits)})
               </th>
-              <th style={{ padding: '16px 12px', fontWeight: 600 }}>မှတ်ပုံတင်</th>
-              <th style={{ padding: '16px 12px', fontWeight: 600 }}>စောင်</th>
-              <th style={{ padding: '16px 12px', fontWeight: 600 }}>ဆိုင်မှရောင်း / ဝယ်</th>
-              <th style={{ padding: '16px 20px' }} />
+              <th style={tableTh}>မှတ်ပုံတင်</th>
+              <th style={tableTh}>ဘောင်ချာ</th>
+              <th style={tableTh}>ရောင်းရွှေ / ဝယ်ရွှေ</th>
+              <th style={{ ...tableTh, paddingRight: 16 }} />
             </tr>
           </thead>
           <tbody>
@@ -77,7 +65,7 @@ export function Customers() {
               <tr>
                 <td
                   colSpan={5}
-                  style={{ padding: '36px 20px', textAlign: 'center', color: colors.muted2 }}
+                  style={{ ...tableTd, padding: 36, textAlign: 'center', color: colors.muted2, borderBottom: 'none' }}
                 >
                   ဝယ်သူ မရှိသေးပါ
                 </td>
@@ -85,63 +73,49 @@ export function Customers() {
             )}
             {page.slice.map((c) => (
               <tr key={c.id}>
-                <td style={{ padding: '16px 20px', borderTop: `1px solid ${colors.rowDivider}` }}>
-                  <div style={{ fontWeight: 700, lineHeight: 1.5 }}>{c.name}</div>
-                  <div className="num" style={{ fontSize: 14, color: colors.muted2 }}>
+                <td style={{ ...tableTd, paddingLeft: 16 }}>
+                  <div style={{ fontWeight: 600, fontSize: 16, lineHeight: 1.4 }}>{c.name}</div>
+                  <div className="num" style={{ fontSize: 14, color: colors.muted2, marginTop: 2 }}>
                     {c.phone}
                   </div>
                 </td>
                 <td
                   className="num"
                   style={{
-                    padding: '16px 12px',
-                    borderTop: `1px solid ${colors.rowDivider}`,
+                    ...tableTd,
                     whiteSpace: 'nowrap',
-                    fontSize: 14,
                     color: colors.muted,
                   }}
                 >
                   {c.nrc}
                 </td>
-                <td
-                  className="num"
-                  style={{ padding: '16px 12px', borderTop: `1px solid ${colors.rowDivider}` }}
-                >
+                <td className="num" style={tableTd}>
                   {c.count}
                 </td>
-                <td
-                  style={{
-                    padding: '16px 12px',
-                    borderTop: `1px solid ${colors.rowDivider}`,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  <div style={{ fontWeight: 600 }}>{c.soldW}</div>
-                  <div style={{ fontSize: 14, color: colors.muted2 }}>{c.boughtW}</div>
+                <td style={{ ...tableTd, whiteSpace: 'nowrap' }}>
+                  <div style={{ fontWeight: 700, color: colors.sell, fontSize: 15 }}>{c.soldW}</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: colors.buy, marginTop: 2 }}>
+                    {c.boughtW}
+                  </div>
                 </td>
-                <td
-                  style={{
-                    padding: '16px 20px',
-                    borderTop: `1px solid ${colors.rowDivider}`,
-                    textAlign: 'right',
-                  }}
-                >
+                <td style={{ ...tableTd, paddingRight: 16, textAlign: 'right' }}>
                   <button
                     type="button"
                     onClick={() => openLedger(c.name)}
                     style={{
-                      height: 36,
-                      border: `1px solid ${colors.inputBorder}`,
+                      height: 32,
+                      border: `1px solid ${colors.cardBorder}`,
                       background: '#fff',
                       color: colors.ink,
                       borderRadius: radii.button,
-                      padding: '0 16px',
+                      padding: '0 12px',
                       fontSize: 15,
                       fontWeight: 600,
                       whiteSpace: 'nowrap',
+                      cursor: 'pointer',
                     }}
                   >
-                    မှတ်တမ်း
+                    ဘောင်ချာကြည့်
                   </button>
                 </td>
               </tr>

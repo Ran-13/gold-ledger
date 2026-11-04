@@ -1,40 +1,64 @@
 import { useMemo } from 'react';
-import { Card, CardLabel, MoneyLine, WeightFigure } from '../components/Card';
+import { Card } from '../components/Card';
+import { MiniFact, StatStrip, TextBtn } from '../components/ClearUI';
 import { Pill } from '../components/Pill';
 import { customerName } from '../lib/format';
-import { D, W, money, isoDate, dateTimeKey, stock as stockCalc, voucherNo } from '../lib/units';
+import {
+  cardStockTotalYway,
+  computeCardStock,
+  formatCardLines,
+  isCardDenom,
+  type CardDenom,
+} from '../lib/cards';
+import { D, W, money, isoDate, stock as stockCalc, sumMoney, voucherNo } from '../lib/units';
 import { colors } from '../styles/tokens';
 import { useStore } from '../store';
 
 export function Dashboard() {
   const txns = useStore((s) => s.txns);
   const customers = useStore((s) => s.customers);
-  const prices = useStore((s) => s.prices);
   const settings = useStore((s) => s.settings);
+  const cardOpenings = useStore((s) => s.cardOpenings);
+  const cardAdjustments = useStore((s) => s.cardAdjustments);
+  const txnCards = useStore((s) => s.txnCards);
+  const adjustments = useStore((s) => s.stockAdjustments);
   const setScreen = useStore((s) => s.setScreen);
-  const setVoucherId = useStore((s) => s.setVoucherId);
-  const openPriceDialog = useStore((s) => s.openPriceDialog);
+  const openVoucher = useStore((s) => s.openVoucher);
   const digits = settings.digits;
   const today = isoDate();
 
-  const sortedPrices = [...prices].sort((a, b) =>
-    dateTimeKey(a.date, a.time) < dateTimeKey(b.date, b.time) ? -1 : 1,
-  );
-  const cur = sortedPrices[sortedPrices.length - 1] ?? {
-    buy: 0,
-    sell: 0,
-    date: today,
-    time: '00:00:00',
-    id: 0,
-  };
   const custMap = useMemo(() => new Map(customers.map((c) => [c.id, c])), [customers]);
 
-  const adjustments = useStore((s) => s.stockAdjustments);
-  const buyY = txns.filter((t) => t.type === 'buy').reduce((a, t) => a + t.yway, 0);
-  const sellY = txns.filter((t) => t.type === 'sell').reduce((a, t) => a + t.yway, 0);
+  const loose = txns.filter((t) => t.channel !== 'card');
+  const buyY = loose.filter((t) => t.type === 'buy').reduce((a, t) => a + t.yway, 0);
+  const sellY = loose.filter((t) => t.type === 'sell').reduce((a, t) => a + t.yway, 0);
   const adjInY = adjustments.filter((a) => a.kind === 'in').reduce((a, x) => a + x.yway, 0);
   const adjOutY = adjustments.filter((a) => a.kind === 'out').reduce((a, x) => a + x.yway, 0);
-  const stockY = stockCalc(settings.opening_stock_yway, buyY, sellY, adjInY, adjOutY);
+  const looseY = stockCalc(settings.opening_stock_yway, buyY, sellY, adjInY, adjOutY);
+  const cardStock = useMemo(() => {
+    const typeById = new Map(txns.map((t) => [t.id, t.type]));
+    return computeCardStock({
+      openings: cardOpenings,
+      adjustments: cardAdjustments,
+      txnCards: txnCards.map((c) => ({
+        type: typeById.get(c.txn_id) ?? 'sell',
+        denom: c.denom,
+        qty: c.qty,
+      })),
+    });
+  }, [cardOpenings, cardAdjustments, txnCards, txns]);
+  const cardY = cardStockTotalYway(cardStock);
+
+  const cardsByTxn = useMemo(() => {
+    const map = new Map<number, Array<{ denom: CardDenom; qty: number }>>();
+    for (const c of txnCards) {
+      if (!isCardDenom(c.denom)) continue;
+      const list = map.get(c.txn_id) ?? [];
+      list.push({ denom: c.denom, qty: c.qty });
+      map.set(c.txn_id, list);
+    }
+    return map;
+  }, [txnCards]);
 
   const tt = txns.filter((t) => t.date === today);
   const tS = tt.filter((t) => t.type === 'sell');
@@ -42,206 +66,128 @@ export function Dashboard() {
   const sum = (arr: typeof tt, f: (t: (typeof tt)[0]) => number) =>
     arr.reduce((a, t) => a + f(t), 0);
 
-  const recent = [...txns].sort((a, b) => b.voucher_no - a.voucher_no).slice(0, 10);
+  const sellAmt = sumMoney(tS, (t) => t.amount);
+  const buyAmt = sumMoney(tB, (t) => t.amount);
+  const sellGold = sum(tS, (t) => t.yway);
+  const buyGold = sum(tB, (t) => t.yway);
+
+  const recent = [...txns].sort((a, b) => b.voucher_no - a.voucher_no).slice(0, 8);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 22, maxWidth: 1360 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.7fr) minmax(0, 1fr)', gap: 22 }}>
-        <Card padding="28px 32px">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-              <div style={{ fontSize: 15, color: colors.muted, lineHeight: 1.6 }}>
-                အခေါက်ရွှေ စျေးနှုန်း · ၁ ကျပ်သား · ၁၆ ပဲရည်
-              </div>
-              <button
-                type="button"
-                onClick={openPriceDialog}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 1280 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}
+      >
+        <div style={{ fontSize: 16, fontWeight: 600, color: colors.muted }}>{D(today, digits)}</div>
+        <TextBtn onClick={() => setScreen('stock')}>လက်ကျန် ကြည့်ရန် →</TextBtn>
+      </div>
+
+      <StatStrip>
+        <MiniFact
+          label="ငွေ(အရောင်း)"
+          value={money(sellAmt, digits)}
+          tone="sell"
+          sub={`${D(tS.length, digits)} စောင်`}
+        />
+        <MiniFact
+          label="ငွေ(အဝယ်)"
+          value={money(buyAmt, digits)}
+          tone="buy"
+          sub={`${D(tB.length, digits)} စောင်`}
+        />
+        <MiniFact label="ရွှေ(အရောင်း)" value={W(sellGold, digits)} tone="sell" />
+        <MiniFact label="ရွှေ(အဝယ်)" value={W(buyGold, digits)} tone="buy" />
+        <MiniFact label="လက်ကျန်(အကယ်ဒမီအခေါက်ရွှေ)" value={W(cardY, digits)} />
+        <MiniFact label="လက်ကျန်(မီးလင်းဖြတ်စ)" value={W(looseY, digits)} />
+      </StatStrip>
+
+      <Card padding={0} style={{ overflow: 'hidden' }}>
+        <div
+          style={{
+            padding: '14px 16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderBottom: `1px solid ${colors.rowDivider}`,
+          }}
+        >
+          <div style={{ fontSize: 16, fontWeight: 700 }}>နောက်ဆုံး စာရင်း</div>
+          <TextBtn onClick={() => setScreen('ledger')}>အားလုံး →</TextBtn>
+        </div>
+
+        {recent.length === 0 ? (
+          <div style={{ padding: '36px 20px', textAlign: 'center', color: colors.muted2, fontSize: 16 }}>
+            ယနေ့ / မကြာသေးမီ စာရင်း မရှိသေးပါ
+          </div>
+        ) : (
+          recent.map((t, i) => {
+            const sell = t.type === 'sell';
+            return (
+              <div
+                key={t.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => openVoucher(t.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') openVoucher(t.id);
+                }}
                 style={{
-                  height: 36,
-                  padding: '0 16px',
-                  border: `1.5px solid ${colors.ink}`,
-                  borderRadius: 8,
-                  background: colors.white,
-                  color: colors.ink,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  lineHeight: 1.5,
-                  flexShrink: 0,
+                  display: 'grid',
+                  gridTemplateColumns: 'auto minmax(0, 1fr) auto',
+                  gap: 14,
+                  alignItems: 'center',
+                  padding: '13px 16px',
+                  borderTop: i === 0 ? 'none' : `1px solid ${colors.rowDivider}`,
                   cursor: 'pointer',
                 }}
               >
-                စျေးနှုန်းပြင်ဆင်ရန်
-              </button>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
-              <div style={{ paddingRight: 28 }}>
-                <div style={{ fontSize: 15, color: colors.muted, lineHeight: 1.6 }}>ဆိုင်ဝယ်ဈေး</div>
-                <div
-                  className="num"
-                  style={{
-                    fontSize: 40,
-                    fontWeight: 700,
-                    lineHeight: 1.15,
-                    color: colors.ink,
-                    marginTop: 6,
-                  }}
-                >
-                  {money(cur.buy, digits)}
+                <Pill type={t.type} />
+                <div style={{ minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: 16,
+                      fontWeight: 600,
+                      lineHeight: 1.35,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {customerName(t.customer_id, custMap)}
+                  </div>
+                  <div style={{ fontSize: 14, color: colors.muted2, marginTop: 3, lineHeight: 1.4 }}>
+                    {voucherNo(t.voucher_no, digits)} · {D(t.date, digits)} ·{' '}
+                    {t.channel === 'card' ? 'အကယ်ဒမီအခေါက်ရွှေ' : 'မီးလင်းဖြတ်စ'}
+                    {t.channel === 'card' && cardsByTxn.get(t.id)?.length
+                      ? ` · ${formatCardLines(cardsByTxn.get(t.id)!, digits)}`
+                      : ''}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div
+                    className="num"
+                    style={{
+                      fontSize: 16,
+                      fontWeight: 700,
+                      color: sell ? colors.sell : colors.buy,
+                      lineHeight: 1.25,
+                    }}
+                  >
+                    {money(t.amount, digits)}
+                  </div>
+                  <div className="num" style={{ fontSize: 14, color: colors.muted2, marginTop: 2 }}>
+                    {W(t.yway, digits)}
+                  </div>
                 </div>
               </div>
-              <div
-                style={{
-                  borderLeft: `1.5px solid ${colors.cardBorder}`,
-                  paddingLeft: 28,
-                }}
-              >
-                <div style={{ fontSize: 15, color: colors.muted, lineHeight: 1.6 }}>ဆိုင်ရောင်းဈေး</div>
-                <div
-                  className="num"
-                  style={{
-                    fontSize: 40,
-                    fontWeight: 700,
-                    lineHeight: 1.15,
-                    color: colors.ink,
-                    marginTop: 6,
-                  }}
-                >
-                  {money(cur.sell, digits)}
-                </div>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        <Card padding="28px 30px" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 14 }}>
-          <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.6 }}>လက်ကျန်</div>
-          <WeightFigure size={28}>{W(stockY, digits)}</WeightFigure>
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button
-              type="button"
-              onClick={() => setScreen('stock')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: colors.ink,
-                fontWeight: 700,
-                fontSize: 15,
-                padding: 0,
-                lineHeight: 1.5,
-                cursor: 'pointer',
-              }}
-            >
-              ကြည့်ရန် →
-            </button>
-          </div>
-        </Card>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16 }}>
-        <Card padding="22px 22px">
-          <CardLabel>ယနေ့ ရောင်းရွှေ</CardLabel>
-          <div style={{ marginTop: 6 }}>
-            <WeightFigure>{W(sum(tS, (t) => t.yway), digits)}</WeightFigure>
-          </div>
-          <div style={{ fontSize: 14, color: colors.muted, marginTop: 4 }}>{D(tS.length, digits)} စောင်</div>
-        </Card>
-        <Card padding="22px 22px">
-          <CardLabel>ယနေ့ ရောင်းငွေ</CardLabel>
-          <div className="num" style={{ marginTop: 6, fontSize: 28, fontWeight: 700, color: colors.sell, lineHeight: 1.3 }}>
-            {money(sum(tS, (t) => t.amount), digits)}
-          </div>
-          <div style={{ fontSize: 14, color: colors.muted, marginTop: 4 }}>ကျပ်</div>
-        </Card>
-        <Card padding="22px 22px">
-          <CardLabel>ယနေ့ ဝယ်ရွှေ</CardLabel>
-          <div style={{ marginTop: 6 }}>
-            <WeightFigure color={colors.buy}>{W(sum(tB, (t) => t.yway), digits)}</WeightFigure>
-          </div>
-          <div style={{ fontSize: 14, color: colors.muted, marginTop: 4 }}>{D(tB.length, digits)} စောင်</div>
-        </Card>
-        <Card padding="22px 22px">
-          <CardLabel>ယနေ့ ဝယ်ငွေ</CardLabel>
-          <div className="num" style={{ marginTop: 6, fontSize: 28, fontWeight: 700, color: colors.buy, lineHeight: 1.3 }}>
-            {money(sum(tB, (t) => t.amount), digits)}
-          </div>
-          <div style={{ fontSize: 14, color: colors.muted, marginTop: 4 }}>ကျပ်</div>
-        </Card>
-      </div>
-
-      <Card padding="22px 26px">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.4 }}>နောက်ဆုံးစာရင်း</div>
-            <div style={{ fontSize: 13, color: colors.muted }}>ဘောင်ချာ အသစ်များ</div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setScreen('ledger')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: colors.ink,
-              fontSize: 14,
-              fontWeight: 600,
-              lineHeight: 1.5,
-              cursor: 'pointer',
-            }}
-          >
-            အားလုံး →
-          </button>
-        </div>
-        {recent.length === 0 && (
-          <div style={{ padding: '28px 0', color: colors.muted2, fontSize: 15, textAlign: 'center' }}>
-            စာရင်း မရှိသေးပါ
-          </div>
+            );
+          })
         )}
-        {recent.map((t) => (
-          <div
-            key={t.id}
-            role="button"
-            tabIndex={0}
-            onClick={() => {
-              setVoucherId(t.id);
-              setScreen('voucher');
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                setVoucherId(t.id);
-                setScreen('voucher');
-              }
-            }}
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'auto minmax(0, 1fr) auto',
-              gap: 12,
-              alignItems: 'center',
-              padding: '12px 0',
-              borderTop: `1px solid ${colors.rowDivider}`,
-              cursor: 'pointer',
-            }}
-          >
-            <Pill type={t.type} />
-            <div style={{ minWidth: 0 }}>
-              <div
-                style={{
-                  fontSize: 15,
-                  fontWeight: 600,
-                  lineHeight: 1.4,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {customerName(t.customer_id, custMap)}
-              </div>
-              <div style={{ fontSize: 13, color: colors.muted2, marginTop: 2 }}>
-                {voucherNo(t.voucher_no, digits)} · {D(t.date, digits)} · စျေး {money(t.price, digits)}
-              </div>
-              <MoneyLine>{money(t.amount, digits)} ကျပ်</MoneyLine>
-            </div>
-            <WeightFigure size={17}>{W(t.yway, digits)}</WeightFigure>
-          </div>
-        ))}
       </Card>
     </div>
   );

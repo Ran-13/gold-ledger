@@ -1,4 +1,5 @@
 import { Card } from '../components/Card';
+import { MiniFact, StatStrip, clearPrimaryBtn, tableTd, tableTh } from '../components/ClearUI';
 import { PaginationBar, usePagination } from '../components/Pagination';
 import { D, money } from '../lib/units';
 import { colors } from '../styles/tokens';
@@ -41,70 +42,79 @@ export function Prices() {
 
   const page = usePagination(priceRows);
 
+  const latest = sorted[sorted.length - 1];
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 1160 }}>
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <button
-          type="button"
-          onClick={openPriceDialog}
-          style={{
-            height: 44,
-            padding: '0 20px',
-            border: 'none',
-            borderRadius: 8,
-            background: colors.ink,
-            color: colors.white,
-            fontWeight: 700,
-            fontSize: 15,
-          }}
-        >
-          + စျေးနှုန်းပြင်ဆင်ရန်
+        <button type="button" onClick={openPriceDialog} style={clearPrimaryBtn}>
+          + စျေးနှုန်းအသစ်
         </button>
       </div>
 
+      {latest ? (
+        <StatStrip>
+          <MiniFact
+            label="ယခု အဝယ်စျေး"
+            value={money(latest.buy, digits)}
+            tone="buy"
+            sub={`${D(latest.date, digits)} · ${D(latest.time.slice(0, 5), digits)}`}
+          />
+          <MiniFact
+            label="ယခု အရောင်းစျေး"
+            value={money(latest.sell, digits)}
+            tone="sell"
+            sub={`${D(latest.date, digits)} · ${D(latest.time.slice(0, 5), digits)}`}
+          />
+        </StatStrip>
+      ) : null}
+
       <Card padding={0} style={{ overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 16 }}>
+        <div
+          style={{
+            padding: '13px 16px',
+            borderBottom: `1px solid ${colors.rowDivider}`,
+            fontSize: 16,
+            fontWeight: 700,
+          }}
+        >
+          မှတ်တမ်း
+        </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ color: colors.muted, textAlign: 'left', fontSize: 15 }}>
-              <th style={{ padding: '16px 20px', fontWeight: 600 }}>ရက်စွဲ</th>
-              <th style={{ padding: '16px 12px', fontWeight: 600 }}>အချိန်</th>
-              <th style={{ padding: '16px 12px', fontWeight: 600, textAlign: 'right' }}>အဝယ်စျေး</th>
-              <th style={{ padding: '16px 12px', fontWeight: 600, textAlign: 'right' }}>အရောင်းစျေး</th>
-              <th style={{ padding: '16px 12px', fontWeight: 600, textAlign: 'right' }}>ဝယ် ပြောင်း</th>
-              <th style={{ padding: '16px 20px', fontWeight: 600, textAlign: 'right' }}>ရောင်း ပြောင်း</th>
+            <tr>
+              <th style={{ ...tableTh, paddingLeft: 16 }}>ရက်စွဲ</th>
+              <th style={tableTh}>အချိန်</th>
+              <th style={{ ...tableTh, textAlign: 'right' }}>အဝယ်</th>
+              <th style={{ ...tableTh, textAlign: 'right' }}>အရောင်း</th>
+              <th style={{ ...tableTh, textAlign: 'right' }}>ဝယ် ±</th>
+              <th style={{ ...tableTh, paddingRight: 16, textAlign: 'right' }}>ရောင်း ±</th>
             </tr>
           </thead>
           <tbody>
             {priceRows.length === 0 && (
               <tr>
-                <td colSpan={6} style={{ padding: '36px 20px', textAlign: 'center', color: colors.muted2 }}>
+                <td
+                  colSpan={6}
+                  style={{ ...tableTd, padding: 36, textAlign: 'center', color: colors.muted2, borderBottom: 'none' }}
+                >
                   စျေးနှုန်း မှတ်တမ်း မရှိသေးပါ
                 </td>
               </tr>
             )}
             {page.slice.map((p) => (
               <tr key={p.key}>
-                <td style={{ padding: '13px 20px', borderTop: `1px solid ${colors.rowDivider}`, whiteSpace: 'nowrap' }}>
-                  {p.date}
-                </td>
-                <td className="num" style={{ padding: '13px 12px', borderTop: `1px solid ${colors.rowDivider}`, whiteSpace: 'nowrap' }}>
+                <td style={{ ...tableTd, paddingLeft: 16, whiteSpace: 'nowrap' }}>{p.date}</td>
+                <td className="num" style={{ ...tableTd, whiteSpace: 'nowrap' }}>
                   {p.time}
                 </td>
-                <td className="num" style={{ padding: '13px 12px', borderTop: `1px solid ${colors.rowDivider}`, textAlign: 'right' }}>
+                <td className="num" style={{ ...tableTd, textAlign: 'right' }}>
                   {p.buy}
                 </td>
-                <td
-                  className="num"
-                  style={{
-                    padding: '13px 12px',
-                    borderTop: `1px solid ${colors.rowDivider}`,
-                    textAlign: 'right',
-                    fontWeight: 600,
-                  }}
-                >
+                <td className="num" style={{ ...tableTd, textAlign: 'right', fontWeight: 600 }}>
                   {p.sell}
                 </td>
-                <td style={{ padding: '13px 12px', borderTop: `1px solid ${colors.rowDivider}`, textAlign: 'right' }}>
+                <td style={{ ...tableTd, textAlign: 'right' }}>
                   <span
                     className="num"
                     style={{
@@ -115,7 +125,7 @@ export function Prices() {
                     {p.chBuy}
                   </span>
                 </td>
-                <td style={{ padding: '13px 20px', borderTop: `1px solid ${colors.rowDivider}`, textAlign: 'right' }}>
+                <td style={{ ...tableTd, paddingRight: 16, textAlign: 'right' }}>
                   <span
                     className="num"
                     style={{

@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, type CSSProperties, type ReactNode } from 'react';
 import { colors, radii } from '../styles/tokens';
 
 export function Dialog({
@@ -10,6 +10,7 @@ export function Dialog({
   width = 720,
   footer,
   headerRight,
+  compact,
 }: {
   open: boolean;
   title: string;
@@ -19,6 +20,8 @@ export function Dialog({
   width?: number | string;
   footer?: ReactNode;
   headerRight?: ReactNode;
+  /** Tighter chrome — prefer fitting without scroll */
+  compact?: boolean;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -52,7 +55,8 @@ export function Dialog({
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'rgba(27, 42, 65, 0.4)',
+          background: 'rgba(15, 23, 36, 0.48)',
+          backdropFilter: 'blur(2px)',
         }}
       />
       <div
@@ -60,38 +64,68 @@ export function Dialog({
           position: 'relative',
           width: '100%',
           maxWidth: width,
-          maxHeight: 'min(92vh, 960px)',
+          maxHeight: compact ? 'min(92vh, 820px)' : 'min(90vh, 920px)',
           display: 'flex',
           flexDirection: 'column',
           background: colors.white,
           color: colors.ink,
-          borderRadius: 12,
-          boxShadow: '0 20px 56px rgba(27,42,65,.18)',
-          border: `1.5px solid ${colors.cardBorder}`,
+          borderRadius: 16,
+          boxShadow: '0 24px 64px rgba(15,23,36,.22), 0 2px 8px rgba(15,23,36,.08)',
+          border: `1px solid ${colors.cardBorder}`,
           overflow: 'hidden',
         }}
       >
         <div
           style={{
             display: 'flex',
-            alignItems: 'flex-start',
+            alignItems: 'center',
             justifyContent: 'space-between',
             gap: 16,
-            padding: '16px 22px',
-            borderBottom: `1px solid ${colors.cardBorder}`,
+            padding: compact ? '14px 20px' : '22px 24px 18px',
             flexShrink: 0,
             background: colors.white,
           }}
         >
           <div style={{ minWidth: 0, flex: 1 }}>
-            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, lineHeight: 1.45 }}>{title}</h2>
-            {subtitle && (
-              <div style={{ marginTop: 4, fontSize: 14, color: colors.muted, lineHeight: 1.5 }}>
+            <h2
+              style={{
+                margin: 0,
+                fontSize: compact ? 22 : 26,
+                fontWeight: 700,
+                lineHeight: 1.4,
+                letterSpacing: '0.015em',
+                color: colors.ink,
+              }}
+            >
+              {title}
+              {compact && subtitle ? (
+                <span
+                  style={{
+                    marginLeft: 12,
+                    fontSize: 15,
+                    fontWeight: 600,
+                    color: colors.muted,
+                  }}
+                >
+                  {subtitle}
+                </span>
+              ) : null}
+            </h2>
+            {!compact && subtitle ? (
+              <div
+                style={{
+                  marginTop: 8,
+                  fontSize: 16,
+                  color: colors.muted,
+                  lineHeight: 1.5,
+                  fontWeight: 500,
+                }}
+              >
                 {subtitle}
               </div>
-            )}
+            ) : null}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             {headerRight}
             <button
               type="button"
@@ -100,9 +134,9 @@ export function Dialog({
               style={{
                 width: 36,
                 height: 36,
-                border: `1.5px solid ${colors.inputBorder}`,
-                borderRadius: radii.button,
-                background: colors.white,
+                border: 'none',
+                borderRadius: '50%',
+                background: '#EEF1F5',
                 color: colors.muted,
                 fontSize: 20,
                 lineHeight: 1,
@@ -110,21 +144,40 @@ export function Dialog({
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
+                flexShrink: 0,
               }}
             >
               ×
             </button>
           </div>
         </div>
-        <div style={{ overflow: 'auto', padding: '20px 22px', flex: 1, minHeight: 0 }}>
+
+        <div
+          style={{
+            height: 1,
+            background: colors.rowDivider,
+            margin: compact ? '0 20px' : '0 24px',
+            flexShrink: 0,
+          }}
+        />
+
+        <div
+          style={{
+            overflow: 'auto',
+            padding: compact ? '14px 20px 10px' : '20px 24px 8px',
+            flex: 1,
+            minHeight: 0,
+          }}
+        >
           {children}
         </div>
+
         {footer && (
           <div
             style={{
-              padding: '14px 22px 16px',
-              borderTop: `1px solid ${colors.cardBorder}`,
-              background: colors.white,
+              padding: compact ? '12px 20px 14px' : '16px 24px 20px',
+              borderTop: `1px solid ${colors.rowDivider}`,
+              background: '#FAFBFC',
               flexShrink: 0,
             }}
           >
@@ -135,3 +188,51 @@ export function Dialog({
     </div>
   );
 }
+
+/** Shared dialog footer buttons */
+export const dialogBtnGhost: CSSProperties = {
+  height: 46,
+  padding: '0 18px',
+  border: `1.5px solid ${colors.inputBorder}`,
+  borderRadius: radii.button,
+  background: colors.white,
+  color: colors.muted,
+  fontSize: 16,
+  fontWeight: 700,
+  cursor: 'pointer',
+  lineHeight: 1.4,
+};
+
+export const dialogBtnPrimary: CSSProperties = {
+  height: 46,
+  padding: '0 20px',
+  border: 'none',
+  borderRadius: radii.button,
+  background: colors.ink,
+  color: colors.white,
+  fontSize: 16,
+  fontWeight: 700,
+  cursor: 'pointer',
+  lineHeight: 1.4,
+};
+
+export const dialogField: CSSProperties = {
+  height: 48,
+  width: '100%',
+  boxSizing: 'border-box',
+  border: `1.5px solid ${colors.inputBorder}`,
+  borderRadius: radii.input,
+  padding: '0 14px',
+  fontSize: 18,
+  fontWeight: 700,
+  background: colors.white,
+  color: colors.ink,
+};
+
+export const dialogLabel: CSSProperties = {
+  fontSize: 15,
+  fontWeight: 700,
+  color: colors.muted,
+  letterSpacing: '0.015em',
+  lineHeight: 1.5,
+};

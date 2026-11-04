@@ -2,7 +2,8 @@ export const colors = {
   ink: '#1B2A41',
   navyBorder: '#34486B',
   navyInput: '#24365A',
-  mutedOnNavy: '#B9C3D3',
+  /** Light text on navy — white, not grey */
+  mutedOnNavy: '#FFFFFF',
   gold: '#D9A93A',
   goldHover: '#E6BA55',
   goldNav: '#E0AA3E',
@@ -11,45 +12,47 @@ export const colors = {
   goldLight: '#FFFFFF',
   goldWash: '#FFFFFF',
   white: '#FFFFFF',
-  muted: '#5A6478',
-  muted2: '#6B7486',
-  cardBorder: '#C3CAD5',
-  rowDivider: '#E8ECF0',
+  /** Body / label text — black only (no grey fonts) */
+  muted: '#1B2A41',
+  muted2: '#1B2A41',
+  cardBorder: '#D0D5DC',
+  rowDivider: '#E8EBEF',
   inputBorder: '#D5DAE1',
-  segmentTrack: '#FFFFFF',
+  segmentTrack: '#EEF0F3',
   buyBar: '#9AA6B8',
   buyBarSoft: '#C9CFDA',
   sell: '#1F7A4D',
-  sellPillBg: '#FFFFFF',
+  sellPillBg: '#E2F0E8',
   buy: '#B23A2A',
-  buyPillBg: '#FFFFFF',
+  buyPillBg: '#F8E4E0',
   voucherGold: '#C99A35',
-  voucherMuted: '#6E6250',
+  voucherMuted: '#1B2A41',
   voucherLine: '#DCCDAE',
   voucherDash: '#C9B790',
-  voucherSig: '#8A7D66',
+  voucherSig: '#1B2A41',
   softRow: '#FFFFFF',
   softBg: '#FFFFFF',
-  borderSoft: '#E6E9EE',
+  borderSoft: '#D0D5DC',
 } as const;
 
 export const fonts = {
   latin: "'IBM Plex Sans', sans-serif",
-  myanmar: "'Noto Sans Myanmar', sans-serif",
-  both: "'IBM Plex Sans', 'Noto Sans Myanmar', sans-serif",
+  myanmar: "'Pyidaungsu', sans-serif",
+  both: "'Pyidaungsu', 'IBM Plex Sans', sans-serif",
 } as const;
 
 export const radii = {
-  input: 6,
+  input: 8,
   button: 8,
   card: 12,
-  segment: 6,
+  segment: 8,
 } as const;
 
 /** Sidebar brand row + top price strip — keep aligned */
-export const TOP_BAR_HEIGHT = 76;
+export const TOP_BAR_HEIGHT = 88;
 
-export const cardShadow = '0 2px 6px rgba(27,42,65,.08)';
+/** Thin black card edge — no heavy shadow */
+export const cardShadow = 'none';
 
 export const MONTHS_MY = [
   'ဇန်နဝါရီ',

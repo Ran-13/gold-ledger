@@ -1,4 +1,3 @@
-import { D, money } from '../lib/units';
 import { colors } from '../styles/tokens';
 import { NAV, useStore } from '../store';
 
@@ -14,18 +13,19 @@ export function PageHeader() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: 16,
-        padding: '14px 24px',
+        gap: 12,
+        padding: '14px 20px',
         background: colors.white,
-        borderBottom: `1px solid ${colors.cardBorder}`,
+        borderBottom: `1.5px solid ${colors.cardBorder}`,
       }}
     >
       <h1
         style={{
           margin: 0,
-          fontSize: 20,
+          fontSize: 24,
           fontWeight: 700,
-          lineHeight: 1.55,
+          lineHeight: 1.4,
+          letterSpacing: '0.015em',
         }}
       >
         {title}

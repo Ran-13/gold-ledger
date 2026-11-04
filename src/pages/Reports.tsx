@@ -1,770 +1,735 @@
-import { useMemo, type CSSProperties } from 'react';
+import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { Card } from '../components/Card';
-import { Segmented } from '../components/Segmented';
-import { customerName } from '../lib/format';
-import { lastNDates, marginOf, enumerateDates } from '../lib/reports';
-import { D, W, addDays, isoDate, money, voucherNo } from '../lib/units';
-import { MONTHS_MY, colors } from '../styles/tokens';
+import { MiniFact, StatStrip, tableHover, tableTd, tableTh } from '../components/ClearUI';
+import { PaginationBar, usePagination } from '../components/Pagination';
+import { customerName, typeLabel } from '../lib/format';
+import { formatCardLines, isCardDenom, type CardDenom } from '../lib/cards';
+import { D, W, addDays, isoDate, money, sumMoney, voucherNo } from '../lib/units';
+import type { DigitsMode } from '../lib/units';
+import { MONTHS_MY, colors, radii } from '../styles/tokens';
 import { useStore } from '../store';
 
-const radiiBtn = 6;
+type View = 'today' | '7' | '30' | 'month' | 'year';
 
-const th: CSSProperties = {
-  padding: '12px 16px',
-  fontWeight: 600,
-  fontSize: 13,
-  color: colors.muted,
-  background: '#F7F8FA',
-  textAlign: 'left',
-  whiteSpace: 'nowrap',
+type TxnLine = {
+  id: number;
+  no: string;
+  date: string;
+  time: string;
+  name: string;
+  typeLabel: string;
+  channel: string;
+  weight: string;
+  price: string;
+  amount: string;
+  note: string;
+  cards: string;
+  sell: boolean;
 };
 
-const td: CSSProperties = {
-  padding: '13px 16px',
-  borderTop: `1px solid ${colors.rowDivider}`,
-  fontSize: 15,
-};
-
-function MonthNav({
-  label,
-  onPrev,
-  onNext,
-  showPrint,
-}: {
-  label: string;
-  onPrev: () => void;
-  onNext: () => void;
-  showPrint?: boolean;
-}) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <button
-          type="button"
-          onClick={onPrev}
-          style={{
-            width: 44,
-            height: 44,
-            border: `1px solid ${colors.inputBorder}`,
-            borderRadius: radiiBtn,
-            background: colors.white,
-            fontSize: 18,
-            cursor: 'pointer',
-          }}
-        >
-          ‹
-        </button>
-        <div style={{ fontSize: 22, fontWeight: 700, minWidth: 220, textAlign: 'center' }}>{label}</div>
-        <button
-          type="button"
-          onClick={onNext}
-          style={{
-            width: 44,
-            height: 44,
-            border: `1px solid ${colors.inputBorder}`,
-            borderRadius: radiiBtn,
-            background: colors.white,
-            fontSize: 18,
-            cursor: 'pointer',
-          }}
-        >
-          ›
-        </button>
-      </div>
-      {showPrint && (
-        <button
-          type="button"
-          data-noprint="1"
-          onClick={() => window.print()}
-          style={{
-            height: 44,
-            padding: '0 22px',
-            border: `1.5px solid ${colors.ink}`,
-            borderRadius: radiiBtn,
-            background: 'none',
-            color: colors.ink,
-            fontSize: 16,
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          ပရင့်ထုတ်မည်
-        </button>
-      )}
-    </div>
-  );
-}
-
-function SummaryCard({
-  label,
-  value,
-  sub,
-  tone,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  tone?: 'sell' | 'buy' | 'ink';
-}) {
-  const color = tone === 'sell' ? colors.sell : tone === 'buy' ? colors.buy : colors.ink;
-  return (
-    <Card padding="20px 22px">
-      <div style={{ fontSize: 14, color: colors.muted, fontWeight: 600 }}>{label}</div>
-      <div className="num" style={{ fontSize: 24, fontWeight: 700, lineHeight: 1.35, marginTop: 6, color }}>
-        {value}
-      </div>
-      {sub && (
-        <div style={{ fontSize: 13, color: colors.muted, marginTop: 4, lineHeight: 1.45 }}>{sub}</div>
-      )}
-    </Card>
-  );
-}
-
+/**
+ * စာရင်းအင်း — end-user ကြည့်ရှင်းသော ပုံစံ
+ * ၁) ကာလရွေး  ၂) ရောင်းရငွေ / ဝယ်သုံးငွေ  ၃) ရွှေဝင်·ထွက်  ၄) အသေးစိတ်
+ */
 export function Reports() {
   const txns = useStore((s) => s.txns);
   const customers = useStore((s) => s.customers);
-  const prices = useStore((s) => s.prices);
-  const settings = useStore((s) => s.settings);
-  const repMode = useStore((s) => s.repMode);
-  const setRepMode = useStore((s) => s.setRepMode);
+  const txnCards = useStore((s) => s.txnCards);
+  const digits = useStore((s) => s.settings.digits);
   const repMonth = useStore((s) => s.repMonth);
   const setRepMonth = useStore((s) => s.setRepMonth);
   const repYear = useStore((s) => s.repYear);
   const setRepYear = useStore((s) => s.setRepYear);
-  const range = useStore((s) => s.range);
-  const setRange = useStore((s) => s.setRange);
-  const digits = settings.digits;
+  const openVoucherDlg = useStore((s) => s.openVoucher);
+
+  const [view, setView] = useState<View>('month');
+  const [showDetail, setShowDetail] = useState(false);
   const today = isoDate();
 
   const custMap = useMemo(() => new Map(customers.map((c) => [c.id, c])), [customers]);
-  const buyByDate = useMemo(() => {
-    const map: Record<string, number> = {};
-    const sorted = [...prices].sort((a, b) => {
-      const ka = `${a.date}T${a.time.length === 5 ? a.time + ':00' : a.time}`;
-      const kb = `${b.date}T${b.time.length === 5 ? b.time + ':00' : b.time}`;
-      return ka < kb ? -1 : 1;
-    });
-    for (const p of sorted) map[p.date] = p.buy;
-    return map;
-  }, [prices]);
-
-  const sortedPrices = [...prices].sort((a, b) => (a.date < b.date ? -1 : 1));
-  const firstPrice = sortedPrices[0]?.buy ?? 0;
-
-  const avgCostAll = useMemo(() => {
-    const buys = txns.filter((t) => t.type === 'buy');
-    const buyY = buys.reduce((a, t) => a + t.yway, 0);
-    const num =
-      settings.opening_stock_yway * firstPrice + buys.reduce((a, t) => a + t.yway * t.price, 0);
-    return num / Math.max(1, settings.opening_stock_yway + buyY);
-  }, [txns, settings.opening_stock_yway, firstPrice]);
-
-  const dayData = useMemo(() => {
-    const rn = range === 'all' ? null : +range;
-    const rFrom = rn ? isoDate(addDays(new Date(), -(rn - 1))) : '';
-    const rt = txns.filter((t) => !rFrom || t.date >= rFrom);
-    const rS = rt.filter((t) => t.type === 'sell');
-    const rB = rt.filter((t) => t.type === 'buy');
-    const sum = (arr: typeof rt, f: (t: (typeof rt)[0]) => number) =>
-      arr.reduce((a, t) => a + f(t), 0);
-
-    let rds: string[];
-    if (rn) rds = lastNDates(rn);
-    else {
-      const dates = txns.map((t) => t.date).sort();
-      const from = dates[0] ?? today;
-      rds = enumerateDates(from, today);
+  const cardsByTxn = useMemo(() => {
+    const map = new Map<number, Array<{ denom: CardDenom; qty: number }>>();
+    for (const c of txnCards) {
+      if (!isCardDenom(c.denom)) continue;
+      const list = map.get(c.txn_id) ?? [];
+      list.push({ denom: c.denom, qty: c.qty });
+      map.set(c.txn_id, list);
     }
-    const rDates = [...new Set(rt.map((t) => t.date))].sort().reverse();
-    const byC: Record<string, { name: string; count: number; amt: number }> = {};
-    rt.forEach((t) => {
-      const k = String(t.customer_id ?? '_');
-      if (!byC[k]) byC[k] = { name: customerName(t.customer_id, custMap), count: 0, amt: 0 };
-      byC[k].count++;
-      byC[k].amt += t.amount;
-    });
-    return {
-      rangeLabel: rn ? `${D(rFrom, digits)} → ${D(today, digits)}` : 'မှတ်တမ်းအားလုံး',
-      sellW: W(sum(rS, (t) => t.yway), digits),
-      sellAmt: money(sum(rS, (t) => t.amount), digits),
-      sellCount: D(rS.length, digits),
-      buyW: W(sum(rB, (t) => t.yway), digits),
-      buyAmt: money(sum(rB, (t) => t.amount), digits),
-      buyCount: D(rB.length, digits),
-      margin: money(marginOf(rS, buyByDate), digits),
-      avgCost: money(avgCostAll, digits),
-      dayCount: D(rds.length, digits),
-      days: rDates.map((d) => {
-        const a = rt.filter((t) => t.date === d);
-        const sa = a.filter((t) => t.type === 'sell');
-        const ba = a.filter((t) => t.type === 'buy');
+    return map;
+  }, [txnCards]);
+  const sum = <T,>(arr: T[], f: (t: T) => number) => arr.reduce((a, t) => a + f(t), 0);
+
+  const openVoucher = (id: number) => {
+    openVoucherDlg(id);
+  };
+
+  const period = useMemo(() => {
+    let from = '';
+    let to = today;
+    let title = '';
+    let canPrev = false;
+    let canNext = false;
+    let onPrev = () => {};
+    let onNext = () => {};
+
+    if (view === 'today') {
+      from = today;
+      to = today;
+      title = `ယနေ့ · ${D(today, digits)}`;
+    } else if (view === '7') {
+      from = isoDate(addDays(new Date(), -6));
+      title = `နောက်ဆုံး ၇ ရက်`;
+    } else if (view === '30') {
+      from = isoDate(addDays(new Date(), -29));
+      title = `နောက်ဆုံး ၃၀ ရက်`;
+    } else if (view === 'month') {
+      const [Y, M] = repMonth.split('-').map(Number) as [number, number];
+      from = `${repMonth}-01`;
+      const last = new Date(Y, M, 0).getDate();
+      to = `${repMonth}-${String(last).padStart(2, '0')}`;
+      if (to > today) to = today;
+      title = `${MONTHS_MY[M - 1]} ${D(Y, digits)}`;
+      canPrev = true;
+      canNext = true;
+      onPrev = () => {
+        const x = new Date(Y, M - 2, 1);
+        setRepMonth(`${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}`);
+      };
+      onNext = () => {
+        const x = new Date(Y, M, 1);
+        setRepMonth(`${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}`);
+      };
+    } else {
+      from = `${repYear}-01-01`;
+      to = `${repYear}-12-31`;
+      if (to > today) to = today;
+      title = `${D(repYear, digits)} ခုနှစ်`;
+      canPrev = true;
+      canNext = true;
+      onPrev = () => setRepYear(repYear - 1);
+      onNext = () => setRepYear(repYear + 1);
+    }
+
+    const list = txns.filter((t) => t.date >= from && t.date <= to);
+    const sells = list.filter((t) => t.type === 'sell');
+    const buys = list.filter((t) => t.type === 'buy');
+    const sellY = sum(sells, (t) => t.yway);
+    const buyY = sum(buys, (t) => t.yway);
+
+    const feeOf = (t: (typeof list)[0]): bigint => {
+      if (t.channel !== 'card') return 0n;
+      const cards = cardsByTxn.get(t.id) ?? [];
+      const qty = cards.reduce((a, c) => a + (c.denom === '10k' ? 0 : c.qty), 0);
+      return BigInt(qty) * BigInt(Math.max(0, Math.round(Number(t.card_fee) || 0)));
+    };
+    const sellFee = sumMoney(sells, feeOf);
+    const buyFee = sumMoney(buys, feeOf);
+    /** ရွှေဖိုး only (ကဒ်ဖိုး ခွဲပြီး) */
+    const sellGoldAmt = sumMoney(sells, (t) => BigInt(Math.round(t.amount)) - feeOf(t));
+    const buyGoldAmt = sumMoney(buys, (t) => BigInt(Math.round(t.amount)) + feeOf(t));
+    const sellAmt = sumMoney(sells, (t) => t.amount);
+    const buyAmt = sumMoney(buys, (t) => t.amount);
+
+    const toLine = (t: (typeof list)[0]): TxnLine => {
+      const cards = cardsByTxn.get(t.id);
+      return {
+        id: t.id,
+        no: voucherNo(t.voucher_no, digits),
+        date: D(t.date, digits),
+        time: t.time ? D(t.time.slice(0, 5), digits) : '',
+        name: customerName(t.customer_id, custMap),
+        typeLabel: typeLabel(t.type),
+        channel: t.channel === 'card' ? 'အကယ်ဒမီအခေါက်ရွှေ' : 'မီးလင်းဖြတ်စ',
+        weight: W(t.yway, digits),
+        price: money(t.price, digits),
+        amount: money(t.amount, digits),
+        note: t.note?.trim() || '',
+        cards: cards?.length ? formatCardLines(cards, digits) : '',
+        sell: t.type === 'sell',
+      };
+    };
+
+    const byDay = [...new Set(list.map((t) => t.date))]
+      .sort()
+      .reverse()
+      .map((d) => {
+        const day = list.filter((t) => t.date === d);
+        const s = day.filter((t) => t.type === 'sell');
+        const b = day.filter((t) => t.type === 'buy');
         return {
           date: d,
-          sellW: sa.length ? W(sum(sa, (t) => t.yway), digits) : '—',
-          sellAmt: sa.length ? money(sum(sa, (t) => t.amount), digits) : '—',
-          sellN: sa.length,
-          buyW: ba.length ? W(sum(ba, (t) => t.yway), digits) : '—',
-          buyAmt: ba.length ? money(sum(ba, (t) => t.amount), digits) : '—',
-          buyN: ba.length,
-          margin: sa.length ? money(marginOf(sa, buyByDate), digits) : '—',
+          label: D(d, digits),
+          sellAmt: sumMoney(s, (t) => t.amount),
+          buyAmt: sumMoney(b, (t) => t.amount),
+          sellY: sum(s, (t) => t.yway),
+          buyY: sum(b, (t) => t.yway),
+          n: day.length,
         };
-      }),
-      top: Object.values(byC)
-        .sort((a, b) => b.amt - a.amt)
-        .slice(0, 8)
-        .map((x) => ({
-          name: x.name,
-          count: D(x.count, digits),
-          amount: money(x.amt, digits),
-        })),
-    };
-  }, [range, txns, buyByDate, digits, today, custMap, avgCostAll]);
+      });
 
-  const monthData = useMemo(() => {
-    const ym = repMonth;
-    const [Y, M] = ym.split('-').map(Number) as [number, number];
-    const mt = txns.filter((t) => t.date.slice(0, 7) === ym);
-    const ms = mt.filter((t) => t.type === 'sell');
-    const mb = mt.filter((t) => t.type === 'buy');
-    const sum = (arr: typeof mt, f: (t: (typeof mt)[0]) => number) =>
-      arr.reduce((a, t) => a + f(t), 0);
-    const sp = sum(ms, (t) => t.yway);
-    const bp = sum(mb, (t) => t.yway);
-    const sa = sum(ms, (t) => t.amount);
-    const lr = (t: (typeof mt)[0]) => ({
-      no: voucherNo(t.voucher_no, digits),
-      date: D(t.date, digits),
-      cust: customerName(t.customer_id, custMap),
-      pure: W(t.yway, digits),
-      price: money(t.price, digits),
-      amount: money(t.amount, digits),
-    });
-    return {
-      label: `${D(Y, digits)} · ${MONTHS_MY[M - 1]}`,
-      shift: (d: number) => {
-        const x = new Date(Y, M - 1 + d, 1);
-        setRepMonth(`${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}`);
-      },
-      sellPure: W(sp, digits),
-      sellAmt: money(sa, digits),
-      sellCount: D(ms.length, digits),
-      buyPure: W(bp, digits),
-      buyAmt: money(sum(mb, (t) => t.amount), digits),
-      buyCount: D(mb.length, digits),
-      net: W(bp - sp, digits),
-      margin: money(marginOf(ms, buyByDate), digits),
-      avgCost: money(bp ? sum(mb, (t) => t.yway * t.price) / bp : 0, digits),
-      sells: ms.map(lr),
-      buys: mb.map(lr),
-      sellTot: { count: D(ms.length, digits), pure: W(sp, digits), amt: money(sa, digits) },
-      buyTot: {
-        count: D(mb.length, digits),
-        pure: W(bp, digits),
-        amt: money(sum(mb, (t) => t.amount), digits),
-      },
-    };
-  }, [repMonth, txns, buyByDate, digits, custMap, setRepMonth]);
+    const months =
+      view === 'year'
+        ? Array.from({ length: 12 }, (_, i) => {
+            const k = `${repYear}-${String(i + 1).padStart(2, '0')}`;
+            const mList = list.filter((t) => t.date.startsWith(k));
+            const s = mList.filter((t) => t.type === 'sell');
+            const b = mList.filter((t) => t.type === 'buy');
+            return {
+              key: k,
+              name: MONTHS_MY[i]!,
+              sellAmt: sumMoney(s, (t) => t.amount),
+              buyAmt: sumMoney(b, (t) => t.amount),
+              n: mList.length,
+              empty: mList.length === 0,
+            };
+          })
+        : [];
 
-  const yearData = useMemo(() => {
-    const Y = repYear;
-    const yt = txns.filter((t) => +t.date.slice(0, 4) === Y);
-    const yS = yt.filter((t) => t.type === 'sell');
-    const yB = yt.filter((t) => t.type === 'buy');
-    const sum = (arr: typeof yt, f: (t: (typeof yt)[0]) => number) =>
-      arr.reduce((a, t) => a + f(t), 0);
-    const sp = sum(yS, (t) => t.yway);
-    const bp = sum(yB, (t) => t.yway);
-    const sa = sum(yS, (t) => t.amount);
-    const ms = Array.from({ length: 12 }, (_, i) => {
-      const k = `${Y}-${String(i + 1).padStart(2, '0')}`;
-      const a = yt.filter((t) => t.date.slice(0, 7) === k);
-      const saM = a.filter((t) => t.type === 'sell');
-      const baM = a.filter((t) => t.type === 'buy');
-      return {
-        k,
-        i,
-        n: a.length,
-        sA: sum(saM, (t) => t.amount),
-        bA: sum(baM, (t) => t.amount),
-        sP: sum(saM, (t) => t.yway),
-        bP: sum(baM, (t) => t.yway),
-        sa: saM,
-      };
-    });
     return {
-      label: `${D(Y, digits)} ခုနှစ်`,
-      prev: () => setRepYear(Y - 1),
-      next: () => setRepYear(Y + 1),
-      sellPure: W(sp, digits),
-      sellAmt: money(sa, digits),
-      sellCount: D(yS.length, digits),
-      buyPure: W(bp, digits),
-      buyAmt: money(sum(yB, (t) => t.amount), digits),
-      buyCount: D(yB.length, digits),
-      net: W(bp - sp, digits),
-      margin: money(marginOf(yS, buyByDate), digits),
-      avgCost: money(bp ? sum(yB, (t) => t.yway * t.price) / bp : 0, digits),
-      rows: ms.map((m) => ({
-        name: MONTHS_MY[m.i]!,
-        count: D(m.n, digits),
-        sellPure: m.sP ? W(m.sP, digits) : '—',
-        sellAmt: m.sA ? money(m.sA, digits) : '—',
-        buyPure: m.bP ? W(m.bP, digits) : '—',
-        buyAmt: m.bA ? money(m.bA, digits) : '—',
-        margin: m.sA ? money(marginOf(m.sa, buyByDate), digits) : '—',
-        onOpen: () => {
-          setRepMode('month');
-          setRepMonth(m.k);
-        },
-      })),
+      from,
+      to,
+      title,
+      canPrev,
+      canNext,
+      onPrev,
+      onNext,
+      empty: list.length === 0,
+      sellAmt,
+      buyAmt,
+      sellGoldAmt,
+      buyGoldAmt,
+      sellFee,
+      buyFee,
+      sellY,
+      buyY,
+      sellN: sells.length,
+      buyN: buys.length,
+      netY: buyY - sellY,
+      cardN: list.filter((t) => t.channel === 'card').length,
+      looseN: list.filter((t) => t.channel !== 'card').length,
+      sellLines: [...sells].sort((a, b) => b.voucher_no - a.voucher_no).map(toLine),
+      buyLines: [...buys].sort((a, b) => b.voucher_no - a.voucher_no).map(toLine),
+      byDay,
+      months,
     };
-  }, [repYear, txns, buyByDate, digits, setRepYear, setRepMode, setRepMonth]);
+  }, [view, today, digits, repMonth, repYear, txns, custMap, cardsByTxn, setRepMonth, setRepYear]);
+
+  const openMonth = (ym: string) => {
+    setRepMonth(ym);
+    setView('month');
+    setShowDetail(false);
+  };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 22, maxWidth: 1360 }}>
-      <div data-noprint="1">
-        <Segmented
-          options={[
-            { value: 'day', label: 'နေ့စဉ်' },
-            { value: 'month', label: 'လချုပ်' },
-            { value: 'year', label: 'နှစ်ချုပ်' },
-          ]}
-          value={repMode}
-          onChange={setRepMode}
-        />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 1360 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 16,
+          flexWrap: 'wrap',
+        }}
+      >
+        <div style={{ minWidth: 0, paddingTop: 4 }}>
+          {(view === 'month' || view === 'year') && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <NavBtn onClick={period.onPrev} disabled={!period.canPrev}>
+                ‹
+              </NavBtn>
+              <div
+                style={{
+                  fontSize: 22,
+                  fontWeight: 700,
+                  minWidth: 180,
+                  textAlign: 'center',
+                  lineHeight: 1.4,
+                }}
+              >
+                {period.title}
+              </div>
+              <NavBtn onClick={period.onNext} disabled={!period.canNext}>
+                ›
+              </NavBtn>
+            </div>
+          )}
+          {view !== 'month' && view !== 'year' && (
+            <div style={{ fontSize: 17, fontWeight: 600, color: colors.ink, lineHeight: 1.45 }}>
+              {period.title}
+              {view !== 'today' && (
+                <span style={{ color: colors.muted, fontWeight: 500 }}>
+                  {' '}
+                  · {D(period.from, digits)} – {D(period.to, digits)}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+            gap: 8,
+            marginLeft: 'auto',
+          }}
+        >
+          <div style={{ fontSize: 15, fontWeight: 700, color: colors.muted }}>ကာလ ရွေးပါ</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end' }}>
+            {(
+              [
+                ['today', 'ယနေ့'],
+                ['7', '၇ ရက်'],
+                ['30', '၃၀ ရက်'],
+                ['month', 'လအလိုက်'],
+                ['year', 'နှစ်အလိုက်'],
+              ] as const
+            ).map(([id, label]) => {
+              const on = view === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => {
+                    setView(id);
+                    setShowDetail(false);
+                  }}
+                  style={{
+                    height: 44,
+                    padding: '0 18px',
+                    borderRadius: radii.button,
+                    border: on ? `1px solid ${colors.ink}` : `1px solid ${colors.cardBorder}`,
+                    background: on ? colors.ink : colors.white,
+                    color: on ? colors.white : colors.ink,
+                    fontSize: 16,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
-      {repMode === 'day' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-            <div>
-              <div style={{ fontSize: 18, fontWeight: 700 }}>နေ့စဉ် အနှစ်ချုပ်</div>
-              <div style={{ fontSize: 14, color: colors.muted, marginTop: 2 }}>{dayData.rangeLabel}</div>
-            </div>
-            <Segmented
-              options={[
-                { value: '7', label: '၇ ရက်' },
-                { value: '30', label: '၃၀ ရက်' },
-                { value: '90', label: '၉၀ ရက်' },
-                { value: 'all', label: 'အားလုံး' },
-              ]}
-              value={range}
-              onChange={setRange}
-            />
+      {period.empty ? (
+        <Card padding="48px 24px">
+          <div style={{ textAlign: 'center', color: colors.muted2, fontSize: 18, lineHeight: 1.6 }}>
+            ဤကာလတွင် စာရင်း မရှိသေးပါ
+          </div>
+        </Card>
+      ) : (
+        <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <StatStrip>
+              <MiniFact
+                label="ရွှေဖိုး(အရောင်း)"
+                value={money(period.sellGoldAmt, digits)}
+                tone="sell"
+                sub={`${D(period.sellN, digits)} စောင်`}
+              />
+              <MiniFact
+                label="ကဒ်ဖိုး(အရောင်း)"
+                value={money(period.sellFee, digits)}
+                tone="sell"
+              />
+              <MiniFact
+                label="စုစုပေါင်း(အရောင်း)"
+                value={money(period.sellAmt, digits)}
+                tone="sell"
+              />
+              <MiniFact label="ရွှေ(အရောင်း)" value={W(period.sellY, digits)} tone="sell" />
+            </StatStrip>
+            <StatStrip>
+              <MiniFact
+                label="ရွှေဖိုး(အဝယ်)"
+                value={money(period.buyGoldAmt, digits)}
+                tone="buy"
+                sub={`${D(period.buyN, digits)} စောင်`}
+              />
+              <MiniFact
+                label="ကဒ်ဖိုး(အဝယ်)"
+                value={money(period.buyFee, digits)}
+                tone="buy"
+              />
+              <MiniFact
+                label="စုစုပေါင်း(အဝယ်)"
+                value={money(period.buyAmt, digits)}
+                tone="buy"
+              />
+              <MiniFact label="ရွှေ(အဝယ်)" value={W(period.buyY, digits)} tone="buy" />
+            </StatStrip>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14 }}>
-            <SummaryCard
-              label="ရောင်းရွှေ"
-              value={dayData.sellW}
-              sub={`${dayData.sellCount} စောင်`}
-              tone="sell"
-            />
-            <SummaryCard
-              label="ရောင်းငွေ"
-              value={`${dayData.sellAmt}`}
-              sub="ကျပ်"
-              tone="sell"
-            />
-            <SummaryCard
-              label="ဝယ်ရွှေ"
-              value={dayData.buyW}
-              sub={`${dayData.buyCount} စောင်`}
-              tone="buy"
-            />
-            <SummaryCard
-              label="ဝယ်ငွေ"
-              value={`${dayData.buyAmt}`}
-              sub="ကျပ်"
-              tone="buy"
-            />
-          </div>
-
-          <Card padding={0} style={{ overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px 8px' }}>
-              <div style={{ fontSize: 17, fontWeight: 700 }}>နေ့အလိုက် စာရင်း</div>
-              <div style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>
-                ရက်စွဲအလိုက် ရောင်း / ဝယ် / အမြတ်
-              </div>
-            </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  <th style={th}>ရက်စွဲ</th>
-                  <th style={th}>ရောင်း</th>
-                  <th style={{ ...th, textAlign: 'right' }}>ရောင်းငွေ</th>
-                  <th style={th}>ဝယ်</th>
-                  <th style={{ ...th, textAlign: 'right' }}>ဝယ်ငွေ</th>
-                  <th style={{ ...th, textAlign: 'right' }}>အမြတ်</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dayData.days.length === 0 && (
-                  <tr>
-                    <td colSpan={6} style={{ ...td, textAlign: 'center', color: colors.muted2, padding: 36 }}>
-                      ဤကာလတွင် စာရင်း မရှိပါ
-                    </td>
-                  </tr>
-                )}
-                {dayData.days.map((d) => (
-                  <tr key={d.date}>
-                    <td style={{ ...td, fontWeight: 600, whiteSpace: 'nowrap' }}>{D(d.date, digits)}</td>
-                    <td
-                      className="num"
-                      style={{
-                        ...td,
-                        fontWeight: d.sellN ? 700 : 400,
-                        color: d.sellN ? colors.sell : colors.muted2,
-                      }}
-                    >
-                      {d.sellW}
-                    </td>
-                    <td className="num" style={{ ...td, textAlign: 'right', color: colors.muted }}>
-                      {d.sellAmt}
-                    </td>
-                    <td
-                      className="num"
-                      style={{
-                        ...td,
-                        fontWeight: d.buyN ? 700 : 400,
-                        color: d.buyN ? colors.buy : colors.muted2,
-                      }}
-                    >
-                      {d.buyW}
-                    </td>
-                    <td className="num" style={{ ...td, textAlign: 'right', color: colors.muted }}>
-                      {d.buyAmt}
-                    </td>
-                    <td
-                      className="num"
-                      style={{ ...td, textAlign: 'right', fontWeight: 600, color: colors.sell }}
-                    >
-                      {d.margin}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-
-          <Card padding={0} style={{ overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px 8px' }}>
-              <div style={{ fontSize: 17, fontWeight: 700 }}>ဖောက်သည် ထိပ်ဆုံး</div>
-              <div style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>ငွေပမာဏအလိုက်</div>
-            </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  <th style={th}>#</th>
-                  <th style={th}>ဖောက်သည်</th>
-                  <th style={th}>စောင်ရေ</th>
-                  <th style={{ ...th, textAlign: 'right' }}>စုစုပေါင်းငွေ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dayData.top.length === 0 && (
-                  <tr>
-                    <td colSpan={4} style={{ ...td, textAlign: 'center', color: colors.muted2, padding: 28 }}>
-                      ဖောက်သည် မရှိသေးပါ
-                    </td>
-                  </tr>
-                )}
-                {dayData.top.map((c, i) => (
-                  <tr key={c.name}>
-                    <td style={{ ...td, color: colors.muted2, width: 48 }}>{D(i + 1, digits)}</td>
-                    <td style={{ ...td, fontWeight: 600 }}>{c.name}</td>
-                    <td style={td}>{c.count} စောင်</td>
-                    <td className="num" style={{ ...td, textAlign: 'right', fontWeight: 700 }}>
-                      {c.amount}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-        </div>
-      )}
-
-      {repMode === 'month' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <MonthNav
-            label={monthData.label}
-            onPrev={() => monthData.shift(-1)}
-            onNext={() => monthData.shift(1)}
-            showPrint
-          />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14 }}>
-            <SummaryCard
-              label="ရောင်းရွှေ"
-              value={monthData.sellPure}
-              sub={`${monthData.sellCount} စောင်`}
-              tone="sell"
-            />
-            <SummaryCard
-              label="ရောင်းငွေ"
-              value={`${monthData.sellAmt}`}
-              sub="ကျပ်"
-              tone="sell"
-            />
-            <SummaryCard
-              label="ဝယ်ရွှေ"
-              value={monthData.buyPure}
-              sub={`${monthData.buyCount} စောင်`}
-              tone="buy"
-            />
-            <SummaryCard
-              label="ဝယ်ငွေ"
-              value={`${monthData.buyAmt}`}
-              sub="ကျပ်"
-              tone="buy"
-            />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18 }}>
-            <TxnList
-              title="ရောင်းရသည့်စာရင်း"
-              titleColor={colors.sell}
-              count={monthData.sellTot.count}
-              rows={monthData.sells}
-              tot={monthData.sellTot}
-            />
-            <TxnList
-              title="ဝယ်ရသည့်စာရင်း"
-              titleColor={colors.buy}
-              count={monthData.buyTot.count}
-              rows={monthData.buys}
-              tot={monthData.buyTot}
-            />
-          </div>
-        </div>
-      )}
-
-      {repMode === 'year' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <MonthNav label={yearData.label} onPrev={yearData.prev} onNext={yearData.next} showPrint />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14 }}>
-            <SummaryCard
-              label="ရောင်းရွှေ"
-              value={yearData.sellPure}
-              sub={`${yearData.sellCount} စောင်`}
-              tone="sell"
-            />
-            <SummaryCard
-              label="ရောင်းငွေ"
-              value={`${yearData.sellAmt}`}
-              sub="ကျပ်"
-              tone="sell"
-            />
-            <SummaryCard
-              label="ဝယ်ရွှေ"
-              value={yearData.buyPure}
-              sub={`${yearData.buyCount} စောင်`}
-              tone="buy"
-            />
-            <SummaryCard
-              label="ဝယ်ငွေ"
-              value={`${yearData.buyAmt}`}
-              sub="ကျပ်"
-              tone="buy"
-            />
-          </div>
-          <Card padding={0} style={{ overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px 8px' }}>
-              <div style={{ fontSize: 17, fontWeight: 700 }}>လအလိုက် စာရင်း</div>
-              <div style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>
-                လတစ်ခုကို နှိပ်ပြီး လချုပ် ကြည့်နိုင်သည်
-              </div>
-            </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  <th style={th}>လ</th>
-                  <th style={th}>ရောင်း</th>
-                  <th style={{ ...th, textAlign: 'right' }}>ရောင်းငွေ</th>
-                  <th style={th}>ဝယ်</th>
-                  <th style={{ ...th, textAlign: 'right' }}>ဝယ်ငွေ</th>
-                  <th style={{ ...th, textAlign: 'right' }}>အမြတ်</th>
-                </tr>
-              </thead>
-              <tbody>
-                {yearData.rows.map((m) => (
-                  <tr
-                    key={m.name}
-                    onClick={m.onOpen}
-                    style={{ cursor: 'pointer' }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = '#FAFBFC';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = '';
-                    }}
-                  >
-                    <td style={{ ...td, fontWeight: 600, whiteSpace: 'nowrap' }}>
-                      {m.name}
-                      <div style={{ fontSize: 13, color: colors.muted2, fontWeight: 400 }}>{m.count} စောင်</div>
-                    </td>
-                    <td className="num" style={{ ...td, fontWeight: 700, color: colors.sell }}>
-                      {m.sellPure}
-                    </td>
-                    <td className="num" style={{ ...td, textAlign: 'right', color: colors.muted }}>
-                      {m.sellAmt}
-                    </td>
-                    <td className="num" style={{ ...td, fontWeight: 700, color: colors.buy }}>
-                      {m.buyPure}
-                    </td>
-                    <td className="num" style={{ ...td, textAlign: 'right', color: colors.muted }}>
-                      {m.buyAmt}
-                    </td>
-                    <td
-                      className="num"
-                      style={{ ...td, textAlign: 'right', color: colors.sell, fontWeight: 600 }}
-                    >
-                      {m.margin}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr style={{ background: '#F3F5F7', fontWeight: 700 }}>
-                  <td style={{ ...td, borderTop: `1.5px solid ${colors.cardBorder}` }}>စုစုပေါင်း</td>
-                  <td
-                    className="num"
-                    style={{ ...td, borderTop: `1.5px solid ${colors.cardBorder}`, color: colors.sell }}
-                  >
-                    {yearData.sellPure}
-                  </td>
-                  <td
-                    className="num"
-                    style={{ ...td, borderTop: `1.5px solid ${colors.cardBorder}`, textAlign: 'right' }}
-                  >
-                    {yearData.sellAmt}
-                  </td>
-                  <td
-                    className="num"
-                    style={{ ...td, borderTop: `1.5px solid ${colors.cardBorder}`, color: colors.buy }}
-                  >
-                    {yearData.buyPure}
-                  </td>
-                  <td
-                    className="num"
-                    style={{ ...td, borderTop: `1.5px solid ${colors.cardBorder}`, textAlign: 'right' }}
-                  >
-                    {yearData.buyAmt}
-                  </td>
-                  <td
-                    className="num"
+          {/* 4. Year → month tiles */}
+          {view === 'year' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ fontSize: 18, fontWeight: 700 }}>လအလိုက်</div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                  gap: 10,
+                }}
+              >
+                {period.months.map((m) => (
+                  <button
+                    key={m.key}
+                    type="button"
+                    disabled={m.empty}
+                    onClick={() => openMonth(m.key)}
                     style={{
-                      ...td,
-                      borderTop: `1.5px solid ${colors.cardBorder}`,
-                      textAlign: 'right',
-                      color: colors.sell,
+                      textAlign: 'left',
+                      padding: '14px 16px',
+                      borderRadius: radii.card,
+                      border: `1px solid ${colors.cardBorder}`,
+                      background: m.empty ? '#FAFBFC' : colors.white,
+                      cursor: m.empty ? 'default' : 'pointer',
+                      opacity: m.empty ? 0.55 : 1,
                     }}
                   >
-                    {yearData.margin}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </Card>
-        </div>
+                    <div style={{ fontSize: 17, fontWeight: 700, lineHeight: 1.4 }}>{m.name}</div>
+                    {m.empty ? (
+                      <div style={{ fontSize: 15, color: colors.muted2, marginTop: 6 }}>မရှိ</div>
+                    ) : (
+                      <>
+                        <div
+                          className="num"
+                          style={{ fontSize: 18, fontWeight: 700, color: colors.sell, marginTop: 8 }}
+                        >
+                          {money(m.sellAmt, digits)}
+                        </div>
+                        <div style={{ fontSize: 14, color: colors.muted, marginTop: 4 }}>
+                          ရောင်း · {D(m.n, digits)} စောင်
+                        </div>
+                      </>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 5. Detail toggle */}
+          {view !== 'year' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <button
+                type="button"
+                onClick={() => setShowDetail((v) => !v)}
+                style={{
+                  alignSelf: 'flex-start',
+                  height: 44,
+                  padding: '0 18px',
+                  borderRadius: radii.button,
+                  border: `1px solid ${colors.ink}`,
+                  background: showDetail ? colors.ink : colors.white,
+                  color: showDetail ? colors.white : colors.ink,
+                  fontSize: 16,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                {showDetail ? 'အသေးစိတ် ပိတ်မည်' : 'အသေးစိတ် ကြည့်မည်'}
+              </button>
+
+              {showDetail && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {/* Day breakdown for multi-day views */}
+                  {view !== 'today' && period.byDay.length > 0 && (
+                    <Card padding={0} style={{ overflow: 'hidden' }}>
+                      <BlockTitle>နေ့အလိုက်</BlockTitle>
+                      <div>
+                        {period.byDay.map((d) => (
+                          <div
+                            key={d.date}
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: '140px 1fr 1fr',
+                              gap: 12,
+                              padding: '14px 18px',
+                              borderTop: `1px solid ${colors.rowDivider}`,
+                              alignItems: 'center',
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: 16 }}>{d.label}</div>
+                              <div style={{ fontSize: 14, color: colors.muted2, marginTop: 2 }}>
+                                {D(d.n, digits)} စောင်
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 14, color: colors.sell, fontWeight: 600 }}>ရောင်း</div>
+                              <div className="num" style={{ fontSize: 17, fontWeight: 700, color: colors.sell }}>
+                                {d.sellAmt ? money(d.sellAmt, digits) : '—'}
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 14, color: colors.buy, fontWeight: 600 }}>ဝယ်</div>
+                              <div className="num" style={{ fontSize: 17, fontWeight: 700, color: colors.buy }}>
+                                {d.buyAmt ? money(d.buyAmt, digits) : '—'}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </Card>
+                  )}
+
+                  <TxnTable
+                    title="ရောင်းစာရင်း"
+                    tone="sell"
+                    rows={period.sellLines}
+                    empty="ရောင်းစာရင်း မရှိပါ"
+                    digits={digits}
+                    resetKey={`${period.from}|${period.to}|sell`}
+                    onOpen={openVoucher}
+                  />
+                  <TxnTable
+                    title="ဝယ်စာရင်း"
+                    tone="buy"
+                    rows={period.buyLines}
+                    empty="ဝယ်စာရင်း မရှိပါ"
+                    digits={digits}
+                    resetKey={`${period.from}|${period.to}|buy`}
+                    onOpen={openVoucher}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
 }
 
-function TxnList({
+/* ───────── pieces ───────── */
+
+function BlockTitle({ children }: { children: ReactNode }) {
+  return (
+    <div
+      style={{
+        padding: '13px 16px',
+        fontSize: 16,
+        fontWeight: 700,
+        borderBottom: `1px solid ${colors.rowDivider}`,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function NavBtn({
+  onClick,
+  disabled,
+  children,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        width: 44,
+        height: 44,
+        border: `1px solid ${colors.cardBorder}`,
+        borderRadius: radii.button,
+        background: colors.white,
+        fontSize: 22,
+        cursor: disabled ? 'default' : 'pointer',
+        opacity: disabled ? 0.35 : 1,
+        lineHeight: 1,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function TxnTable({
   title,
-  titleColor,
-  count,
+  tone,
   rows,
-  tot,
+  empty,
+  digits,
+  resetKey,
+  onOpen,
 }: {
   title: string;
-  titleColor: string;
-  count: string;
-  rows: { no: string; date: string; cust: string; pure: string; price: string; amount: string }[];
-  tot: { count: string; pure: string; amt: string };
+  tone: 'sell' | 'buy';
+  rows: TxnLine[];
+  empty: string;
+  digits: DigitsMode;
+  resetKey: string;
+  onOpen: (id: number) => void;
 }) {
+  const page = usePagination(rows, { resetKey });
+  const color = tone === 'sell' ? colors.sell : colors.buy;
+
   return (
     <Card padding={0} style={{ overflow: 'hidden' }}>
       <div
         style={{
-          padding: '16px 18px 8px',
+          padding: '13px 16px',
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'baseline',
+          alignItems: 'center',
+          borderBottom: `1px solid ${colors.rowDivider}`,
         }}
       >
-        <div style={{ fontSize: 17, fontWeight: 700, color: titleColor }}>{title}</div>
-        <div style={{ fontSize: 13, color: colors.muted }}>{count} စောင်</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color }}>{title}</div>
+        <div style={{ fontSize: 14, color: colors.muted, fontWeight: 600 }}>
+          {D(rows.length, digits)} စောင်
+        </div>
       </div>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr>
-            <th style={th}>ဘောင်ချာ</th>
-            <th style={th}>ဖောက်သည်</th>
-            <th style={th}>အလေးချိန်</th>
-            <th style={{ ...th, textAlign: 'right' }}>စျေး</th>
-            <th style={{ ...th, textAlign: 'right' }}>ငွေ</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 && (
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 860 }}>
+          <thead>
             <tr>
-              <td colSpan={5} style={{ ...td, textAlign: 'center', color: colors.muted2, padding: 28 }}>
-                စာရင်း မရှိပါ
-              </td>
+              <th style={{ ...tableTh, paddingLeft: 16 }}>ဘောင်ချာ</th>
+              <th style={tableTh}>အမျိုး</th>
+              <th style={tableTh}>ဖောက်သည်</th>
+              <th style={{ ...tableTh, textAlign: 'right' }}>အလေးချိန်</th>
+              <th style={{ ...tableTh, textAlign: 'right' }}>စျေး</th>
+              <th style={{ ...tableTh, textAlign: 'right' }}>ငွေ</th>
+              <th style={{ ...tableTh, paddingRight: 16, textAlign: 'right' }} />
             </tr>
-          )}
-          {rows.map((r) => (
-            <tr key={r.no + r.date}>
-              <td style={{ ...td, whiteSpace: 'nowrap' }}>
-                <div style={{ fontWeight: 600 }}>{r.no}</div>
-                <div style={{ fontSize: 13, color: colors.muted2 }}>{r.date}</div>
-              </td>
-              <td style={td}>{r.cust}</td>
-              <td className="num" style={{ ...td, whiteSpace: 'nowrap', fontWeight: 700 }}>
-                {r.pure}
-              </td>
-              <td className="num" style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 600 }}>
-                {r.price}
-              </td>
-              <td className="num" style={{ ...td, textAlign: 'right', color: colors.muted, whiteSpace: 'nowrap' }}>
-                {r.amount}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr style={{ background: '#F3F5F7', fontWeight: 700 }}>
-            <td colSpan={2} style={{ ...td, borderTop: `1.5px solid ${colors.cardBorder}` }}>
-              စုစုပေါင်း
-            </td>
-            <td
-              className="num"
-              style={{ ...td, borderTop: `1.5px solid ${colors.cardBorder}`, whiteSpace: 'nowrap' }}
-            >
-              {tot.pure}
-            </td>
-            <td
-              className="num"
-              style={{ ...td, borderTop: `1.5px solid ${colors.cardBorder}`, textAlign: 'right' }}
-            >
-              —
-            </td>
-            <td
-              className="num"
-              style={{
-                ...td,
-                borderTop: `1.5px solid ${colors.cardBorder}`,
-                textAlign: 'right',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {tot.amt}
-            </td>
-          </tr>
-        </tfoot>
-      </table>
+          </thead>
+          <tbody>
+            {rows.length === 0 && (
+              <tr>
+                <td
+                  colSpan={7}
+                  style={{ ...tableTd, textAlign: 'center', color: colors.muted2, padding: 36, borderBottom: 'none' }}
+                >
+                  {empty}
+                </td>
+              </tr>
+            )}
+            {page.slice.map((r) => (
+              <tr
+                key={r.id}
+                onClick={() => onOpen(r.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') onOpen(r.id);
+                }}
+                tabIndex={0}
+                style={{ cursor: 'pointer' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = tableHover;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = colors.white;
+                }}
+              >
+                <td style={{ ...tableTd, paddingLeft: 16, whiteSpace: 'nowrap' }}>
+                  <div className="num" style={{ fontWeight: 700, color: colors.ink, fontSize: 16 }}>
+                    {r.no}
+                  </div>
+                  <div className="num" style={{ fontSize: 14, color: colors.muted2, marginTop: 2 }}>
+                    {r.date}
+                    {r.time ? ` · ${r.time}` : ''}
+                  </div>
+                </td>
+                <td style={tableTd}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color, lineHeight: 1.35 }}>{r.typeLabel}</div>
+                  <div style={{ fontSize: 14, color: colors.muted2, marginTop: 3 }}>{r.channel}</div>
+                </td>
+                <td style={{ ...tableTd, maxWidth: 240 }}>
+                  <div
+                    style={{
+                      fontWeight: 600,
+                      fontSize: 16,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {r.name}
+                  </div>
+                  {r.cards ? (
+                    <div
+                      style={{
+                        fontSize: 14,
+                        color: colors.muted2,
+                        marginTop: 2,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {r.cards}
+                    </div>
+                  ) : r.note ? (
+                    <div
+                      style={{
+                        fontSize: 14,
+                        color: colors.muted2,
+                        marginTop: 2,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {r.note}
+                    </div>
+                  ) : null}
+                </td>
+                <td className="num" style={{ ...tableTd, textAlign: 'right', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  {r.weight}
+                </td>
+                <td className="num" style={{ ...tableTd, textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                  {r.price}
+                </td>
+                <td
+                  className="num"
+                  style={{ ...tableTd, textAlign: 'right', fontWeight: 700, whiteSpace: 'nowrap', color }}
+                >
+                  {r.amount}
+                </td>
+                <td
+                  style={{ ...tableTd, paddingRight: 16, textAlign: 'right', whiteSpace: 'nowrap' }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button type="button" onClick={() => onOpen(r.id)} style={btnRow}>
+                    ဘောင်ချာ
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <PaginationBar
+        page={page.page}
+        totalPages={page.totalPages}
+        total={page.total}
+        from={page.from}
+        to={page.to}
+        digits={digits}
+        onPage={page.setPage}
+      />
     </Card>
   );
 }
+
+const btnRow: CSSProperties = {
+  height: 32,
+  padding: '0 12px',
+  border: `1px solid ${colors.cardBorder}`,
+  borderRadius: 7,
+  background: colors.white,
+  color: colors.ink,
+  fontSize: 15,
+  fontWeight: 600,
+  cursor: 'pointer',
+};

@@ -87,4 +87,47 @@ INSERT OR IGNORE INTO settings (key, value) VALUES ('shop_mark', 'သ');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('shop_tagline', 'အခေါက်ရွှေ အရောင်းအဝယ်');
 `,
   },
+  {
+    version: 6,
+    sql: `
+INSERT OR IGNORE INTO settings (key, value) VALUES ('card_fee', '30000');
+
+CREATE TABLE IF NOT EXISTS card_openings (
+  denom TEXT PRIMARY KEY,
+  qty INTEGER NOT NULL DEFAULT 0
+);
+
+INSERT OR IGNORE INTO card_openings (denom, qty) VALUES ('1p', 0);
+INSERT OR IGNORE INTO card_openings (denom, qty) VALUES ('2p', 0);
+INSERT OR IGNORE INTO card_openings (denom, qty) VALUES ('4p', 0);
+INSERT OR IGNORE INTO card_openings (denom, qty) VALUES ('8p', 0);
+INSERT OR IGNORE INTO card_openings (denom, qty) VALUES ('1k', 0);
+INSERT OR IGNORE INTO card_openings (denom, qty) VALUES ('2k', 0);
+INSERT OR IGNORE INTO card_openings (denom, qty) VALUES ('3k', 0);
+INSERT OR IGNORE INTO card_openings (denom, qty) VALUES ('5k', 0);
+INSERT OR IGNORE INTO card_openings (denom, qty) VALUES ('10k', 0);
+
+CREATE TABLE IF NOT EXISTS card_adjustments (
+  id INTEGER PRIMARY KEY,
+  date TEXT NOT NULL,
+  time TEXT NOT NULL,
+  kind TEXT CHECK(kind IN ('in','out')) NOT NULL,
+  denom TEXT NOT NULL,
+  qty INTEGER NOT NULL,
+  note TEXT
+);
+CREATE INDEX IF NOT EXISTS card_adj_dt ON card_adjustments(date, time);
+
+ALTER TABLE txns ADD COLUMN channel TEXT NOT NULL DEFAULT 'loose';
+ALTER TABLE txns ADD COLUMN card_fee INTEGER NOT NULL DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS txn_cards (
+  id INTEGER PRIMARY KEY,
+  txn_id INTEGER NOT NULL REFERENCES txns(id) ON DELETE CASCADE,
+  denom TEXT NOT NULL,
+  qty INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS txn_cards_txn ON txn_cards(txn_id);
+`,
+  },
 ] as const;
