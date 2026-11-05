@@ -147,7 +147,16 @@ INSERT OR IGNORE INTO settings (key, value) VALUES ('buy_card_fee_add', '1');
     version: 9,
     sql: `
 INSERT OR IGNORE INTO settings (key, value) VALUES ('auth_username', 'admin');
-INSERT OR IGNORE INTO settings (key, value) VALUES ('auth_password_hash', '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('auth_password_hash', '559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd');
+`,
+  },
+  {
+    version: 10,
+    /** Default password `password` → `A` (only if still on the old default hash). */
+    sql: `
+UPDATE settings SET value = '559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd'
+WHERE key = 'auth_password_hash'
+  AND value = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
 `,
   },
 ] as const;

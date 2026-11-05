@@ -1,3 +1,4 @@
+import { AlertHost } from './components/AlertHost';
 import { colors, radii } from './styles/tokens';
 import { LoginScreen } from './components/LoginScreen';
 import { Nav } from './components/Nav';
@@ -27,26 +28,35 @@ export default function App() {
 
   if (!ready) {
     return (
-      <div
-        style={{
-          height: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: colors.ink,
-          fontSize: 19,
-        }}
-      >
-        ခဏစောင့်ပါ…
-      </div>
+      <>
+        <div
+          style={{
+            height: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: colors.ink,
+            fontSize: 19,
+          }}
+        >
+          ခဏစောင့်ပါ…
+        </div>
+        <AlertHost />
+      </>
     );
   }
 
   if (!authenticated) {
-    return <LoginScreen />;
+    return (
+      <>
+        <LoginScreen />
+        <AlertHost />
+      </>
+    );
   }
 
   return (
+    <>
     <div
       data-app="1"
       style={{
@@ -108,5 +118,7 @@ export default function App() {
       <StockAdjustDialog />
       <CardAdjustDialog />
     </div>
+    <AlertHost />
+    </>
   );
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type CSSProperties } from 'react';
+import { appAlert } from '../lib/appAlert';
 import { CustomerCombobox } from '../components/Combobox';
 import { Card } from '../components/Card';
 import { Segmented } from '../components/Segmented';
@@ -134,28 +135,28 @@ export function Entry() {
 
   const save = async (andPrint = true) => {
     if (!form.customerId && !ql) {
-      window.alert('ဝယ်သူ ရွေးပါ သို့မဟုတ် အမည် ထည့်ပါ');
+      void appAlert('ဝယ်သူ ရွေးပါ သို့မဟုတ် အမည် ထည့်ပါ');
       return;
     }
     if (yway <= 0) {
-      window.alert('အလေးချိန် ထည့်ပါ');
+      void appAlert('အလေးချိန် ထည့်ပါ');
       return;
     }
     if (overdraw) {
-      window.alert(`လက်ကျန်ထက် ပို၍ မရပါ\nလက်ရှိလက်ကျန် · ${W(Math.max(0, stockY), digits)}`);
+      void appAlert(`လက်ကျန်ထက် ပို၍ မရပါ\nလက်ရှိလက်ကျန် · ${W(Math.max(0, stockY), digits)}`);
       return;
     }
     if (isNew) {
       if (!form.newPhone.trim()) {
-        window.alert('ဖုန်းနံပါတ် ထည့်ပါ');
+        void appAlert('ဖုန်းနံပါတ် ထည့်ပါ');
         return;
       }
       if (!form.newAddress.trim()) {
-        window.alert('နေရပ်လိပ်စာ ထည့်ပါ');
+        void appAlert('နေရပ်လိပ်စာ ထည့်ပါ');
         return;
       }
       if (!isNrcComplete(form.newNrc)) {
-        window.alert('မှတ်ပုံတင် ပြည့်စုံရွေးပါ (နံပါတ် ၆ လုံး)');
+        void appAlert('မှတ်ပုံတင် ပြည့်စုံရွေးပါ (နံပါတ် ၆ လုံး)');
         return;
       }
     }
@@ -189,7 +190,7 @@ export function Entry() {
       setScreen('ledger');
       openVoucher(id, { print: andPrint });
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : String(e));
+      void appAlert(e instanceof Error ? e.message : String(e));
     } finally {
       setSaving(false);
     }

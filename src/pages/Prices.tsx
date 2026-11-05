@@ -38,8 +38,8 @@ export function Prices() {
         key: p.id,
         date: formatDate(p.date, digits),
         time: formatTimeAmPm(p.time),
-        buy: money(p.buy, digits),
-        sell: money(p.sell, digits),
+        buy: p.buy > 0 ? money(p.buy, digits) : '—',
+        sell: p.sell > 0 ? money(p.sell, digits) : '—',
         chBuy: fmtCh(chBuy),
         chSell: fmtCh(chSell),
         chBuyPos: chBuy > 0,
@@ -67,13 +67,13 @@ export function Prices() {
         <StatStrip>
           <MiniFact
             label="ယခု အရောင်းစျေး"
-            value={money(latest.sell, digits)}
+            value={latest.sell > 0 ? money(latest.sell, digits) : '—'}
             tone="sell"
             sub={`${formatDate(latest.date, digits)} · ${formatTimeAmPm(latest.time)}`}
           />
           <MiniFact
             label="ယခု အဝယ်စျေး"
-            value={money(latest.buy, digits)}
+            value={latest.buy > 0 ? money(latest.buy, digits) : '—'}
             tone="buy"
             sub={`${formatDate(latest.date, digits)} · ${formatTimeAmPm(latest.time)}`}
           />

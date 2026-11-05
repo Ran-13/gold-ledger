@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { appAlert } from '../lib/appAlert';
 import { Dialog, dialogBtnGhost, dialogBtnPrimary } from './Dialog';
 import { IconSave } from './Icons';
 import { createStockAdjustment } from '../db/queries';
@@ -55,12 +56,12 @@ export function StockAdjustDialog() {
 
   const save = async () => {
     if (yway <= 0) {
-      window.alert('ရွှေချိန် ထည့်ပါ');
+      void appAlert('ရွှေချိန် ထည့်ပါ');
       kRef.current?.focus();
       return;
     }
     if (overdraw) {
-      window.alert(`လက်ကျန်ထက် ပို၍ မရပါ\nလက်ရှိလက်ကျန် · ${W(Math.max(0, stockY), digits)}`);
+      void appAlert(`လက်ကျန်ထက် ပို၍ မရပါ\nလက်ရှိလက်ကျန် · ${W(Math.max(0, stockY), digits)}`);
       kRef.current?.focus();
       return;
     }
@@ -69,8 +70,9 @@ export function StockAdjustDialog() {
       await createStockAdjustment(kind, yway, note);
       await refresh();
       close();
+      await appAlert(kind === 'in' ? 'လက်ကျန် ထည့်ပြီးပါပြီ' : 'လက်ကျန် လျှော့ပြီးပါပြီ');
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : String(e));
+      void appAlert(e instanceof Error ? e.message : String(e));
     } finally {
       setSaving(false);
     }

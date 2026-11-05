@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { appAlert } from '../lib/appAlert';
 import { Dialog, dialogBtnGhost, dialogBtnPrimary, dialogField, dialogLabel } from './Dialog';
 import { IconId, IconMapPin, IconPhone, IconSave, IconUser } from './Icons';
 import { KbdHint } from './KbdHint';
@@ -41,19 +42,19 @@ export function CustomerDialog() {
   const save = async () => {
     if (saving) return;
     if (!nc.name.trim()) {
-      window.alert('ဝယ်သူအမည် ထည့်ပါ');
+      void appAlert('ဝယ်သူအမည် ထည့်ပါ');
       return;
     }
     if (!nc.phone.trim()) {
-      window.alert('ဖုန်းနံပါတ် ထည့်ပါ');
+      void appAlert('ဖုန်းနံပါတ် ထည့်ပါ');
       return;
     }
     if (!nc.address.trim()) {
-      window.alert('နေရပ်လိပ်စာ ထည့်ပါ');
+      void appAlert('နေရပ်လိပ်စာ ထည့်ပါ');
       return;
     }
     if (!isNrcComplete(nc.nrc)) {
-      window.alert('မှတ်ပုံတင် ပြည့်စုံရွေးပါ (နံပါတ် ၆ လုံး)');
+      void appAlert('မှတ်ပုံတင် ပြည့်စုံရွေးပါ (နံပါတ် ၆ လုံး)');
       return;
     }
     setSaving(true);
@@ -77,7 +78,7 @@ export function CustomerDialog() {
       await refresh();
       close();
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : String(e));
+      void appAlert(e instanceof Error ? e.message : String(e));
     } finally {
       setSaving(false);
     }

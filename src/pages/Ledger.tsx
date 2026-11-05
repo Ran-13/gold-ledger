@@ -1,4 +1,5 @@
 import { useEffect, useMemo, type CSSProperties } from 'react';
+import { appAlert } from '../lib/appAlert';
 import * as XLSX from 'xlsx';
 import { Card } from '../components/Card';
 import {
@@ -112,7 +113,7 @@ export function Ledger() {
 
   const exportExcel = () => {
     if (rows.length === 0) {
-      window.alert('ထုတ်ယူရန် စာရင်း မရှိပါ');
+      void appAlert('ထုတ်ယူရန် စာရင်း မရှိပါ');
       return;
     }
     const header = [

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ChangeEvent } from 'react';
+import { appAlert } from '../lib/appAlert';
 import {
   Dialog,
   dialogBtnGhost,
@@ -9,23 +10,35 @@ import {
 import { IconSave } from './Icons';
 import { KbdHint } from './KbdHint';
 import { upsertPrice } from '../db/queries';
-import { N, dateTimeKey, isoDate, keepNumInput, money } from '../lib/units';
+import { N, dateTimeKey, isoDate, keepNumInputAt, money } from '../lib/units';
 import { colors, radii } from '../styles/tokens';
 import { useStore } from '../store';
+
+function onPriceNum(
+  set: (v: string) => void,
+): (e: ChangeEvent<HTMLInputElement>) => void {
+  return (e) => {
+    const el = e.currentTarget;
+    const { value, caret } = keepNumInputAt(el.value, el.selectionStart);
+    set(value);
+    // Restore caret after React commits (Windows otherwise jumps to end).
+    requestAnimationFrame(() => {
+      try {
+        el.setSelectionRange(caret, caret);
+      } catch {
+        /* ignore */
+      }
+    });
+  };
+}
 
 export function PriceDialog() {
   const open = useStore((s) => s.priceDialogOpen);
   const close = useStore((s) => s.closePriceDialog);
-  const prices = useStore((s) => s.prices);
   const settings = useStore((s) => s.settings);
   const refresh = useStore((s) => s.refresh);
   const digits = settings.digits;
   const today = isoDate();
-
-  const sorted = [...prices].sort((a, b) =>
-    dateTimeKey(a.date, a.time) < dateTimeKey(b.date, b.time) ? -1 : 1,
-  );
-  const cur = sorted[sorted.length - 1] ?? { buy: 0, sell: 0, date: today, time: '00:00:00', id: 0 };
 
   const [buyStr, setBuyStr] = useState('');
   const [sellStr, setSellStr] = useState('');
@@ -33,27 +46,30 @@ export function PriceDialog() {
 
   useEffect(() => {
     if (!open) return;
-    setBuyStr(String(cur.buy || ''));
-    setSellStr(String(cur.sell || ''));
-  }, [open, cur.buy, cur.sell]);
+    // Seed once on open — don't reset while typing if prices refresh.
+    const list = useStore.getState().prices;
+    const last = [...list].sort((a, b) =>
+      dateTimeKey(a.date, a.time) < dateTimeKey(b.date, b.time) ? -1 : 1,
+    ).at(-1);
+    setBuyStr(String(last?.buy || ''));
+    setSellStr(String(last?.sell || ''));
+  }, [open]);
 
-  const pfB = buyStr !== '' ? N(buyStr) : cur.buy;
-  const pfS = sellStr !== '' ? N(sellStr) : cur.sell;
+  // Blank fields count as 0 — allowed to save.
+  const pfS = N(sellStr);
+  const pfB = N(buyStr);
   const spread = pfS - pfB;
 
   const save = async () => {
     if (saving) return;
-    if (!pfB || !pfS) {
-      window.alert('ရောင်းစျေး / ဝယ်စျေး ထည့်ပါ');
-      return;
-    }
     setSaving(true);
     try {
       await upsertPrice(today, pfB, pfS);
       await refresh();
       close();
+      await appAlert('ရွှေစျေး သိမ်းပြီးပါပြီ');
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : String(e));
+      void appAlert(e instanceof Error ? e.message : String(e));
     } finally {
       setSaving(false);
     }
@@ -105,9 +121,9 @@ export function PriceDialog() {
             type="text"
             inputMode="decimal"
             className="num"
+            data-no-zg="1"
             value={sellStr}
-            placeholder={String(cur.sell || '')}
-            onChange={(e) => setSellStr(keepNumInput(e.target.value))}
+            onChange={onPriceNum(setSellStr)}
             style={{ ...dialogField, textAlign: 'right' }}
             autoFocus
           />
@@ -118,9 +134,9 @@ export function PriceDialog() {
             type="text"
             inputMode="decimal"
             className="num"
+            data-no-zg="1"
             value={buyStr}
-            placeholder={String(cur.buy || '')}
-            onChange={(e) => setBuyStr(keepNumInput(e.target.value))}
+            onChange={onPriceNum(setBuyStr)}
             style={{ ...dialogField, textAlign: 'right' }}
           />
         </label>

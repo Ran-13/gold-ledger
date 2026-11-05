@@ -165,6 +165,37 @@ export function keepNumInput(s: string): string {
   return out;
 }
 
+/**
+ * Same filter as keepNumInput, plus caret mapped through stripped chars
+ * so mid-field delete/edit doesn't jump (esp. Windows + IME).
+ */
+export function keepNumInputAt(
+  raw: string,
+  caret: number | null | undefined,
+): { value: string; caret: number } {
+  const s = String(raw);
+  const c = Math.max(0, Math.min(caret ?? s.length, s.length));
+  const value = keepNumInput(s);
+  let outCaret = 0;
+  let seenDot = false;
+  for (let i = 0; i < c; i++) {
+    const ch = s[i]!;
+    if (/[0-9၀-၉]/.test(ch)) {
+      outCaret++;
+      continue;
+    }
+    if ((ch === '.' || ch === '။') && !seenDot) {
+      outCaret++;
+      seenDot = true;
+      continue;
+    }
+    if (ch === '-' && outCaret === 0) {
+      outCaret++;
+    }
+  }
+  return { value, caret: Math.min(outCaret, value.length) };
+}
+
 /** Exact ကျပ် integer — use for totals that can exceed Number.MAX_SAFE_INTEGER. */
 export function toMoneyInt(n: number | bigint): bigint {
   if (typeof n === 'bigint') return n;

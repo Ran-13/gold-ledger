@@ -31,8 +31,8 @@ export function PriceStrip() {
         flexShrink: 0,
       }}
     >
-      <PriceBox label="အရောင်းစျေး" value={money(cur.sell, digits)} />
-      <PriceBox label="အဝယ်စျေး" value={money(cur.buy, digits)} />
+      <PriceBox label="အရောင်းစျေး" value={cur.sell > 0 ? money(cur.sell, digits) : '—'} />
+      <PriceBox label="အဝယ်စျေး" value={cur.buy > 0 ? money(cur.buy, digits) : '—'} />
 
       <div style={{ flex: 1 }} />
 

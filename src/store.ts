@@ -10,7 +10,7 @@ import type {
   Txn,
   TxnCard,
 } from './db/types'
-import { verifyLogin } from './lib/auth'
+import { DEFAULT_AUTH_PASSWORD_HASH, DEFAULT_AUTH_USERNAME, verifyLogin } from './lib/auth'
 import { scheduleDailyBackup } from './lib/autoBackup'
 import { DEFAULT_CARD_FEE, type CardDenom } from './lib/cards'
 import { isoDate } from './lib/units'
@@ -127,8 +127,8 @@ export const useStore = create<AppState>((set, get) => ({
     shop_tagline: 'အခေါက်ရွှေ အရောင်းအဝယ်',
     card_fee: DEFAULT_CARD_FEE,
     print_size: 'M',
-    auth_username: 'admin',
-    auth_password_hash: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
+    auth_username: DEFAULT_AUTH_USERNAME,
+    auth_password_hash: DEFAULT_AUTH_PASSWORD_HASH,
   },
   voucherId: null,
   authenticated: false,
@@ -263,6 +263,6 @@ export const NAV: { key: Screen; label: string; title: string }[] = [
   { key: 'ledger', label: 'အရောင်း/အဝယ် စာရင်း', title: 'အရောင်း/အဝယ် စာရင်း' },
   { key: 'reports', label: 'စာရင်းချုပ်', title: 'စာရင်းချုပ်' },
   { key: 'customers', label: 'ဝယ်သူ', title: 'ဝယ်သူများ' },
-  { key: 'stock', label: 'လက်ကျန်စာရင်းသွင်း', title: 'လက်ကျန်စာရင်းသွင်း' },
+  { key: 'stock', label: 'လက်ကျန်/စာရင်းသွင်း', title: 'လက်ကျန်စာရင်းသွင်း' },
   { key: 'prices', label: 'ရွှေစျေး', title: 'ရွှေစျေး' },
 ]

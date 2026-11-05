@@ -9,6 +9,7 @@ import {
   N,
   fromYway,
   keepNumInput,
+  keepNumInputAt,
   nextVoucherInt,
   toLatinDigits,
   voucherNo,
@@ -59,6 +60,12 @@ describe('N / toLatinDigits', () => {
     expect(keepNumInput('၁2၃')).toBe('၁2၃');
     expect(keepNumInput('12a၃')).toBe('12၃');
     expect(N(keepNumInput('၁2၃'))).toBe(123);
+  });
+
+  it('maps caret through stripped chars', () => {
+    expect(keepNumInputAt('12a34', 3)).toEqual({ value: '1234', caret: 2 });
+    expect(keepNumInputAt('9500000', 3)).toEqual({ value: '9500000', caret: 3 });
+    expect(keepNumInputAt('', 0)).toEqual({ value: '', caret: 0 });
   });
 });
 

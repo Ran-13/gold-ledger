@@ -14,6 +14,8 @@ export function Dialog({
   toolbar,
   compact,
   full,
+  /** Fill the viewport; body does not scroll (children must flex/shrink). */
+  fit,
   closeOnEsc = true,
 }: {
   open: boolean;
@@ -29,6 +31,7 @@ export function Dialog({
   compact?: boolean;
   /** Nearly full-page sheet */
   full?: boolean;
+  fit?: boolean;
   closeOnEsc?: boolean;
 }) {
   useEffect(() => {
@@ -55,7 +58,8 @@ export function Dialog({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: full ? 8 : 24,
+        padding: full || fit ? 8 : 24,
+        boxSizing: 'border-box',
       }}
     >
       <div
@@ -71,9 +75,15 @@ export function Dialog({
         style={{
           position: 'relative',
           width: '100%',
-          maxWidth: width,
-          height: full ? '96vh' : undefined,
-          maxHeight: full ? '96vh' : compact ? 'min(92vh, 820px)' : 'min(90vh, 920px)',
+          maxWidth: fit
+            ? `min(${typeof width === 'number' ? `${width}px` : width}, calc(100vw - 16px))`
+            : width,
+          height: fit || full ? 'calc(100dvh - 16px)' : undefined,
+          maxHeight: fit || full
+            ? 'calc(100dvh - 16px)'
+            : compact
+              ? 'min(92vh, 820px)'
+              : 'min(90vh, 920px)',
           display: 'flex',
           flexDirection: 'column',
           background: colors.white,
@@ -90,7 +100,7 @@ export function Dialog({
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 16,
-            padding: compact || full ? '14px 20px' : '22px 24px 18px',
+            padding: fit ? '10px 16px' : compact || full ? '14px 20px' : '22px 24px 18px',
             flexShrink: 0,
             background: colors.white,
           }}
@@ -99,7 +109,7 @@ export function Dialog({
             <h2
               style={{
                 margin: 0,
-                fontSize: compact || full ? 24 : 28,
+                fontSize: fit ? 22 : compact || full ? 24 : 28,
                 fontWeight: 700,
                 lineHeight: 1.4,
                 letterSpacing: '0.015em',
@@ -164,7 +174,7 @@ export function Dialog({
           style={{
             height: 1,
             background: colors.rowDivider,
-            margin: compact ? '0 20px' : '0 24px',
+            margin: fit ? '0 16px' : compact ? '0 20px' : '0 24px',
             flexShrink: 0,
           }}
         />
@@ -172,7 +182,7 @@ export function Dialog({
         {toolbar ? (
           <div
             style={{
-              padding: compact ? '10px 20px 12px' : '12px 24px 14px',
+              padding: fit ? '8px 16px 10px' : compact ? '10px 20px 12px' : '12px 24px 14px',
               flexShrink: 0,
               background: colors.white,
             }}
@@ -183,10 +193,12 @@ export function Dialog({
 
         <div
           style={{
-            overflow: 'auto',
-            padding: full ? 0 : compact ? '14px 20px 10px' : '20px 24px 8px',
+            overflow: fit ? 'hidden' : 'auto',
+            padding: full ? 0 : fit ? '10px 16px 8px' : compact ? '14px 20px 10px' : '20px 24px 8px',
             flex: 1,
             minHeight: 0,
+            display: fit ? 'flex' : undefined,
+            flexDirection: fit ? 'column' : undefined,
           }}
         >
           {children}
@@ -195,7 +207,7 @@ export function Dialog({
         {footer && (
           <div
             style={{
-              padding: compact ? '12px 20px 14px' : '16px 24px 20px',
+              padding: fit ? '10px 16px 12px' : compact ? '12px 20px 14px' : '16px 24px 20px',
               borderTop: `1.5px solid ${colors.rowDivider}`,
               background: '#FAFBFC',
               flexShrink: 0,

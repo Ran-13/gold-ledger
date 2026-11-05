@@ -73,7 +73,7 @@ type TxnLine = {
 
 /**
  * စာရင်းအင်း — end-user ကြည့်ရှင်းသော ပုံစံ
- * ၁) ကာလရွေး  ၂) ရောင်းရငွေ / ဝယ်သုံးငွေ  ၃) ရွှေဝင်·ထွက်  ၄) အသေးစိတ်
+ * ၁) ကာလရွေး  ၂) ဝင်ငွေ / ထွက်ငွေ  ၃) ရွှေဝင်·ထွက်  ၄) အသေးစိတ်
  */
 export function Reports() {
   const txns = useStore((s) => s.txns);
@@ -483,7 +483,7 @@ export function Reports() {
                 tone="sell"
               />
               <MiniFact
-                label="စုစုပေါင်း(အရောင်း)"
+                label="ဝင်ငွေ"
                 value={money(period.sellAmt, digits)}
                 tone="sell"
               />
@@ -502,7 +502,7 @@ export function Reports() {
                 tone="buy"
               />
               <MiniFact
-                label="စုစုပေါင်း(အဝယ်)"
+                label="ထွက်ငွေ"
                 value={money(period.buyAmt, digits)}
                 tone="buy"
               />
@@ -549,7 +549,7 @@ export function Reports() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
                         <div>
                           <div style={{ fontSize: 15, fontWeight: 700, color: colors.sell }}>
-                            အရောင်း · {D(m.sellN, digits)} စောင်
+                            ဝင်ငွေ · {D(m.sellN, digits)} စောင်
                           </div>
                           <div
                             className="num"
@@ -563,7 +563,7 @@ export function Reports() {
                         </div>
                         <div>
                           <div style={{ fontSize: 15, fontWeight: 700, color: colors.buy }}>
-                            အဝယ် · {D(m.buyN, digits)} စောင်
+                            ထွက်ငွေ · {D(m.buyN, digits)} စောင်
                           </div>
                           <div
                             className="num"

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { appAlert } from '../lib/appAlert';
 import { Dialog, dialogBtnGhost, dialogBtnPrimary } from './Dialog';
 import { IconSave } from './Icons';
 import { createCardAdjustment } from '../db/queries';
@@ -52,11 +53,11 @@ export function CardAdjustDialog() {
 
   const save = async () => {
     if (n <= 0) {
-      window.alert('ကဒ် အရေအတွက် ထည့်ပါ');
+      void appAlert('ကဒ် အရေအတွက် ထည့်ပါ');
       return;
     }
     if (overdraw) {
-      window.alert(`အကယ်ဒမီအခေါက်ရွှေ မလုံလောက်ပါ · လက်ကျန် ${have}`);
+      void appAlert(`အကယ်ဒမီအခေါက်ရွှေ မလုံလောက်ပါ · လက်ကျန် ${have}`);
       return;
     }
     setSaving(true);
@@ -64,8 +65,11 @@ export function CardAdjustDialog() {
       await createCardAdjustment(kind, denom, n, note);
       await refresh();
       close();
+      await appAlert(
+        isIn ? 'အကယ်ဒမီအခေါက်ရွှေ လက်ကျန် ထည့်ပြီးပါပြီ' : 'အကယ်ဒမီအခေါက်ရွှေ လက်ကျန် လျှော့ပြီးပါပြီ',
+      );
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : String(e));
+      void appAlert(e instanceof Error ? e.message : String(e));
     } finally {
       setSaving(false);
     }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { appAlert } from '../lib/appAlert';
 import { Dialog } from './Dialog';
 import { IconSave } from './Icons';
 import { setSetting } from '../db/queries';
@@ -47,7 +48,7 @@ export function OpeningDialog() {
 
   const save = async () => {
     if (wouldGoNegative) {
-      window.alert(
+      void appAlert(
         `အစလက်ကျန် လျှော့လို့ မရပါ · လက်ကျန် အနှုတ် ဖြစ်မည်\nရလဒ်လက်ကျန် · ${W(projected, digits)}`,
       );
       return;
@@ -57,8 +58,9 @@ export function OpeningDialog() {
       await setSetting('opening_stock_yway', String(yway));
       await refreshSettings();
       close();
+      await appAlert('အစလက်ကျန် သိမ်းပြီးပါပြီ');
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : String(e));
+      void appAlert(e instanceof Error ? e.message : String(e));
     } finally {
       setSaving(false);
     }

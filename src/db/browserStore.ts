@@ -1,4 +1,8 @@
-import { DEFAULT_AUTH_PASSWORD_HASH, DEFAULT_AUTH_USERNAME } from '../lib/auth'
+import {
+  DEFAULT_AUTH_PASSWORD_HASH,
+  DEFAULT_AUTH_USERNAME,
+  LEGACY_DEFAULT_AUTH_PASSWORD_HASH,
+} from '../lib/auth'
 import {
   assertCardStockEnough,
   buyCardAmountFixes,
@@ -122,6 +126,10 @@ function ensureCardTables(d: BrowserData): void {
   if (d.settings.card_fee == null) d.settings.card_fee = String(DEFAULT_CARD_FEE)
   if (!d.settings.auth_username) d.settings.auth_username = DEFAULT_AUTH_USERNAME
   if (!d.settings.auth_password_hash) d.settings.auth_password_hash = DEFAULT_AUTH_PASSWORD_HASH
+  // Upgrade legacy default `password` → `A` (custom passwords untouched).
+  if (d.settings.auth_password_hash === LEGACY_DEFAULT_AUTH_PASSWORD_HASH) {
+    d.settings.auth_password_hash = DEFAULT_AUTH_PASSWORD_HASH
+  }
 }
 
 /** One-time: buy+card amounts become gold + fee. Returns true if applied. */

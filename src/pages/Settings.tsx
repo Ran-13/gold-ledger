@@ -11,7 +11,8 @@ import {
   runAutoBackup,
   type BackupStatus,
 } from '../lib/autoBackup';
-import { hashPassword, verifyLogin } from '../lib/auth';
+import { appAlert, appConfirm } from '../lib/appAlert';
+import { hashPassword, MIN_PASSWORD_LENGTH, verifyLogin } from '../lib/auth';
 import { PRINT_SIZE_OPTIONS } from '../lib/printVoucher';
 import { keepNumInput, money, N } from '../lib/units';
 import { colors, radii } from '../styles/tokens';
@@ -37,6 +38,11 @@ export function Settings() {
   const [backupStatus, setBackupStatus] = useState<BackupStatus | null>(null);
   const [restorePick, setRestorePick] = useState('');
 
+  const notify = (text: string) => {
+    setMsg(text);
+    void appAlert(text);
+  };
+
   const reloadBackupStatus = useCallback(async () => {
     const st = await fetchBackupStatus();
     setBackupStatus(st);
@@ -46,17 +52,17 @@ export function Settings() {
 
   const restoreFromAuto = async (srcPath: string) => {
     if (!isTauri()) {
-      setMsg('Restore works in the desktop app only');
+      notify('Restore works in the desktop app only');
       return;
     }
     if (!srcPath) {
-      setMsg('No backup yet — save a sale or purchase first');
+      notify('No backup yet — save a sale or purchase first');
       return;
     }
     if (
-      !window.confirm(
+      !(await appConfirm(
         'Replace all current data with this backup?\nYour current data will be saved first.',
-      )
+      ))
     ) {
       return;
     }
@@ -69,9 +75,9 @@ export function Settings() {
       await refresh();
       await refreshSettings();
       await reloadBackupStatus();
-      setMsg('Restored successfully');
+      notify('Restored successfully');
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : String(e));
+      notify(e instanceof Error ? e.message : String(e));
       try {
         await reopenDb();
       } catch {
@@ -103,11 +109,13 @@ export function Settings() {
   const saveDigits = async (digitsMode: 'latin' | 'myanmar') => {
     await setSetting('digits', digitsMode);
     await refreshSettings();
+    notify(digitsMode === 'myanmar' ? 'ဂဏန်းပုံစံ · ၀–၉ သိမ်းပြီးပါပြီ' : 'ဂဏန်းပုံစံ · 0–9 သိမ်းပြီးပါပြီ');
   };
 
   const savePrintSize = async (size: PrintSize) => {
     await setSetting('print_size', size);
     await refreshSettings();
+    notify(`ဘောင်ချာ ပရင့်အရွယ် · ${size} သိမ်းပြီးပါပြီ`);
   };
 
   const saveShop = async () => {
@@ -115,34 +123,34 @@ export function Settings() {
     await setSetting('shop_mark', shopMark.trim() || 'သ');
     await setSetting('shop_tagline', shopTagline.trim() || 'အခေါက်ရွှေ အရောင်းအဝယ်');
     await refreshSettings();
-    setMsg('ဆိုင်အမှတ်တံဆိပ် သိမ်းပြီးပါပြီ');
+    notify('ဆိုင်အမှတ်တံဆိပ် သိမ်းပြီးပါပြီ');
   };
 
   const saveCardFee = async () => {
     const fee = Math.max(0, Math.round(N(cardFee)) || 0);
     await setSetting('card_fee', String(fee));
     await refreshSettings();
-    setMsg(`ကဒ်ဖိုး သိမ်းပြီး · ${money(fee, digits)}`);
+    notify(`ကဒ်ဖိုး သိမ်းပြီး · ${money(fee, digits)}`);
   };
 
   const saveAuth = async () => {
     const user = authUser.trim();
     if (!user) {
-      setMsg('အသုံးပြုသူအမည် ထည့်ပါ');
+      notify('အသုံးပြုသူအမည် ထည့်ပါ');
       return;
     }
     const ok = await verifyLogin(settings.auth_username, currentPw, settings);
     if (!ok) {
-      setMsg('လက်ရှိ စကားဝှက် မှားနေသည်');
+      notify('လက်ရှိ စကားဝှက် မှားနေသည်');
       return;
     }
     if (newPw || confirmPw) {
-      if (newPw.length < 4) {
-        setMsg('စကားဝှက်အသစ် အနည်းဆုံး ၄ လုံး');
+      if (newPw.length < MIN_PASSWORD_LENGTH) {
+        notify(`စကားဝှက်အသစ် အနည်းဆုံး ${MIN_PASSWORD_LENGTH} လုံး`);
         return;
       }
       if (newPw !== confirmPw) {
-        setMsg('စကားဝှက်အသစ် မတူညီပါ');
+        notify('စကားဝှက်အသစ် မတူညီပါ');
         return;
       }
     }
@@ -154,12 +162,12 @@ export function Settings() {
     setCurrentPw('');
     setNewPw('');
     setConfirmPw('');
-    setMsg('ဝင်ရောက်မှု သိမ်းပြီးပါပြီ');
+    notify('ဝင်ရောက်မှု သိမ်းပြီးပါပြီ');
   };
 
   const backup = async () => {
     if (!isTauri()) {
-      setMsg('Backup works in the desktop app only');
+      notify('Backup works in the desktop app only');
       return;
     }
     setBusy(true);
@@ -175,9 +183,9 @@ export function Settings() {
       if (!dest) return;
       await invoke('backup_database', { dest });
       await reloadBackupStatus();
-      setMsg('Backup saved');
+      notify('Backup saved');
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : String(e));
+      notify(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
@@ -185,10 +193,10 @@ export function Settings() {
 
   const restore = async () => {
     if (!isTauri()) {
-      setMsg('Restore works in the desktop app only');
+      notify('Restore works in the desktop app only');
       return;
     }
-    if (!window.confirm('Replace all current data with this file?')) return;
+    if (!(await appConfirm('Replace all current data with this file?'))) return;
     setBusy(true);
     setMsg('');
     try {
@@ -205,9 +213,9 @@ export function Settings() {
       await reopenDb();
       await refresh();
       await refreshSettings();
-      setMsg('Restored successfully');
+      notify('Restored successfully');
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : String(e));
+      notify(e instanceof Error ? e.message : String(e));
       try {
         await reopenDb();
       } catch {
@@ -330,7 +338,7 @@ export function Settings() {
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ fontSize: 16, fontWeight: 600, color: colors.ink, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <IconLock size={15} />
-              စကားဝှက်အသစ် (လိုလျှင်)
+              စကားဝှက်အသစ် (အနည်းဆုံး ၁ လုံး)
             </span>
             <input
               type="password"
@@ -471,13 +479,13 @@ export function Settings() {
                       setBusy(true);
                       setMsg('');
                       try {
-                    await runAutoBackup('daily');
-                    await runAutoBackup('weekly');
-                    await runAutoBackup('txn');
-                    await reloadBackupStatus();
-                    setMsg('Backup saved');
+                        await runAutoBackup('daily');
+                        await runAutoBackup('weekly');
+                        await runAutoBackup('txn');
+                        await reloadBackupStatus();
+                        notify('Backup saved');
                       } catch (e) {
-                        setMsg(e instanceof Error ? e.message : String(e));
+                        notify(e instanceof Error ? e.message : String(e));
                       } finally {
                         setBusy(false);
                       }

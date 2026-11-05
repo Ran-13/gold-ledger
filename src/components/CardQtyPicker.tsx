@@ -8,6 +8,7 @@ export function CardQtyPicker({
   digits,
   sellMode,
   compact,
+  fill,
   onChange,
 }: {
   qty: Record<CardDenom, string>;
@@ -16,6 +17,8 @@ export function CardQtyPicker({
   sellMode?: boolean;
   /** Dense 3-column grid — fits entry dialog without scroll */
   compact?: boolean;
+  /** Stretch rows to fill parent height (entry dialog fit mode) */
+  fill?: boolean;
   onChange: (denom: CardDenom, value: string) => void;
 }) {
   const bump = (denom: CardDenom, delta: number) => {
@@ -29,7 +32,10 @@ export function CardQtyPicker({
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-          gap: 10,
+          gridTemplateRows: fill ? 'repeat(3, minmax(0, 1fr))' : undefined,
+          gap: fill ? 8 : 10,
+          height: fill ? '100%' : undefined,
+          minHeight: 0,
         }}
       >
         {CARD_DENOMS.map((d) => {
@@ -41,11 +47,16 @@ export function CardQtyPicker({
             <div
               key={d.id}
               style={{
-                padding: '10px 10px 12px',
+                padding: fill ? '8px 8px 10px' : '10px 10px 12px',
                 borderRadius: radii.card,
                 border: `1.5px solid ${bad ? colors.buy : active ? colors.ink : colors.cardBorder}`,
                 background: bad ? 'rgba(178,58,42,.04)' : active ? '#F7F8FA' : colors.white,
                 minWidth: 0,
+                minHeight: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: fill ? 'center' : undefined,
+                boxSizing: 'border-box',
               }}
             >
               <div
@@ -54,17 +65,17 @@ export function CardQtyPicker({
                   justifyContent: 'space-between',
                   alignItems: 'baseline',
                   gap: 6,
-                  marginBottom: 8,
+                  marginBottom: fill ? 6 : 8,
                 }}
               >
-                <div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.35 }}>{d.label}</div>
+                <div style={{ fontSize: fill ? 15 : 16, fontWeight: 700, lineHeight: 1.3 }}>{d.label}</div>
                 <div
                   className="num"
                   style={{
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: 600,
                     color: bad ? colors.buy : colors.muted2,
-                    lineHeight: 1.35,
+                    lineHeight: 1.3,
                   }}
                 >
                   လက်ကျန် {D(have, digits)}
@@ -84,11 +95,11 @@ export function CardQtyPicker({
                   style={{
                     flex: 1,
                     minWidth: 0,
-                    height: 38,
+                    height: fill ? 34 : 38,
                     border: `1.5px solid ${bad ? colors.buy : colors.inputBorder}`,
                     borderRadius: radii.input,
                     textAlign: 'center',
-                    fontSize: 18,
+                    fontSize: fill ? 17 : 18,
                     fontWeight: 700,
                     background: colors.white,
                     color: bad ? colors.buy : colors.ink,
@@ -101,7 +112,7 @@ export function CardQtyPicker({
                   compact
                 />
               </div>
-              {want > 0 && (
+              {!fill && want > 0 && (
                 <div
                   className="num"
                   style={{

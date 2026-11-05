@@ -1,4 +1,5 @@
 import { useMemo, useState, type CSSProperties } from 'react';
+import { appAlert } from '../lib/appAlert';
 import { Card } from '../components/Card';
 import {
   CellMeta,
@@ -77,7 +78,7 @@ export function Customers() {
       setPendingDelete(null);
       await refresh();
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : String(e));
+      void appAlert(e instanceof Error ? e.message : String(e));
     } finally {
       setDeleting(false);
     }

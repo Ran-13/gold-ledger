@@ -120,13 +120,13 @@ export function Dashboard() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <StatStrip>
           <MiniFact
-            label="ငွေ(အရောင်း)"
+            label="ဝင်ငွေ"
             value={money(sellAmt, digits)}
             tone="sell"
             sub={`${D(tS.length, digits)} စောင်`}
           />
           <MiniFact
-            label="ငွေ(အဝယ်)"
+            label="ထွက်ငွေ"
             value={money(buyAmt, digits)}
             tone="buy"
             sub={`${D(tB.length, digits)} စောင်`}

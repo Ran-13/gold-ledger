@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { appAlert } from '../lib/appAlert';
 import { Dialog } from './Dialog';
 import { IconSave } from './Icons';
 import { setCardOpenings } from '../db/queries';
@@ -38,8 +39,9 @@ export function CardOpeningDialog() {
       await setCardOpenings(next);
       await refresh();
       close();
+      await appAlert('အကယ်ဒမီအခေါက်ရွှေ အစလက်ကျန် သိမ်းပြီးပါပြီ');
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : String(e));
+      void appAlert(e instanceof Error ? e.message : String(e));
     } finally {
       setSaving(false);
     }

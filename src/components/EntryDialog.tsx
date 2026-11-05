@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { appAlert } from '../lib/appAlert';
 import { CardQtyPicker } from './CardQtyPicker';
 import { CustomerCombobox } from './Combobox';
 import { Dialog, dialogBtnGhost, dialogBtnPrimary } from './Dialog';
@@ -165,7 +166,7 @@ export function EntryDialog() {
   const looseYway = toYway(N(form.k), N(form.p), N(form.y));
   const yway = channel === 'card' ? cardYway : looseYway;
 
-  const price = N(priceStr) || (form.type === 'sell' ? curSell : curBuy);
+  const price = N(priceStr);
   const feePerCard =
     cardFeeStr.trim() === ''
       ? settings.card_fee
@@ -194,23 +195,28 @@ export function EntryDialog() {
   const save = async (andPrint = false) => {
     if (savingLock.current) return;
     if (!form.customerId && !ql) {
-      window.alert('ဝယ်သူ ရွေးပါ သို့မဟုတ် အမည် ထည့်ပါ');
+      void appAlert('ဝယ်သူ ရွေးပါ သို့မဟုတ် အမည် ထည့်ပါ');
+      return;
+    }
+    if (priceStr.trim() === '' || price <= 0) {
+      void appAlert('ရွှေစျေး ထည့်ပါ');
+      setEditingPrice(true);
       return;
     }
     if (channel === 'card') {
       if (!cardLines.length) {
-        window.alert('ကဒ် အရေအတွက် ထည့်ပါ');
+        void appAlert('ကဒ် အရေအတွက် ထည့်ပါ');
         return;
       }
     } else if (looseYway <= 0) {
-      window.alert('ရွှေချိန် ထည့်ပါ');
+      void appAlert('ရွှေချိန် ထည့်ပါ');
       kRef.current?.focus();
       return;
     }
     if (blocked) {
-      if (cardOverdraw) window.alert('အကယ်ဒမီအခေါက်ရွှေ လက်ကျန် မလုံလောက်ပါ');
+      if (cardOverdraw) void appAlert('အကယ်ဒမီအခေါက်ရွှေ လက်ကျန် မလုံလောက်ပါ');
       else if (looseOverdraw) {
-        window.alert(
+        void appAlert(
           `လက်ကျန်ထက် ပို၍ မရပါ\nလက်ရှိမီးလင်းဖြတ်စလက်ကျန် · ${W(Math.max(0, looseStockY), digits)}`,
         );
       }
@@ -218,15 +224,15 @@ export function EntryDialog() {
     }
     if (isNew) {
       if (!form.newPhone.trim()) {
-        window.alert('ဖုန်းနံပါတ် ထည့်ပါ');
+        void appAlert('ဖုန်းနံပါတ် ထည့်ပါ');
         return;
       }
       if (!form.newAddress.trim()) {
-        window.alert('နေရပ်လိပ်စာ ထည့်ပါ');
+        void appAlert('နေရပ်လိပ်စာ ထည့်ပါ');
         return;
       }
       if (!isNrcComplete(form.newNrc)) {
-        window.alert('မှတ်ပုံတင် ပြည့်စုံရွေးပါ (နံပါတ် ၆ လုံး)');
+        void appAlert('မှတ်ပုံတင် ပြည့်စုံရွေးပါ (နံပါတ် ၆ လုံး)');
         return;
       }
     }
@@ -261,10 +267,13 @@ export function EntryDialog() {
       });
       await refresh();
       close();
+      await appAlert(
+        form.type === 'sell' ? 'အရောင်း စာရင်း သိမ်းပြီးပါပြီ' : 'အဝယ် စာရင်း သိမ်းပြီးပါပြီ',
+      );
       setScreen('ledger');
       openVoucher(id, { print: andPrint });
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : String(e));
+      void appAlert(e instanceof Error ? e.message : String(e));
     } finally {
       savingLock.current = false;
       setSaving(false);
@@ -358,6 +367,7 @@ export function EntryDialog() {
       onClose={close}
       width={960}
       compact
+      fit
       footer={
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
           <div>
@@ -437,9 +447,26 @@ export function EntryDialog() {
         </div>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
+          flex: 1,
+          minHeight: 0,
+          height: '100%',
+        }}
+      >
         {/* 1. What kind of entry? */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 10,
+            alignItems: 'center',
+            flexShrink: 0,
+          }}
+        >
           <Segmented
             size="chip"
             options={[
@@ -467,108 +494,126 @@ export function EntryDialog() {
             placeholder="မှတ်ချက် (မဖြည့်လည်းရ)"
             style={{
               ...formInput,
-              height: 42,
+              height: 40,
               flex: 1,
-              minWidth: 160,
-              fontSize: 16,
+              minWidth: 140,
+              fontSize: 15,
               fontWeight: 500,
             }}
           />
         </div>
 
-        {/* 2. Who? */}
-        <CustomerCombobox
-          customers={customers}
-          query={form.query}
-          customerId={form.customerId}
-          newPhone={form.newPhone}
-          newNrc={form.newNrc}
-          newAddress={form.newAddress}
-          digits={digits}
-          onQuery={(q) => {
-            setForm((f) => ({
-              ...f,
-              query: q,
-              customerId: null,
-            }));
-          }}
-          onSelect={(c: Customer) => setForm((f) => ({ ...f, customerId: c.id, query: c.name }))}
-          onNewPhone={(p) => setForm((f) => ({ ...f, newPhone: p }))}
-          onNewNrc={(n) => setForm((f) => ({ ...f, newNrc: n }))}
-          onNewAddress={(a) => setForm((f) => ({ ...f, newAddress: a }))}
-        />
+        {/* 2. Who? — may scroll alone if new-customer fields expand */}
+        <div style={{ flexShrink: 1, minHeight: 0, maxHeight: '36%', overflow: 'auto' }}>
+          <CustomerCombobox
+            customers={customers}
+            query={form.query}
+            customerId={form.customerId}
+            newPhone={form.newPhone}
+            newNrc={form.newNrc}
+            newAddress={form.newAddress}
+            digits={digits}
+            onQuery={(q) => {
+              setForm((f) => ({
+                ...f,
+                query: q,
+                customerId: null,
+              }));
+            }}
+            onSelect={(c: Customer) => setForm((f) => ({ ...f, customerId: c.id, query: c.name }))}
+            onNewPhone={(p) => setForm((f) => ({ ...f, newPhone: p }))}
+            onNewNrc={(n) => setForm((f) => ({ ...f, newNrc: n }))}
+            onNewAddress={(a) => setForm((f) => ({ ...f, newAddress: a }))}
+          />
+        </div>
 
-        {/* 3. Qty + money side by side */}
+        {/* 3. Qty + money — fills remaining viewport height */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1.55fr) minmax(260px, 0.9fr)',
-            gap: 14,
-            alignItems: 'start',
+            gridTemplateColumns: 'minmax(0, 1.55fr) minmax(240px, 0.85fr)',
+            gap: 12,
+            alignItems: 'stretch',
+            flex: 1,
+            minHeight: 0,
           }}
         >
-          <div>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              minHeight: 0,
+              minWidth: 0,
+            }}
+          >
             <div
               style={{
-                fontSize: 15,
+                fontSize: 14,
                 fontWeight: 700,
                 color: colors.muted,
-                marginBottom: 10,
+                marginBottom: 8,
                 letterSpacing: '0.01em',
-                lineHeight: 1.45,
+                lineHeight: 1.4,
+                flexShrink: 0,
               }}
             >
               {channel === 'card' ? 'ကဒ် အရေအတွက် ရွေးပါ' : 'ရွှေချိန် ထည့်ပါ'}
             </div>
-            {channel === 'card' ? (
-              <CardQtyPicker
-                qty={cardQty}
-                stock={cardStock}
-                digits={digits}
-                sellMode={form.type === 'sell'}
-                compact
-                onChange={(denom, value) => setCardQty((q) => ({ ...q, [denom]: value }))}
-              />
-            ) : (
-              <div
-                style={{
-                  padding: 14,
-                  border: `1.5px solid ${colors.cardBorder}`,
-                  borderRadius: radii.card,
-                }}
-              >
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                  {unitInput('k', 'ကျပ်', true)}
-                  {unitInput('p', 'ပဲ')}
-                  {unitInput('y', 'ရွေး')}
-                </div>
+            <div style={{ flex: 1, minHeight: 0 }}>
+              {channel === 'card' ? (
+                <CardQtyPicker
+                  qty={cardQty}
+                  stock={cardStock}
+                  digits={digits}
+                  sellMode={form.type === 'sell'}
+                  compact
+                  fill
+                  onChange={(denom, value) => setCardQty((q) => ({ ...q, [denom]: value }))}
+                />
+              ) : (
                 <div
                   style={{
-                    marginTop: 12,
-                    fontSize: 15,
-                    color: looseOverdraw ? colors.buy : colors.muted,
-                    fontWeight: 600,
-                    lineHeight: 1.5,
+                    padding: 12,
+                    border: `1.5px solid ${colors.cardBorder}`,
+                    borderRadius: radii.card,
+                    height: '100%',
+                    boxSizing: 'border-box',
                   }}
                 >
-                  စု · <span className="num">{W(looseYway, digits)}</span>
-                  {form.type === 'sell' && (
-                    <span>
-                      {' '}
-                      · လက်ကျန် {W(Math.max(0, looseStockY), digits)}
-                    </span>
-                  )}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                    {unitInput('k', 'ကျပ်', true)}
+                    {unitInput('p', 'ပဲ')}
+                    {unitInput('y', 'ရွေး')}
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 10,
+                      fontSize: 14,
+                      color: looseOverdraw ? colors.buy : colors.muted,
+                      fontWeight: 600,
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    စု · <span className="num">{W(looseYway, digits)}</span>
+                    {form.type === 'sell' && (
+                      <span>
+                        {' '}
+                        · လက်ကျန် {W(Math.max(0, looseStockY), digits)}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
             {errMsg ? (
               <div
                 style={{
-                  marginTop: 10,
-                  fontSize: 15,
+                  marginTop: 8,
+                  fontSize: 14,
                   fontWeight: 700,
                   color: colors.buy,
-                  lineHeight: 1.45,
+                  lineHeight: 1.4,
+                  flexShrink: 0,
                 }}
               >
                 {errMsg}
@@ -580,11 +625,13 @@ export function EntryDialog() {
             style={{
               border: `1.5px solid ${colors.cardBorder}`,
               borderRadius: radii.card,
-              padding: '14px 16px',
+              padding: '12px 14px',
               display: 'flex',
               flexDirection: 'column',
-              gap: 12,
+              gap: 10,
               background: '#FAFBFC',
+              minHeight: 0,
+              overflow: 'auto',
             }}
           >
             <SummaryRow label="အလေးချိန်" value={W(yway, digits)} strong />
@@ -737,16 +784,17 @@ export function EntryDialog() {
 
             <div
               style={{
-                marginTop: 2,
-                padding: '12px 14px',
+                marginTop: 'auto',
+                padding: '10px 12px',
                 borderRadius: radii.card,
                 background: colors.white,
                 border: `1.5px solid ${colors.cardBorder}`,
+                flexShrink: 0,
               }}
             >
               <div
                 style={{
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: 700,
                   color: colors.muted,
                   letterSpacing: '0.01em',
@@ -757,9 +805,9 @@ export function EntryDialog() {
               <div
                 className="num"
                 style={{
-                  fontSize: 28,
+                  fontSize: 24,
                   fontWeight: 700,
-                  marginTop: 4,
+                  marginTop: 2,
                   color: colors.ink,
                   lineHeight: 1.25,
                 }}
