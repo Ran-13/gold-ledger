@@ -123,13 +123,13 @@ export function Dashboard() {
             label="ဝင်ငွေ"
             value={money(sellAmt, digits)}
             tone="sell"
-            sub={`${D(tS.length, digits)} စောင်`}
+            sub={`${D(tS.length, digits)} ဘောင်ချာ`}
           />
           <MiniFact
             label="ထွက်ငွေ"
             value={money(buyAmt, digits)}
             tone="buy"
-            sub={`${D(tB.length, digits)} စောင်`}
+            sub={`${D(tB.length, digits)} ဘောင်ချာ`}
           />
           <MiniFact label="ရွှေ(အရောင်း)" value={W(sellGold, digits)} tone="sell" />
           <MiniFact label="ရွှေ(အဝယ်)" value={W(buyGold, digits)} tone="buy" />
@@ -153,7 +153,7 @@ export function Dashboard() {
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
             <div style={ty.page}>ယနေ့ စာရင်း</div>
             <div style={{ fontSize: 16, color: colors.muted, fontWeight: 600 }}>
-              {D(todayRows.length, digits)} စောင်
+              {D(todayRows.length, digits)} ဘောင်ချာ
             </div>
           </div>
           <TextBtn onClick={() => setScreen('ledger')}>

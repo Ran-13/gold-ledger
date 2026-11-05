@@ -79,7 +79,7 @@ export function PaginationBar({
       <div className="num" style={{ fontSize: 17, color: colors.muted, fontWeight: 500 }}>
         {D(from, digits)}–{D(to, digits)} / {D(total, digits)}
         <span style={{ margin: '0 8px', color: colors.cardBorder }}>·</span>
-        တစ်မျက်နှာ {D(pageSize, digits)} စောင်
+        တစ်မျက်နှာ {D(pageSize, digits)} ဘောင်ချာ
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <PageBtn

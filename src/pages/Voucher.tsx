@@ -124,7 +124,7 @@ export function Voucher() {
             >
               <div style={ty.section}>အရောင်း/အဝယ် စာရင်း</div>
               <div style={{ fontSize: 17, color: colors.muted, fontWeight: 700, lineHeight: 1.4 }}>
-                {D(filtered.length, digits)} စောင်
+                {D(filtered.length, digits)} ဘောင်ချာ
               </div>
             </div>
             <div style={{ position: 'relative' }}>

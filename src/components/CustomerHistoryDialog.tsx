@@ -80,7 +80,7 @@ export function CustomerHistoryDialog({
       subtitle={
         customer ? (
           <span>
-            {D(rows.length, digits)} စောင်
+            {D(rows.length, digits)} ဘောင်ချာ
             <span style={{ margin: '0 8px', color: colors.cardBorder }}>·</span>
             <span style={{ color: colors.sell }}>ရောင်း {W(soldY, digits)}</span>
             <span style={{ margin: '0 8px', color: colors.cardBorder }}>·</span>

@@ -36,6 +36,13 @@ type FieldState = {
 
 const fieldState = new WeakMap<HTMLInputElement | HTMLTextAreaElement, FieldState>();
 
+/**
+ * Last physical key for this field (e.code).
+ * Zawgyi keyboard S inserts U+103A (shows as ် in Unicode fonts) meaning ျ —
+ * the detector treats က+် as Unicode asat (p≈0.03), so we key off KeyS.
+ */
+const lastKeyCode = new WeakMap<HTMLInputElement | HTMLTextAreaElement, string>();
+
 function shouldConvert(el: HTMLInputElement | HTMLTextAreaElement): boolean {
   if (el.disabled || el.readOnly) return false;
   if (el.dataset.noZg === '1' || el.dataset.noZg === 'true') return false;
@@ -77,6 +84,13 @@ function getState(el: HTMLInputElement | HTMLTextAreaElement): FieldState {
   return st;
 }
 
+/** Zawgyi S → U+103A (yapin). Unicode keyboard uses KeyF for real asat. */
+function consumeZawgyiSAsat(el: HTMLInputElement | HTMLTextAreaElement, val: string): boolean {
+  const code = lastKeyCode.get(el);
+  lastKeyCode.delete(el);
+  return code === 'KeyS' && val.endsWith('\u103A');
+}
+
 /**
  * Live Zawgyi keyboard → Unicode.
  * Keeps a raw Zawgyi buffer while typing so each keystroke doesn't
@@ -85,6 +99,7 @@ function getState(el: HTMLInputElement | HTMLTextAreaElement): FieldState {
 function applyLiveConvert(el: HTMLInputElement | HTMLTextAreaElement): void {
   const val = el.value;
   const st = getState(el);
+  const zgS = consumeZawgyiSAsat(el, val);
 
   if (!hasMyanmar(val)) {
     st.zgMode = false;
@@ -95,12 +110,17 @@ function applyLiveConvert(el: HTMLInputElement | HTMLTextAreaElement): void {
 
   // Enter / stay in Zawgyi session
   if (!st.zgMode) {
-    if (!isZawgyiLikely(val)) {
+    if (!isZawgyiLikely(val) && !zgS) {
       st.lastUni = val;
       return;
     }
     st.zgMode = true;
-    st.rawZg = val;
+    // Prefix may already be Unicode (က); mirror to Zawgyi then append S asat/yapin.
+    if (zgS && val.endsWith('\u103A')) {
+      st.rawZg = uni2zg(val.slice(0, -1)) + '\u103A';
+    } else {
+      st.rawZg = val;
+    }
     const uni = zg2uni(st.rawZg);
     if (uni !== val) {
       setNativeValue(el, uni);
@@ -208,6 +228,15 @@ function onFocusOut(e: Event): void {
  * (Zawgyi keyboard / paste → Unicode on screen and in state).
  */
 export function installZawgyiToUnicodeInputs(): () => void {
+  const onKeyDown = (e: Event) => {
+    if (!(e instanceof KeyboardEvent)) return;
+    if (e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = e.target;
+    if (!(t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement)) return;
+    if (!shouldConvert(t)) return;
+    lastKeyCode.set(t, e.code);
+  };
+
   const onInput = (e: Event) => {
     if (e instanceof InputEvent && e.isComposing) return;
     const t = e.target;
@@ -216,10 +245,12 @@ export function installZawgyiToUnicodeInputs(): () => void {
     applyLiveConvert(t);
   };
 
+  document.addEventListener('keydown', onKeyDown, true);
   document.addEventListener('input', onInput, true);
   document.addEventListener('focusin', onFocusIn, true);
   document.addEventListener('focusout', onFocusOut, true);
   return () => {
+    document.removeEventListener('keydown', onKeyDown, true);
     document.removeEventListener('input', onInput, true);
     document.removeEventListener('focusin', onFocusIn, true);
     document.removeEventListener('focusout', onFocusOut, true);

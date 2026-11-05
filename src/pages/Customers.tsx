@@ -319,7 +319,7 @@ export function Customers() {
             pendingDelete.vouchers > 0 ? (
               <>
                 ဝယ်သူစာရင်းကနေ <strong>{pendingDelete.name}</strong> ကို ဖျက်လျှင် ဘောင်ချာ{' '}
-                {D(pendingDelete.vouchers, digits)} စောင် ရှိသောကြောင့် မှတ်တမ်းမှာ အမည် မပေါ်တော့ပါ။
+                {D(pendingDelete.vouchers, digits)} ဘောင်ချာ ရှိသောကြောင့် မှတ်တမ်းမှာ အမည် မပေါ်တော့ပါ။
               </>
             ) : (
               <>

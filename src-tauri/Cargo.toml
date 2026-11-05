@@ -1,6 +1,6 @@
 [package]
 name = "gold-ledger"
-version = "1.0.14"
+version = "1.0.15"
 description = "Gold Ledger"
 authors = ["ဦးသန့်စင်"]
 edition = "2021"

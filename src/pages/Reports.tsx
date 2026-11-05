@@ -475,7 +475,7 @@ export function Reports() {
                 label="ရွှေဖိုး(အရောင်း)"
                 value={money(period.sellGoldAmt, digits)}
                 tone="sell"
-                sub={`${D(period.sellN, digits)} စောင်`}
+                sub={`${D(period.sellN, digits)} ဘောင်ချာ`}
               />
               <MiniFact
                 label="ကဒ်ဖိုး(အရောင်း)"
@@ -494,7 +494,7 @@ export function Reports() {
                 label="ရွှေဖိုး(အဝယ်)"
                 value={money(period.buyGoldAmt, digits)}
                 tone="buy"
-                sub={`${D(period.buyN, digits)} စောင်`}
+                sub={`${D(period.buyN, digits)} ဘောင်ချာ`}
               />
               <MiniFact
                 label="ကဒ်ဖိုး(အဝယ်)"
@@ -549,7 +549,7 @@ export function Reports() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
                         <div>
                           <div style={{ fontSize: 15, fontWeight: 700, color: colors.sell }}>
-                            ဝင်ငွေ · {D(m.sellN, digits)} စောင်
+                            ဝင်ငွေ · {D(m.sellN, digits)} ဘောင်ချာ
                           </div>
                           <div
                             className="num"
@@ -563,7 +563,7 @@ export function Reports() {
                         </div>
                         <div>
                           <div style={{ fontSize: 15, fontWeight: 700, color: colors.buy }}>
-                            ထွက်ငွေ · {D(m.buyN, digits)} စောင်
+                            ထွက်ငွေ · {D(m.buyN, digits)} ဘောင်ချာ
                           </div>
                           <div
                             className="num"
@@ -744,7 +744,7 @@ function ByDayTable({
           <thead>
             <tr>
               <th style={{ ...tableTh, paddingLeft: 16 }}>ရက်စွဲ</th>
-              <th style={{ ...tableTh, textAlign: 'right' }}>စောင်</th>
+              <th style={{ ...tableTh, textAlign: 'right' }}>ဘောင်ချာ</th>
               <th style={{ ...tableTh, textAlign: 'right' }}>ဝင်ငွေ</th>
               <th style={{ ...tableTh, textAlign: 'right' }}>ထွက်ငွေ</th>
               <th style={{ ...tableTh, textAlign: 'right' }}>ရွှေဖိုး(အရောင်း)</th>
@@ -900,7 +900,7 @@ function TxnTable({
       >
         <div style={{ ...ty.section, color: titleColor }}>{title}</div>
         <div style={{ fontSize: 17, color: colors.muted, fontWeight: 700 }}>
-          {D(rows.length, digits)} စောင်
+          {D(rows.length, digits)} ဘောင်ချာ
         </div>
       </div>
       )}

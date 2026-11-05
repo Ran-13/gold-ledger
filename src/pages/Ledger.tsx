@@ -189,7 +189,7 @@ export function Ledger() {
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
               <div style={ty.page}>အရောင်း/အဝယ် စာရင်း</div>
               <div style={{ fontSize: 16, fontWeight: 600, color: colors.muted }}>
-                {D(rows.length, digits)} စောင်
+                {D(rows.length, digits)} ဘောင်ချာ
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
