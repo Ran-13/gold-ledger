@@ -702,6 +702,8 @@ function ByDayTable({
     buyN: number;
     sellAmt: bigint;
     buyAmt: bigint;
+    sellGoldAmt: bigint;
+    buyGoldAmt: bigint;
     sellFee: bigint;
     buyFee: bigint;
     sellY: number;
@@ -709,6 +711,26 @@ function ByDayTable({
   }>>;
   digits: DigitsMode;
 }) {
+  const moneyCell = (
+    value: bigint,
+    tone: 'sell' | 'buy' | 'ink',
+    opts?: { padRight?: boolean; strong?: boolean },
+  ) => (
+    <td
+      className="num"
+      style={{
+        ...tableTd,
+        textAlign: 'right',
+        fontWeight: opts?.strong === false ? 600 : 700,
+        color: tone === 'sell' ? colors.sell : tone === 'buy' ? colors.buy : colors.ink,
+        whiteSpace: 'nowrap',
+        paddingRight: opts?.padRight ? 16 : undefined,
+      }}
+    >
+      {value ? money(value, digits) : '—'}
+    </td>
+  );
+
   return (
     <div>
       <div style={{ overflowX: 'auto' }}>
@@ -716,13 +738,15 @@ function ByDayTable({
           style={{
             width: '100%',
             borderCollapse: 'collapse',
-            minWidth: 860,
+            minWidth: 1080,
           }}
         >
           <thead>
             <tr>
               <th style={{ ...tableTh, paddingLeft: 16 }}>ရက်စွဲ</th>
               <th style={{ ...tableTh, textAlign: 'right' }}>စောင်</th>
+              <th style={{ ...tableTh, textAlign: 'right' }}>ဝင်ငွေ</th>
+              <th style={{ ...tableTh, textAlign: 'right' }}>ထွက်ငွေ</th>
               <th style={{ ...tableTh, textAlign: 'right' }}>ရွှေဖိုး(အရောင်း)</th>
               <th style={{ ...tableTh, textAlign: 'right' }}>ကဒ်ဖိုး(အရောင်း)</th>
               <th style={{ ...tableTh, textAlign: 'right' }}>ရွှေ(အရောင်း)</th>
@@ -735,7 +759,7 @@ function ByDayTable({
             {dayPage.total === 0 && (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={10}
                   style={{
                     ...tableTd,
                     textAlign: 'center',
@@ -759,30 +783,10 @@ function ByDayTable({
                 <td className="num" style={{ ...tableTd, textAlign: 'right', fontWeight: 700 }}>
                   {D(d.n, digits)}
                 </td>
-                <td
-                  className="num"
-                  style={{
-                    ...tableTd,
-                    textAlign: 'right',
-                    fontWeight: 700,
-                    color: colors.sell,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {d.sellAmt ? money(d.sellAmt, digits) : '—'}
-                </td>
-                <td
-                  className="num"
-                  style={{
-                    ...tableTd,
-                    textAlign: 'right',
-                    fontWeight: 600,
-                    color: colors.sell,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {d.sellFee > 0n ? money(d.sellFee, digits) : '—'}
-                </td>
+                {moneyCell(d.sellAmt, 'sell')}
+                {moneyCell(d.buyAmt, 'buy')}
+                {moneyCell(d.sellGoldAmt, 'sell')}
+                {moneyCell(d.sellFee, 'sell', { strong: false })}
                 <td
                   className="num"
                   style={{
@@ -795,30 +799,8 @@ function ByDayTable({
                 >
                   {d.sellY ? W(d.sellY, digits) : '—'}
                 </td>
-                <td
-                  className="num"
-                  style={{
-                    ...tableTd,
-                    textAlign: 'right',
-                    fontWeight: 700,
-                    color: colors.buy,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {d.buyAmt ? money(d.buyAmt, digits) : '—'}
-                </td>
-                <td
-                  className="num"
-                  style={{
-                    ...tableTd,
-                    textAlign: 'right',
-                    fontWeight: 600,
-                    color: colors.buy,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {d.buyFee > 0n ? money(d.buyFee, digits) : '—'}
-                </td>
+                {moneyCell(d.buyGoldAmt, 'buy')}
+                {moneyCell(d.buyFee, 'buy', { strong: false })}
                 <td
                   className="num"
                   style={{
