@@ -164,7 +164,7 @@ export function Entry() {
     try {
       const buy = form.type === 'buy' ? price : curBuy;
       const sell = form.type === 'sell' ? price : curSell;
-      if (buy > 0 && sell > 0 && (buy !== curBuy || sell !== curSell)) {
+      if (buy !== curBuy || sell !== curSell) {
         await persistPrice(buy, sell);
       }
       const id = await saveTxn({

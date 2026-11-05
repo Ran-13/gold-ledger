@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { Customer } from '../db/types';
 import { isNrcComplete, normalizeNrcKey } from '../lib/nrc';
 import { D, DigitsMode } from '../lib/units';
@@ -16,6 +17,8 @@ const labelStyle = {
 } as const;
 
 const fieldH = 46;
+
+type MenuBox = { top: number; left: number; width: number; maxHeight: number };
 
 export function CustomerCombobox({
   customers,
@@ -46,6 +49,9 @@ export function CustomerCombobox({
 }) {
   const [open, setOpen] = useState(false);
   const [hoverKey, setHoverKey] = useState<string | null>(null);
+  const [menuBox, setMenuBox] = useState<MenuBox | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const ql = query.trim().toLowerCase();
   const sel = customers.find((c) => c.id === customerId) ?? null;
   const isNew = !!ql && !sel;
@@ -73,6 +79,46 @@ export function CustomerCombobox({
 
   const show = open && sug.length > 0;
 
+  const updateMenuBox = () => {
+    const el = inputRef.current;
+    if (!el) {
+      setMenuBox(null);
+      return;
+    }
+    const r = el.getBoundingClientRect();
+    const gap = 4;
+    const spaceBelow = window.innerHeight - r.bottom - 12;
+    const spaceAbove = r.top - 12;
+    const preferBelow = spaceBelow >= 160 || spaceBelow >= spaceAbove;
+    const maxHeight = Math.max(120, Math.min(300, preferBelow ? spaceBelow : spaceAbove));
+    setMenuBox({
+      top: preferBelow ? r.bottom + gap : Math.max(8, r.top - gap - maxHeight),
+      left: r.left,
+      width: r.width,
+      maxHeight,
+    });
+  };
+
+  useLayoutEffect(() => {
+    if (!show) {
+      setMenuBox(null);
+      return;
+    }
+    updateMenuBox();
+  }, [show, query, sug.length]);
+
+  useEffect(() => {
+    if (!show) return;
+    const onReposition = () => updateMenuBox();
+    window.addEventListener('resize', onReposition);
+    // Capture scroll from dialog / nested overflow containers
+    window.addEventListener('scroll', onReposition, true);
+    return () => {
+      window.removeEventListener('resize', onReposition);
+      window.removeEventListener('scroll', onReposition, true);
+    };
+  }, [show]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -80,8 +126,9 @@ export function CustomerCombobox({
           <IconUser size={15} />
           ဝယ်သူအမည်
         </span>
-        <div style={{ position: 'relative' }}>
+        <div ref={wrapRef} style={{ position: 'relative' }}>
           <input
+            ref={inputRef}
             value={query}
             onChange={(e) => {
               onQuery(e.target.value);
@@ -91,69 +138,77 @@ export function CustomerCombobox({
             onBlur={() => setTimeout(() => setOpen(false), 140)}
             placeholder="အမည် ရိုက်ရှာပါ / အသစ်ရိုက်ထည့်ပါ"
             style={{ ...formInput, height: fieldH, fontSize: 18, fontWeight: 600 }}
+            autoComplete="off"
           />
-          {show && (
-            <div
-              style={{
-                position: 'absolute',
-                top: fieldH + 4,
-                left: 0,
-                right: 0,
-                zIndex: 20,
-                background: colors.white,
-                border: `1.5px solid ${colors.cardBorder}`,
-                borderRadius: radii.card,
-                boxShadow: '0 10px 28px rgba(27,42,65,.12)',
-                maxHeight: 300,
-                overflow: 'auto',
-                padding: 4,
-              }}
-            >
-              {sug.map((c) => {
-                const key = `c-${c.id}`;
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      onSelect(c);
-                      setOpen(false);
-                    }}
-                    onMouseEnter={() => setHoverKey(key)}
-                    onMouseLeave={() => setHoverKey(null)}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 3,
-                      width: '100%',
-                      padding: '12px 14px',
-                      border: 'none',
-                      borderRadius: radii.button,
-                      background: hoverKey === key ? 'rgba(27,42,65,.06)' : 'transparent',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      fontSize: 17,
-                      color: colors.ink,
-                    }}
-                  >
-                    <span style={{ fontWeight: 700, lineHeight: 1.4 }}>{c.name}</span>
-                    <span className="num" style={{ fontSize: 15, color: colors.muted2, lineHeight: 1.45 }}>
-                      {[
-                        c.phone ? D(c.phone, digits) : null,
-                        c.nrc ? D(c.nrc, digits) : null,
-                        c.address?.trim() || null,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ') || '—'}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </div>
       </label>
+
+      {show &&
+        menuBox &&
+        createPortal(
+          <div
+            role="listbox"
+            style={{
+              position: 'fixed',
+              top: menuBox.top,
+              left: menuBox.left,
+              width: menuBox.width,
+              zIndex: 4000,
+              background: colors.white,
+              border: `1.5px solid ${colors.ink}`,
+              borderRadius: radii.card,
+              boxShadow: '0 16px 40px rgba(15,23,36,.22)',
+              maxHeight: menuBox.maxHeight,
+              overflow: 'auto',
+              padding: 4,
+              boxSizing: 'border-box',
+            }}
+          >
+            {sug.map((c) => {
+              const key = `c-${c.id}`;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  role="option"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    onSelect(c);
+                    setOpen(false);
+                  }}
+                  onMouseEnter={() => setHoverKey(key)}
+                  onMouseLeave={() => setHoverKey(null)}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 3,
+                    width: '100%',
+                    padding: '12px 14px',
+                    border: 'none',
+                    borderRadius: radii.button,
+                    background: hoverKey === key ? 'rgba(27,42,65,.06)' : 'transparent',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    fontSize: 17,
+                    color: colors.ink,
+                  }}
+                >
+                  <span style={{ fontWeight: 700, lineHeight: 1.4 }}>{c.name}</span>
+                  <span className="num" style={{ fontSize: 15, color: colors.muted2, lineHeight: 1.45 }}>
+                    {[
+                      c.phone ? D(c.phone, digits) : null,
+                      c.nrc ? D(c.nrc, digits) : null,
+                      c.address?.trim() || null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ') || '—'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>,
+          document.body,
+        )}
 
       {sel && (
         <div style={{ fontSize: 15, color: colors.muted, lineHeight: 1.5, fontWeight: 500 }}>

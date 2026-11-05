@@ -239,9 +239,10 @@ export function EntryDialog() {
     savingLock.current = true;
     setSaving(true);
     try {
+      // Sync edited txn price into ရွှေစျေး (even if the other side is 0).
       const buy = form.type === 'buy' ? price : curBuy;
       const sell = form.type === 'sell' ? price : curSell;
-      if (buy > 0 && sell > 0 && (buy !== curBuy || sell !== curSell)) {
+      if (buy !== curBuy || sell !== curSell) {
         await upsertPrice(today, buy, sell);
       }
       const id = await saveTxn({
