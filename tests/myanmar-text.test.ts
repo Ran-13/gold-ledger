@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { toUnicodeMy } from '../src/lib/myanmarText';
+import {
+  isZawgyiLikely,
+  toUnicodeMy,
+  uni2zg,
+  zg2uni,
+} from '../src/lib/myanmarText';
 
 describe('toUnicodeMy', () => {
   it('converts Zawgyi to Unicode', () => {
@@ -26,3 +31,30 @@ describe('toUnicodeMy', () => {
     expect(toUnicodeMy('ABC မဂၤလာ')).toBe('ABC မင်္ဂလာ');
   });
 });
+
+describe('sticky zawgyi helpers', () => {
+  it('detects Zawgyi vowel-before-consonant', () => {
+    expect(isZawgyiLikely('ေမ')).toBe(true);
+    expect(zg2uni('ေမ')).toBe('မေ');
+  });
+
+  it('round-trips Unicode through Zawgyi mirror', () => {
+    const uni = 'မင်္ဂလာပါ';
+    expect(zg2uni(uni2zg(uni))).toBe(uni);
+  });
+
+  it('accumulates keystrokes like a Zawgyi keyboard session', () => {
+    // Simulate: type Zawgyi chars one by one into raw buffer, display Unicode
+    let raw = '';
+    for (const ch of 'မဂၤလာပါ') {
+      raw += ch;
+      // intermediate display should be convertible
+      expect(hasProgress(zg2uni(raw))).toBe(true);
+    }
+    expect(zg2uni(raw)).toBe('မင်္ဂလာပါ');
+  });
+});
+
+function hasProgress(s: string): boolean {
+  return s.length > 0;
+}
